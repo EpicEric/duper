@@ -204,7 +204,7 @@ pub enum DuperInner<'a> {
 }
 
 impl<'a> DuperValue<'a> {
-    pub fn accept<'v, V: DuperVisitor>(&self, visitor: &'v mut V) -> V::Value {
+    pub fn accept<V: DuperVisitor>(&self, visitor: &mut V) -> V::Value {
         match &self.inner {
             DuperInner::Object(object) => visitor.visit_object(self.identifier.as_ref(), object),
             DuperInner::Array(array) => visitor.visit_array(self.identifier.as_ref(), array),

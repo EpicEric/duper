@@ -10,7 +10,7 @@ pub struct Deserializer<'de> {
 }
 
 impl<'de> Deserializer<'de> {
-    pub fn from_str(input: &'de str) -> Result<Self, Error> {
+    pub fn from_string(input: &'de str) -> Result<Self, Error> {
         let value = DuperParser::parse_duper(input)?;
         Ok(Self { value: Some(value) })
     }
@@ -20,11 +20,11 @@ impl<'de> Deserializer<'de> {
     }
 }
 
-pub fn from_str<'a, T>(input: &'a str) -> Result<T, Error>
+pub fn from_string<'a, T>(input: &'a str) -> Result<T, Error>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::from_str(input)?;
+    let mut deserializer = Deserializer::from_string(input)?;
     let t = T::deserialize(&mut deserializer)?;
     Ok(t)
 }
@@ -38,7 +38,7 @@ where
     Ok(t)
 }
 
-impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
+impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
     type Error = de::value::Error;
 
     // --- Deserialize DuperValue ---

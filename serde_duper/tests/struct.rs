@@ -12,7 +12,7 @@ struct Test {
 
 #[test]
 fn serialize() {
-    let value: Test = serde_duper::from_str(
+    let value: Test = serde_duper::from_string(
         r##"
         {
             int: 42,

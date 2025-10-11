@@ -11,6 +11,12 @@ use crate::{
 
 pub struct Serializer;
 
+impl Default for Serializer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Serializer {
     pub fn new() -> Self {
         Self

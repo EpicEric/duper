@@ -45,11 +45,11 @@ where
 {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DuperRejection> {
         let string = str::from_utf8(bytes).map_err(|_| DuperRejection::DuperDataError)?;
-        Self::from_str(string)
+        Self::from_string(string)
     }
 
-    pub fn from_str(string: &str) -> Result<Self, DuperRejection> {
-        match serde_duper::from_str(string) {
+    pub fn from_string(string: &str) -> Result<Self, DuperRejection> {
+        match serde_duper::from_string(string) {
             Ok(value) => Ok(Self(value)),
             Err(err) => match err.inner.kind {
                 ErrorKind::ParseError(_) => Err(DuperRejection::DuperSyntaxError),
@@ -81,7 +81,7 @@ where
         let string = String::from_request(req, state)
             .await
             .map_err(|_| DuperRejection::DuperDataError)?;
-        Self::from_str(&string)
+        Self::from_string(&string)
     }
 }
 
@@ -102,7 +102,7 @@ where
         let string = String::from_request(req, state)
             .await
             .map_err(|_| DuperRejection::DuperDataError)?;
-        Ok(Some(Self::from_str(&string)?))
+        Ok(Some(Self::from_string(&string)?))
     }
 }
 

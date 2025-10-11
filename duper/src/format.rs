@@ -45,7 +45,11 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
                     max_hashtags = max_hashtags.max(curr_hashtags);
                 }
                 ' ' => was_hashtag = false,
-                '\r' | '\n' | '\t' | _ if char.is_control() || char.is_whitespace() => {
+                '\r' | '\n' | '\t' => {
+                    has_char_that_should_be_escaped = true;
+                    break;
+                }
+                char if char.is_control() || char.is_whitespace() => {
                     has_char_that_should_be_escaped = true;
                     break;
                 }
@@ -58,7 +62,7 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
             Cow::Owned(format!(r#"r{}"{}"{}"#, hashtags, string, hashtags))
         } else {
             // Regular string with escaping
-            let escaped_key = Cow::from(escape_str(&string)).into_owned();
+            let escaped_key = Cow::from(escape_str(string)).into_owned();
             Cow::Owned(format!(r#""{escaped_key}""#))
         }
     }
@@ -91,9 +95,11 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
                     max_hashtags = max_hashtags.max(curr_hashtags);
                 }
                 b' ' => was_hashtag = false,
-                b'\r' | b'\n' | b'\t' | _
-                    if byte.is_ascii_control() || byte.is_ascii_whitespace() =>
-                {
+                b'\r' | b'\n' | b'\t' => {
+                    has_char_that_should_be_escaped = true;
+                    break;
+                }
+                byte if byte.is_ascii_control() || byte.is_ascii_whitespace() => {
                     has_char_that_should_be_escaped = true;
                     break;
                 }
@@ -103,17 +109,16 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
         if quotes > max_hashtags && !has_char_that_should_be_escaped {
             // Raw bytes
             let hashtags: String = (0..=max_hashtags).map(|_| '#').collect();
-            let unesecaped_bytes: String =
-                bytes.0.into_iter().copied().map(|b| b as char).collect();
-            return Cow::Owned(format!(
+            let unesecaped_bytes: String = bytes.0.iter().copied().map(|b| b as char).collect();
+            Cow::Owned(format!(
                 r#"r{}"{}"{}"#,
                 hashtags, unesecaped_bytes, hashtags
-            ));
+            ))
         } else {
             // Regular bytes with escaping
             let escaped_bytes: String = bytes
                 .0
-                .into_iter()
+                .iter()
                 .copied()
                 .flat_map(ascii::escape_default)
                 .map(|b| b as char)

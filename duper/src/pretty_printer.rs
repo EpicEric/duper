@@ -13,6 +13,12 @@ pub struct PrettyPrinter {
     indent: usize,
 }
 
+impl Default for PrettyPrinter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PrettyPrinter {
     pub fn new() -> Self {
         Self { indent: 0 }
@@ -63,23 +69,21 @@ impl DuperVisitor for PrettyPrinter {
                 string.push_str(&self.indentation());
                 string.push_str("})\n");
             }
+        } else if object.is_empty() {
+            string.push_str("{}");
         } else {
-            if object.is_empty() {
-                string.push_str("{}");
-            } else {
-                string.push_str("{\n");
-                self.increase_indentation();
-                for (key, value) in object.iter() {
-                    string.push_str(&self.indentation());
-                    string.push_str(&format_key(key));
-                    string.push_str(": ");
-                    string.push_str(&value.accept(self));
-                    string.push_str(",\n");
-                }
-                self.decrease_indentation();
+            string.push_str("{\n");
+            self.increase_indentation();
+            for (key, value) in object.iter() {
                 string.push_str(&self.indentation());
-                string.push('}');
+                string.push_str(&format_key(key));
+                string.push_str(": ");
+                string.push_str(&value.accept(self));
+                string.push_str(",\n");
             }
+            self.decrease_indentation();
+            string.push_str(&self.indentation());
+            string.push('}');
         }
 
         string
@@ -108,21 +112,19 @@ impl DuperVisitor for PrettyPrinter {
                 string.push_str(&self.indentation());
                 string.push_str("])\n");
             }
+        } else if array.is_empty() {
+            string.push_str("[]");
         } else {
-            if array.is_empty() {
-                string.push_str("[]");
-            } else {
-                string.push_str("[\n");
-                self.increase_indentation();
-                for value in array.iter() {
-                    string.push_str(&self.indentation());
-                    string.push_str(&value.accept(self));
-                    string.push_str(",\n");
-                }
-                self.decrease_indentation();
+            string.push_str("[\n");
+            self.increase_indentation();
+            for value in array.iter() {
                 string.push_str(&self.indentation());
-                string.push(']');
+                string.push_str(&value.accept(self));
+                string.push_str(",\n");
             }
+            self.decrease_indentation();
+            string.push_str(&self.indentation());
+            string.push(']');
         }
 
         string
@@ -155,25 +157,23 @@ impl DuperVisitor for PrettyPrinter {
                 string.push_str(&self.indentation());
                 string.push_str("))");
             }
+        } else if tuple.is_empty() {
+            string.push_str("(,)");
+        } else if tuple.len() == 1 {
+            string.push('(');
+            string.push_str(&tuple.get(0).unwrap().accept(self));
+            string.push_str(",)");
         } else {
-            if tuple.is_empty() {
-                string.push_str("(,)");
-            } else if tuple.len() == 1 {
-                string.push_str("(");
-                string.push_str(&tuple.get(0).unwrap().accept(self));
-                string.push_str(",)");
-            } else {
-                string.push_str("(\n");
-                self.increase_indentation();
-                for value in tuple.iter() {
-                    string.push_str(&self.indentation());
-                    string.push_str(&value.accept(self));
-                    string.push_str(",\n");
-                }
-                self.decrease_indentation();
+            string.push_str("(\n");
+            self.increase_indentation();
+            for value in tuple.iter() {
                 string.push_str(&self.indentation());
-                string.push(')');
+                string.push_str(&value.accept(self));
+                string.push_str(",\n");
             }
+            self.decrease_indentation();
+            string.push_str(&self.indentation());
+            string.push(')');
         }
 
         string
@@ -196,7 +196,7 @@ impl DuperVisitor for PrettyPrinter {
                 string.push('\n');
                 self.decrease_indentation();
                 string.push_str(&self.indentation());
-                string.push_str(")");
+                string.push(')');
                 string
             } else {
                 format!("{identifier}({value})")
@@ -222,7 +222,7 @@ impl DuperVisitor for PrettyPrinter {
                 string.push_str(&bytes);
                 self.decrease_indentation();
                 string.push_str(&self.indentation());
-                string.push_str(")");
+                string.push(')');
                 string
             } else {
                 format!("{identifier}({bytes})")

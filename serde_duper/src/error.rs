@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 
 #[derive(Debug, Clone)]
 pub enum ErrorKind {
-    ParseError(pest::error::Error<duper::parser::Rule>),
+    ParseError(Box<pest::error::Error<duper::parser::Rule>>),
     SerializationError,
     DeserializationError(serde_core::de::value::Error),
     InvalidValue,
@@ -78,8 +78,8 @@ impl From<serde_core::de::value::Error> for Error {
     }
 }
 
-impl From<pest::error::Error<duper::parser::Rule>> for Error {
-    fn from(value: pest::error::Error<duper::parser::Rule>) -> Self {
+impl From<Box<pest::error::Error<duper::parser::Rule>>> for Error {
+    fn from(value: Box<pest::error::Error<duper::parser::Rule>>) -> Self {
         let message = value.variant.message().into_owned();
         Self::new(ErrorKind::ParseError(value), message)
     }

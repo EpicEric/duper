@@ -277,7 +277,7 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         Ok(Self::SerializeSeq {
             serializer: self,
-            elements: len.map(|len| Vec::with_capacity(len)).unwrap_or(Vec::new()),
+            elements: len.map(|len| Vec::with_capacity(len)).unwrap_or_default(),
         })
     }
 
@@ -318,7 +318,7 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
         Ok(Self::SerializeMap {
             serializer: self,
-            entries: len.map(|len| Vec::with_capacity(len)).unwrap_or(Vec::new()),
+            entries: len.map(|len| Vec::with_capacity(len)).unwrap_or_default(),
             next_key: None,
         })
     }
