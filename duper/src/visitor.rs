@@ -1,0 +1,29 @@
+use std::borrow::Cow;
+
+use crate::ast::DuperValue;
+
+pub trait DuperVisitor {
+    type Value;
+
+    fn visit_object<'a>(
+        &mut self,
+        identifier: Option<&'a str>,
+        object: Vec<(Cow<'a, str>, DuperValue<'a>)>,
+    ) -> Self::Value;
+    fn visit_array<'a>(
+        &mut self,
+        identifier: Option<&'a str>,
+        array: Vec<DuperValue<'a>>,
+    ) -> Self::Value;
+    fn visit_string<'a>(
+        &mut self,
+        identifier: Option<&'a str>,
+        string: Cow<'a, str>,
+    ) -> Self::Value;
+    fn visit_bytes<'a>(&mut self, identifier: Option<&'a str>, bytes: Cow<'a, [u8]>)
+    -> Self::Value;
+    fn visit_integer<'a>(&mut self, identifier: Option<&'a str>, integer: i64) -> Self::Value;
+    fn visit_float<'a>(&mut self, identifier: Option<&'a str>, float: f64) -> Self::Value;
+    fn visit_boolean<'a>(&mut self, identifier: Option<&'a str>, boolean: bool) -> Self::Value;
+    fn visit_null<'a>(&mut self, identifier: Option<&'a str>) -> Self::Value;
+}
