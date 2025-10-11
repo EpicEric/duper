@@ -1,0 +1,8 @@
+[package]
+name = "duper"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+pest = "2.8.3"
+pest_derive = "2.8.3"
