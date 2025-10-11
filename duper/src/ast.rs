@@ -4,7 +4,7 @@ use crate::visitor::DuperVisitor;
 
 #[derive(Debug, Clone)]
 pub struct DuperValue<'a> {
-    pub identifier: Option<&'a str>,
+    pub identifier: Option<Cow<'a, str>>,
     pub inner: DuperInner<'a>,
 }
 

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use json_escape::explicit::unescape;
-use pest::{Parser as _, error::Error, iterators::Pair};
+use pest::{error::Error, iterators::Pair};
 
 use crate::{
     ast::{DuperInner, DuperValue},
@@ -30,7 +30,7 @@ impl DuperBuilder {
             Rule::identifier => {
                 let identifier = next.as_str();
                 next = duper_trunk.next().unwrap();
-                Some(identifier)
+                Some(Cow::Borrowed(identifier))
             }
             _ => None,
         };
@@ -85,7 +85,7 @@ impl DuperBuilder {
             Rule::identifier => {
                 let identifier = next.as_str();
                 next = inner_pair.next().unwrap();
-                Some(identifier)
+                Some(Cow::Borrowed(identifier))
             }
             _ => None,
         };

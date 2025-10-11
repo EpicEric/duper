@@ -1,0 +1,8 @@
+[package]
+name = "serde_duper"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde_core = "1.0.228"
+duper = { path = "../duper" }
