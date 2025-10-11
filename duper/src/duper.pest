@@ -2,20 +2,20 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 COMMENT = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 
 duper = _{ SOI ~ duper_trunk ~ EOI }
-duper_stream = _{ SOI ~ "---\n"? ~ (duper_trunk ~ "\n---\n" | "---\n")* ~ duper_trunk? ~ EOI }
+duper_stream = _{ SOI ~ duper_trunk? ~ ("---"+ ~ duper_trunk?)* ~ EOI }
 
 duper_trunk = { identifier ~ "(" ~ (object | array) ~ ")" | object | array }
-identifier = @{ UPPERCASE_LETTER ~ ("-"? ~ LETTER | NUMBER)* }
+identifier = @{ "X-" ~ LETTER ~ ("-"? ~ LETTER | NUMBER)* | UPPERCASE_LETTER ~ (LETTER | NUMBER)* }
 
 described_value = { identifier ~ "(" ~ value ~ ")" | value }
-value = _{ object | array | string | bytes | float | integer | boolean | null }
+value = _{ object | array | string | raw_string | bytes | raw_bytes | float | integer | boolean | null }
 
 object = {
     "{" ~ ","? ~ "}" |
     "{" ~ pair ~ ("," ~ pair)* ~ ","? ~ "}"
 }
 pair = { key ~ ":" ~ described_value }
-key = _{ string | plain_key }
+key = _{ string | raw_string | plain_key }
 plain_key = @{ (LOWERCASE_LETTER | "_") ~ (LETTER | NUMBER | "_")* }
 
 array = {

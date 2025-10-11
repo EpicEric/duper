@@ -50,6 +50,7 @@ dependencies = [
 name = "duper"
 version = "0.1.0"
 dependencies = [
+ "json-escape",
  "pest",
  "pest_derive",
 ]
@@ -62,6 +63,15 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "json-escape"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b330a4975b953eb01659ab24f612fa9461a71e4279c25e02689d0c5db03c20e5"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]

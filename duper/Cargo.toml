@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+json-escape = "0.3.0"
 pest = "2.8.3"
 pest_derive = "2.8.3"
