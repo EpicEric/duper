@@ -3,15 +3,15 @@ use std::{ascii, borrow::Cow};
 
 use crate::types::DuperTypes;
 
-pub(crate) fn format_key<'a>(key: Cow<'a, str>) -> Cow<'a, str> {
+pub(crate) fn format_key<'a>(key: &'a str) -> Cow<'a, str> {
     if key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        key
+        Cow::Borrowed(key)
     } else {
         format_string(key)
     }
 }
 
-pub(crate) fn format_string<'a>(string: Cow<'a, str>) -> Cow<'a, str> {
+pub(crate) fn format_string<'a>(string: &'a str) -> Cow<'a, str> {
     if string.is_empty() {
         return Cow::Borrowed(r#""""#);
     }
@@ -20,7 +20,7 @@ pub(crate) fn format_string<'a>(string: Cow<'a, str>) -> Cow<'a, str> {
     Cow::Owned(format!(r#""{escaped_key}""#))
 }
 
-pub(crate) fn format_bytes<'a>(bytes: Cow<'a, [u8]>) -> Cow<'a, str> {
+pub(crate) fn format_bytes<'a>(bytes: &'a [u8]) -> Cow<'a, str> {
     if bytes.is_empty() {
         return Cow::Borrowed(r#"b"""#);
     }
@@ -43,7 +43,7 @@ pub(crate) fn format_integer(integer: i64, typ: Option<DuperTypes>) -> String {
     }
 }
 
-pub(crate) fn format_float(float: f64, _typ: Option<DuperTypes>) -> String {
+pub(crate) fn format_float(float: f64) -> String {
     float.to_string()
 }
 

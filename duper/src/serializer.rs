@@ -8,9 +8,9 @@ use crate::{
     visitor::DuperVisitor,
 };
 
-pub struct DuperSerializer;
+pub struct Serializer;
 
-impl DuperSerializer {
+impl Serializer {
     pub fn new() -> Self {
         Self
     }
@@ -20,13 +20,13 @@ impl DuperSerializer {
     }
 }
 
-impl DuperVisitor for DuperSerializer {
+impl DuperVisitor for Serializer {
     type Value = String;
 
     fn visit_object<'a>(
         &mut self,
-        identifier: Option<Cow<'a, str>>,
-        object: Vec<(Cow<'a, str>, DuperValue<'a>)>,
+        identifier: Option<&Cow<'a, str>>,
+        object: &Vec<(Cow<'a, str>, DuperValue<'a>)>,
     ) -> Self::Value {
         let mut string = String::new();
         let len = object.len();
@@ -61,8 +61,8 @@ impl DuperVisitor for DuperSerializer {
 
     fn visit_array<'a>(
         &mut self,
-        identifier: Option<Cow<'a, str>>,
-        array: Vec<DuperValue<'a>>,
+        identifier: Option<&Cow<'a, str>>,
+        array: &Vec<DuperValue<'a>>,
     ) -> Self::Value {
         let mut string = String::new();
         let len = array.len();
@@ -93,8 +93,8 @@ impl DuperVisitor for DuperSerializer {
 
     fn visit_tuple<'a>(
         &mut self,
-        identifier: Option<Cow<'a, str>>,
-        tuple: Vec<DuperValue<'a>>,
+        identifier: Option<&Cow<'a, str>>,
+        tuple: &Vec<DuperValue<'a>>,
     ) -> Self::Value {
         let mut string = String::new();
         let len = tuple.len();
@@ -131,8 +131,8 @@ impl DuperVisitor for DuperSerializer {
 
     fn visit_string<'a>(
         &mut self,
-        identifier: Option<Cow<'a, str>>,
-        value: Cow<'a, str>,
+        identifier: Option<&Cow<'a, str>>,
+        value: &Cow<'a, str>,
     ) -> Self::Value {
         if let Some(identifier) = identifier {
             let value = format_string(value);
@@ -144,8 +144,8 @@ impl DuperVisitor for DuperSerializer {
 
     fn visit_bytes<'a>(
         &mut self,
-        identifier: Option<Cow<'a, str>>,
-        bytes: Cow<'a, [u8]>,
+        identifier: Option<&Cow<'a, str>>,
+        bytes: &Cow<'a, [u8]>,
     ) -> Self::Value {
         if let Some(identifier) = identifier {
             let bytes = format_bytes(bytes);
@@ -155,7 +155,7 @@ impl DuperVisitor for DuperSerializer {
         }
     }
 
-    fn visit_integer(&mut self, identifier: Option<Cow<'_, str>>, integer: i64) -> Self::Value {
+    fn visit_integer(&mut self, identifier: Option<&Cow<'_, str>>, integer: i64) -> Self::Value {
         if let Some(identifier) = identifier {
             let value = format_integer(integer, identifier.as_ref().try_into().ok());
             format!("{identifier}({value})")
@@ -164,16 +164,16 @@ impl DuperVisitor for DuperSerializer {
         }
     }
 
-    fn visit_float(&mut self, identifier: Option<Cow<'_, str>>, float: f64) -> Self::Value {
+    fn visit_float(&mut self, identifier: Option<&Cow<'_, str>>, float: f64) -> Self::Value {
         if let Some(identifier) = identifier {
-            let value = format_float(float, identifier.as_ref().try_into().ok());
+            let value = format_float(float);
             format!("{identifier}({value})")
         } else {
-            format_float(float, None)
+            format_float(float)
         }
     }
 
-    fn visit_boolean(&mut self, identifier: Option<Cow<'_, str>>, boolean: bool) -> Self::Value {
+    fn visit_boolean(&mut self, identifier: Option<&Cow<'_, str>>, boolean: bool) -> Self::Value {
         if let Some(identifier) = identifier {
             let value = format_boolean(boolean);
             format!("{identifier}({value})")
@@ -182,7 +182,7 @@ impl DuperVisitor for DuperSerializer {
         }
     }
 
-    fn visit_null(&mut self, identifier: Option<Cow<'_, str>>) -> Self::Value {
+    fn visit_null(&mut self, identifier: Option<&Cow<'_, str>>) -> Self::Value {
         if let Some(identifier) = identifier {
             format!("{identifier}(null)")
         } else {

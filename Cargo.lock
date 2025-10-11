@@ -182,6 +182,7 @@ name = "serde_duper"
 version = "0.1.0"
 dependencies = [
  "duper",
+ "pest",
  "serde",
  "serde_core",
 ]

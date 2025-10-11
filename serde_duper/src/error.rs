@@ -2,10 +2,11 @@ use std::fmt::{self, Display};
 
 #[derive(Debug, Clone)]
 pub enum ErrorKind {
+    ParseError(pest::error::Error<duper::parser::Rule>),
     SerializationError,
+    DeserializationError(serde_core::de::value::Error),
     InvalidValue,
-    UnsupportedType,
-    Custom(String),
+    Custom,
 }
 
 #[derive(Debug, Clone)]
@@ -30,7 +31,7 @@ impl Error {
     }
 
     pub fn custom(msg: impl Into<String> + Clone) -> Self {
-        Self::new(ErrorKind::Custom(msg.clone().into()), msg)
+        Self::new(ErrorKind::Custom, msg)
     }
 
     pub fn serialization(msg: impl Into<String>) -> Self {
@@ -40,10 +41,6 @@ impl Error {
     pub fn invalid_value(msg: impl Into<String>) -> Self {
         Self::new(ErrorKind::InvalidValue, msg)
     }
-
-    pub fn unsupported_type(msg: impl Into<String>) -> Self {
-        Self::new(ErrorKind::UnsupportedType, msg)
-    }
 }
 
 impl Display for Error {
@@ -52,10 +49,11 @@ impl Display for Error {
             f,
             "{}: {}",
             match self.inner.kind {
+                ErrorKind::ParseError(_) => "ParseError",
                 ErrorKind::SerializationError => "SerializationError",
+                ErrorKind::DeserializationError(_) => "DeserializationError",
                 ErrorKind::InvalidValue => "InvalidValue",
-                ErrorKind::UnsupportedType => "UnsupportedType",
-                ErrorKind::Custom(_) => "Custom",
+                ErrorKind::Custom => "Custom",
             },
             self.inner.message
         )
@@ -70,5 +68,19 @@ impl serde_core::ser::Error for Error {
         T: Display,
     {
         Self::custom(msg.to_string())
+    }
+}
+
+impl From<serde_core::de::value::Error> for Error {
+    fn from(value: serde_core::de::value::Error) -> Self {
+        let message = value.to_string();
+        Self::new(ErrorKind::DeserializationError(value), message)
+    }
+}
+
+impl From<pest::error::Error<duper::parser::Rule>> for Error {
+    fn from(value: pest::error::Error<duper::parser::Rule>) -> Self {
+        let message = value.variant.message().into_owned();
+        Self::new(ErrorKind::ParseError(value), message)
     }
 }

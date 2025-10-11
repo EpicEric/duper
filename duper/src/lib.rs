@@ -1,20 +1,19 @@
 mod ast;
 mod builder;
 mod format;
-mod parser;
+pub mod parser;
+mod pretty_printer;
 mod serializer;
-mod types;
-mod visitor;
+pub mod types;
+pub mod visitor;
 
 pub use ast::{DuperInner, DuperValue};
-pub use parser::DuperParser;
-pub use serializer::DuperSerializer;
-pub use types::DuperTypes;
-pub use visitor::DuperVisitor;
+pub use pretty_printer::PrettyPrinter;
+pub use serializer::Serializer;
 
 #[cfg(test)]
 mod tests {
-    use crate::{ast::DuperValue, parser::DuperParser, serializer::DuperSerializer};
+    use crate::{ast::DuperValue, parser::DuperParser, serializer::Serializer};
 
     #[test]
     fn it_works() {
@@ -24,6 +23,6 @@ mod tests {
     )
     .unwrap();
         println!("{:?}", duper);
-        println!("{}", DuperSerializer::new().serialize(duper));
+        println!("{}", Serializer::new().serialize(duper));
     }
 }

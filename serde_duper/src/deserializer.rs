@@ -1,16 +1,18 @@
 use std::borrow::Cow;
 
-use duper::{DuperInner, DuperParser, DuperValue};
+use duper::{DuperInner, DuperValue, parser::DuperParser};
 use serde_core::Deserialize;
 use serde_core::de::{self, DeserializeSeed, IntoDeserializer, Visitor};
+
+use crate::Error;
 
 pub struct Deserializer<'de> {
     value: Option<DuperValue<'de>>,
 }
 
 impl<'de> Deserializer<'de> {
-    pub fn from_str(input: &'de str) -> Result<Self, String> {
-        let value = DuperParser::parse_duper(input).map_err(|e| format!("Parse error: {e:?}"))?;
+    pub fn from_str(input: &'de str) -> Result<Self, Error> {
+        let value = DuperParser::parse_duper(input)?;
         Ok(Self { value: Some(value) })
     }
 
@@ -19,23 +21,21 @@ impl<'de> Deserializer<'de> {
     }
 }
 
-pub fn from_str<'a, T>(input: &'a str) -> Result<T, String>
+pub fn from_str<'a, T>(input: &'a str) -> Result<T, Error>
 where
     T: Deserialize<'a>,
 {
     let mut deserializer = Deserializer::from_str(input)?;
-    let t =
-        T::deserialize(&mut deserializer).map_err(|e| format!("Deserialization error: {e:?}"))?;
+    let t = T::deserialize(&mut deserializer)?;
     Ok(t)
 }
 
-pub fn from_value<'a, T>(value: DuperValue<'a>) -> Result<T, String>
+pub fn from_value<'a, T>(value: DuperValue<'a>) -> Result<T, Error>
 where
     T: Deserialize<'a>,
 {
     let mut deserializer = Deserializer::from_value(value);
-    let t =
-        T::deserialize(&mut deserializer).map_err(|e| format!("Deserialization error: {e:?}"))?;
+    let t = T::deserialize(&mut deserializer)?;
     Ok(t)
 }
 

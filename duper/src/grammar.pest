@@ -19,8 +19,8 @@ key = _{ string | raw_string | plain_key }
 plain_key = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 
 tuple = {
-    "(" ~ "," ~ ")" |
-    "(" ~ described_value ~ ("," ~ described_value)* ~ ","? ~ ")"
+    "(" ~ described_value? ~ "," ~ ")" |
+    "(" ~ described_value ~ ("," ~ described_value)+ ~ ","? ~ ")"
 }
 
 array = {

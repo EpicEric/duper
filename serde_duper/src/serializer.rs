@@ -1,6 +1,6 @@
 use std::{borrow::Cow, marker::PhantomData};
 
-use duper::{DuperInner, DuperSerializer, DuperValue};
+use duper::{DuperInner, DuperValue, Serializer as DuperSerializer};
 use serde_core::{Serialize, ser};
 
 use crate::Error;
@@ -219,7 +219,6 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            // TO-DO
             identifier: Some(Cow::Owned(format!("X-{name}"))),
             inner: DuperInner::Null,
         })
@@ -232,7 +231,6 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            // TO-DO
             identifier: Some(Cow::Owned(format!("X-{name}"))),
             inner: DuperInner::String(Cow::Borrowed(variant)),
         })
@@ -248,7 +246,6 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     {
         let value = value.serialize(self)?;
         Ok(DuperValue {
-            // TO-DO
             identifier: Some(Cow::Owned(format!("X-{name}"))),
             inner: value.inner,
         })
@@ -266,7 +263,6 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     {
         let value = value.serialize(self)?;
         Ok(DuperValue {
-            // TO-DO
             identifier: Some(Cow::Owned(format!("X-{name}"))),
             inner: value.inner,
         })
@@ -469,7 +465,9 @@ impl<'a, 'b> ser::SerializeMap for SerializeMap<'a, 'b> {
             self.entries.push((key, value));
             Ok(())
         } else {
-            Err(Error::custom("serialize_value called before serialize_key"))
+            Err(Error::serialization(
+                "serialize_value called before serialize_key",
+            ))
         }
     }
 

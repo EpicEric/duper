@@ -1,7 +1,10 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashSet};
 
 use json_escape::explicit::unescape;
-use pest::{error::Error, iterators::Pair};
+use pest::{
+    error::{Error, ErrorVariant},
+    iterators::Pair,
+};
 
 use crate::{
     ast::{DuperInner, DuperValue},
@@ -24,6 +27,7 @@ impl DuperBuilder {
     }
 
     fn build_duper_trunk(pair: Pair<'_, Rule>) -> Result<DuperValue<'_>, Error<Rule>> {
+        let span = pair.as_span().clone();
         let mut duper_trunk = pair.into_inner();
         let mut next = duper_trunk.next().unwrap();
         let identifier = match next.as_rule() {
@@ -34,25 +38,35 @@ impl DuperBuilder {
             }
             _ => None,
         };
-        match next.as_rule() {
-            Rule::object => Ok(DuperValue {
+        Ok(match next.as_rule() {
+            Rule::object => DuperValue {
                 identifier,
                 inner: DuperInner::Object(Self::build_object(next)?),
-            }),
-            Rule::array => Ok(DuperValue {
+            },
+            Rule::array => DuperValue {
                 identifier,
                 inner: DuperInner::Array(Self::build_array(next)?),
-            }),
-            _ => unreachable!(),
-        }
+            },
+            rule => {
+                return Err(Error::new_from_span(
+                    ErrorVariant::CustomError {
+                        message: format!("unexpected rule in trunk {rule:?}"),
+                    },
+                    span,
+                ));
+            }
+        })
     }
 
     fn build_object(
         pair: Pair<'_, Rule>,
     ) -> Result<Vec<(Cow<'_, str>, DuperValue<'_>)>, Error<Rule>> {
         debug_assert!(matches!(pair.as_rule(), Rule::object));
-        pair.into_inner()
+        let span = pair.as_span().clone();
+        let kv_pairs: Result<Vec<(Cow<'_, str>, DuperValue<'_>)>, _> = pair
+            .into_inner()
             .map(|pair| {
+                let span = pair.as_span().clone();
                 let mut inner_pair = pair.into_inner();
                 let key_pair = inner_pair.next().unwrap();
                 let key = match key_pair.as_rule() {
@@ -63,12 +77,31 @@ impl DuperBuilder {
                         Cow::Borrowed(key_pair.into_inner().next().unwrap().as_str())
                     }
                     Rule::plain_key => Cow::Borrowed(key_pair.as_str()),
-                    _ => unreachable!(),
+                    rule => {
+                        return Err(Error::new_from_span(
+                            ErrorVariant::CustomError {
+                                message: format!("unexpected rule in object key {rule:?}"),
+                            },
+                            span,
+                        ));
+                    }
                 };
                 let value = Self::build_value(inner_pair.next().unwrap());
                 value.map(|v| (key, v))
             })
-            .collect()
+            .collect();
+        let kv_pairs = kv_pairs?;
+        let unique_keys: HashSet<&Cow<'_, str>> = kv_pairs.iter().map(|(k, _)| k).collect();
+        if unique_keys.len() == kv_pairs.len() {
+            Ok(kv_pairs)
+        } else {
+            Err(Error::new_from_span(
+                ErrorVariant::CustomError {
+                    message: "duplicate keys in object".into(),
+                },
+                span,
+            ))
+        }
     }
 
     fn build_array(pair: Pair<'_, Rule>) -> Result<Vec<DuperValue<'_>>, Error<Rule>> {
@@ -79,6 +112,7 @@ impl DuperBuilder {
     }
 
     fn build_value(pair: Pair<'_, Rule>) -> Result<DuperValue<'_>, Error<Rule>> {
+        let span = pair.as_span().clone();
         let mut inner_pair = pair.into_inner();
         let mut next = inner_pair.next().unwrap();
         let identifier = match next.as_rule() {
@@ -124,13 +158,27 @@ impl DuperBuilder {
                         Rule::binary_integer => {
                             i64::from_str_radix(integer_inner.as_str().split_at(2).1, 2).unwrap()
                         }
-                        _ => unreachable!(),
+                        rule => {
+                            return Err(Error::new_from_span(
+                                ErrorVariant::CustomError {
+                                    message: format!("unexpected rule in integer value {rule:?}"),
+                                },
+                                span,
+                            ));
+                        }
                     }
                 }),
                 Rule::float => DuperInner::Float(next.as_str().replace('_', "").parse().unwrap()),
                 Rule::boolean => DuperInner::Boolean(next.as_str().parse().unwrap()),
                 Rule::null => DuperInner::Null,
-                _ => unreachable!(),
+                rule => {
+                    return Err(Error::new_from_span(
+                        ErrorVariant::CustomError {
+                            message: format!("unexpected rule in value {rule:?}"),
+                        },
+                        span,
+                    ));
+                }
             },
         })
     }
