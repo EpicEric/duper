@@ -10,14 +10,14 @@ pub enum ErrorKind {
 }
 
 #[derive(Debug, Clone)]
-struct ErrorImpl {
-    kind: ErrorKind,
-    message: String,
+pub struct ErrorImpl {
+    pub kind: ErrorKind,
+    pub message: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct Error {
-    inner: Box<ErrorImpl>,
+    pub inner: Box<ErrorImpl>,
 }
 
 impl Error {
@@ -84,3 +84,5 @@ impl From<pest::error::Error<duper::parser::Rule>> for Error {
         Self::new(ErrorKind::ParseError(value), message)
     }
 }
+
+pub type Result<T> = std::result::Result<T, Error>;

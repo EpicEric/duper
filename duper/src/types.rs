@@ -28,8 +28,8 @@ pub enum DuperTypes {
 impl TryFrom<&DuperIdentifier<'_>> for DuperTypes {
     type Error = String;
 
-    fn try_from(value: &DuperIdentifier<'_>) -> Result<Self, Self::Error> {
-        match value.0.as_ref() {
+    fn try_from(identifier: &DuperIdentifier<'_>) -> Result<Self, Self::Error> {
+        match identifier.0.as_ref() {
             "Integer" | "DecInteger" => Ok(DuperTypes::DecInteger),
             "HexInteger" => Ok(DuperTypes::HexInteger),
             "OctInteger" => Ok(DuperTypes::OctInteger),
@@ -49,7 +49,7 @@ impl TryFrom<&DuperIdentifier<'_>> for DuperTypes {
             "Regex" => Ok(DuperTypes::Regex),
             "Base64" => Ok(DuperTypes::Base64),
             "Jwt" => Ok(DuperTypes::Jwt),
-            _ => Err(format!("Unknown type {}", value.0.as_ref())),
+            _ => Err(format!("Unsupported type {}", identifier.0.as_ref())),
         }
     }
 }

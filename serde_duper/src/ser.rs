@@ -2,7 +2,7 @@ use std::{borrow::Cow, marker::PhantomData};
 
 use duper::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTuple, DuperValue, Serializer as DuperSerializer,
+    DuperTuple, DuperValue, PrettyPrinter as DuperPrettyPrinter, Serializer as DuperSerializer,
 };
 use serde_core::{Serialize, ser};
 
@@ -21,17 +21,6 @@ impl<'a> Serializer<'a> {
     }
 }
 
-pub fn to_string<T>(value: &T) -> Result<String, String>
-where
-    T: Serialize,
-{
-    let mut serializer = Serializer::new();
-    let value = value
-        .serialize(&mut serializer)
-        .map_err(|e| format!("Serialization error: {e:?}"))?;
-    Ok(DuperSerializer::new().serialize(value))
-}
-
 pub fn to_duper<'a, T>(value: &'a T) -> Result<DuperValue<'a>, String>
 where
     T: Serialize,
@@ -41,6 +30,20 @@ where
         .serialize(&mut serializer)
         .map_err(|e| format!("Serialization error: {e:?}"))?;
     Ok(value)
+}
+
+pub fn to_string<T>(value: &T) -> Result<String, String>
+where
+    T: Serialize,
+{
+    Ok(DuperSerializer::new().serialize(to_duper(value)?))
+}
+
+pub fn to_string_pretty<T>(value: &T) -> Result<String, String>
+where
+    T: Serialize,
+{
+    Ok(DuperPrettyPrinter::new().pretty_print(to_duper(value)?))
 }
 
 pub struct SerializeSeq<'a, 'b> {

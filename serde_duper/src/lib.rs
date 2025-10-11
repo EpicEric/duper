@@ -1,8 +1,8 @@
-mod deserializer;
+mod de;
 mod error;
-mod serializer;
+mod ser;
 
-pub use deserializer::{Deserializer, from_str, from_value};
+pub use de::{Deserializer, from_str, from_value};
 pub use duper::{DuperInner, DuperValue};
-pub use error::Error;
-pub use serializer::{to_duper, to_string};
+pub use error::{Error, ErrorImpl, ErrorKind, Result};
+pub use ser::{Serializer, to_duper, to_string, to_string_pretty};

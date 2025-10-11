@@ -3,7 +3,8 @@ use crate::{
         DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTuple, DuperValue,
     },
     format::{
-        format_boolean, format_bytes, format_float, format_integer, format_key, format_string,
+        format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
+        format_key,
     },
     visitor::DuperVisitor,
 };
@@ -184,7 +185,7 @@ impl DuperVisitor for PrettyPrinter {
         value: &DuperString<'a>,
     ) -> Self::Value {
         if let Some(identifier) = identifier {
-            let value = format_string(value);
+            let value = format_duper_string(value);
             if value.len() + self.indent > 60 {
                 let mut string = String::new();
                 string.push_str(identifier.as_ref());
@@ -201,7 +202,7 @@ impl DuperVisitor for PrettyPrinter {
                 format!("{identifier}({value})")
             }
         } else {
-            format_string(value).into_owned()
+            format_duper_string(value).into_owned()
         }
     }
 
@@ -211,7 +212,7 @@ impl DuperVisitor for PrettyPrinter {
         bytes: &DuperBytes<'a>,
     ) -> Self::Value {
         if let Some(identifier) = identifier {
-            let bytes = format_bytes(bytes);
+            let bytes = format_duper_bytes(bytes);
             if bytes.len() + self.indent > 60 {
                 let mut string = String::new();
                 string.push_str(identifier.as_ref());
@@ -227,7 +228,7 @@ impl DuperVisitor for PrettyPrinter {
                 format!("{identifier}({bytes})")
             }
         } else {
-            format_bytes(bytes).into_owned()
+            format_duper_bytes(bytes).into_owned()
         }
     }
 

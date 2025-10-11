@@ -8,5 +8,5 @@ expression: pp
       "So many arrays!",
     ],
   ],
-  "\"Hello world!\"",
+  r#""Hello world!""#,
 ]

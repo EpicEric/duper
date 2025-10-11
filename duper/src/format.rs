@@ -9,38 +9,118 @@ use crate::{
 pub(crate) fn format_key<'a>(key: &'a DuperKey<'a>) -> Cow<'a, str> {
     if key.0.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         Cow::Borrowed(key.0.as_ref())
-    } else if key.0.is_empty() {
-        Cow::Borrowed(r#""""#)
     } else {
-        // TO-DO raw string heuristics
-        let escaped_key = Cow::from(escape_str(&key.0)).into_owned();
-        Cow::Owned(format!(r#""{escaped_key}""#))
+        format_cow_str(&key.0)
     }
 }
 
-pub(crate) fn format_string<'a>(string: &'a DuperString<'a>) -> Cow<'a, str> {
-    if string.0.is_empty() {
+pub(crate) fn format_duper_string<'a>(string: &'a DuperString<'a>) -> Cow<'a, str> {
+    format_cow_str(&string.0)
+}
+
+fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
+    if string.is_empty() {
+        // Empty string
         Cow::Borrowed(r#""""#)
     } else {
-        // TO-DO raw string heuristics
-        let escaped_key = Cow::from(escape_str(&string.0)).into_owned();
-        Cow::Owned(format!(r#""{escaped_key}""#))
+        // Check if it's benefic to turn into a raw string
+        let mut quotes = 0usize;
+        let mut was_hashtag = false;
+        let mut curr_hashtags = 0usize;
+        let mut max_hashtags = 0usize;
+        let mut has_char_that_should_be_escaped = false;
+        for char in string.chars() {
+            match char {
+                '"' => {
+                    was_hashtag = false;
+                    quotes += 1
+                }
+                '#' if was_hashtag => {
+                    curr_hashtags += 1;
+                    max_hashtags = max_hashtags.max(curr_hashtags);
+                }
+                '#' => {
+                    was_hashtag = true;
+                    curr_hashtags = 1;
+                    max_hashtags = max_hashtags.max(curr_hashtags);
+                }
+                ' ' => was_hashtag = false,
+                '\r' | '\n' | '\t' | _ if char.is_control() || char.is_whitespace() => {
+                    has_char_that_should_be_escaped = true;
+                    break;
+                }
+                _ => was_hashtag = false,
+            }
+        }
+        if quotes > max_hashtags && !has_char_that_should_be_escaped {
+            // Raw string
+            let hashtags: String = (0..=max_hashtags).map(|_| '#').collect();
+            Cow::Owned(format!(r#"r{}"{}"{}"#, hashtags, string, hashtags))
+        } else {
+            // Regular string with escaping
+            let escaped_key = Cow::from(escape_str(&string)).into_owned();
+            Cow::Owned(format!(r#""{escaped_key}""#))
+        }
     }
 }
 
-pub(crate) fn format_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> {
+pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> {
     if bytes.0.is_empty() {
-        return Cow::Borrowed(r#"b"""#);
+        // Empty bytes
+        Cow::Borrowed(r#"b"""#)
+    } else {
+        // Check if it's benefic to turn into raw bytes
+        let mut quotes = 0usize;
+        let mut was_hashtag = false;
+        let mut curr_hashtags = 0usize;
+        let mut max_hashtags = 0usize;
+        let mut has_char_that_should_be_escaped = false;
+        for byte in bytes.0.iter() {
+            match byte {
+                b'"' => {
+                    was_hashtag = false;
+                    quotes += 1
+                }
+                b'#' if was_hashtag => {
+                    curr_hashtags += 1;
+                    max_hashtags = max_hashtags.max(curr_hashtags);
+                }
+                b'#' => {
+                    was_hashtag = true;
+                    curr_hashtags = 1;
+                    max_hashtags = max_hashtags.max(curr_hashtags);
+                }
+                b' ' => was_hashtag = false,
+                b'\r' | b'\n' | b'\t' | _
+                    if byte.is_ascii_control() || byte.is_ascii_whitespace() =>
+                {
+                    has_char_that_should_be_escaped = true;
+                    break;
+                }
+                _ => was_hashtag = false,
+            }
+        }
+        if quotes > max_hashtags && !has_char_that_should_be_escaped {
+            // Raw bytes
+            let hashtags: String = (0..=max_hashtags).map(|_| '#').collect();
+            let unesecaped_bytes: String =
+                bytes.0.into_iter().copied().map(|b| b as char).collect();
+            return Cow::Owned(format!(
+                r#"r{}"{}"{}"#,
+                hashtags, unesecaped_bytes, hashtags
+            ));
+        } else {
+            // Regular bytes with escaping
+            let escaped_bytes: String = bytes
+                .0
+                .into_iter()
+                .copied()
+                .flat_map(ascii::escape_default)
+                .map(|b| b as char)
+                .collect();
+            Cow::Owned(format!(r#"b"{escaped_bytes}""#))
+        }
     }
-    // TO-DO raw bytes heuristics
-    let escaped_bytes: String = bytes
-        .0
-        .into_iter()
-        .copied()
-        .flat_map(ascii::escape_default)
-        .map(|b| b as char)
-        .collect();
-    Cow::Owned(format!(r#"b"{escaped_bytes}""#))
 }
 
 pub(crate) fn format_integer(integer: i64, typ: Option<DuperTypes>) -> String {
