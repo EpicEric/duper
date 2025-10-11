@@ -1,0 +1,12 @@
+---
+source: duper/src/pretty_printer.rs
+expression: pp
+---
+{
+  zero: (,),
+  one: ("Sandhole",),
+  two: (
+    "rust",
+    "pest",
+  ),
+}

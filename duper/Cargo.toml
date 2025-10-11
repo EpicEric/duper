@@ -7,3 +7,6 @@ edition = "2024"
 json-escape = "0.3.0"
 pest = "2.8.3"
 pest_derive = "2.8.3"
+
+[dev-dependencies]
+insta = "1.43.2"

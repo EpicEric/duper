@@ -7,7 +7,10 @@ use pest::{
 };
 
 use crate::{
-    ast::{DuperInner, DuperValue},
+    ast::{
+        DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
+        DuperTuple, DuperValue,
+    },
     parser::Rule,
 };
 
@@ -34,7 +37,7 @@ impl DuperBuilder {
             Rule::identifier => {
                 let identifier = next.as_str();
                 next = duper_trunk.next().unwrap();
-                Some(Cow::Borrowed(identifier))
+                Some(DuperIdentifier(Cow::Borrowed(identifier)))
             }
             _ => None,
         };
@@ -58,12 +61,10 @@ impl DuperBuilder {
         })
     }
 
-    fn build_object(
-        pair: Pair<'_, Rule>,
-    ) -> Result<Vec<(Cow<'_, str>, DuperValue<'_>)>, Error<Rule>> {
+    fn build_object(pair: Pair<'_, Rule>) -> Result<DuperObject<'_>, Error<Rule>> {
         debug_assert!(matches!(pair.as_rule(), Rule::object));
         let span = pair.as_span().clone();
-        let kv_pairs: Result<Vec<(Cow<'_, str>, DuperValue<'_>)>, _> = pair
+        let kv_pairs: Result<Vec<(DuperKey<'_>, DuperValue<'_>)>, _> = pair
             .into_inner()
             .map(|pair| {
                 let span = pair.as_span().clone();
@@ -87,13 +88,13 @@ impl DuperBuilder {
                     }
                 };
                 let value = Self::build_value(inner_pair.next().unwrap());
-                value.map(|v| (key, v))
+                value.map(|v| (DuperKey(key), v))
             })
             .collect();
         let kv_pairs = kv_pairs?;
-        let unique_keys: HashSet<&Cow<'_, str>> = kv_pairs.iter().map(|(k, _)| k).collect();
+        let unique_keys: HashSet<_> = kv_pairs.iter().map(|(k, _)| k).collect();
         if unique_keys.len() == kv_pairs.len() {
-            Ok(kv_pairs)
+            Ok(DuperObject(kv_pairs))
         } else {
             Err(Error::new_from_span(
                 ErrorVariant::CustomError {
@@ -104,11 +105,22 @@ impl DuperBuilder {
         }
     }
 
-    fn build_array(pair: Pair<'_, Rule>) -> Result<Vec<DuperValue<'_>>, Error<Rule>> {
-        debug_assert!(matches!(pair.as_rule(), Rule::array | Rule::tuple));
-        pair.into_inner()
+    fn build_array(pair: Pair<'_, Rule>) -> Result<DuperArray<'_>, Error<Rule>> {
+        debug_assert!(matches!(pair.as_rule(), Rule::array));
+        let vec: Result<Vec<DuperValue<'_>>, _> = pair
+            .into_inner()
             .map(|pair| Self::build_value(pair))
-            .collect()
+            .collect();
+        Ok(DuperArray(vec?))
+    }
+
+    fn build_tuple(pair: Pair<'_, Rule>) -> Result<DuperTuple<'_>, Error<Rule>> {
+        debug_assert!(matches!(pair.as_rule(), Rule::tuple));
+        let vec: Result<Vec<DuperValue<'_>>, _> = pair
+            .into_inner()
+            .map(|pair| Self::build_value(pair))
+            .collect();
+        Ok(DuperTuple(vec?))
     }
 
     fn build_value(pair: Pair<'_, Rule>) -> Result<DuperValue<'_>, Error<Rule>> {
@@ -119,7 +131,7 @@ impl DuperBuilder {
             Rule::identifier => {
                 let identifier = next.as_str();
                 next = inner_pair.next().unwrap();
-                Some(Cow::Borrowed(identifier))
+                Some(DuperIdentifier(Cow::Borrowed(identifier)))
             }
             _ => None,
         };
@@ -128,21 +140,21 @@ impl DuperBuilder {
             inner: match next.as_rule() {
                 Rule::object => DuperInner::Object(Self::build_object(next)?),
                 Rule::array => DuperInner::Array(Self::build_array(next)?),
-                Rule::tuple => DuperInner::Tuple(Self::build_array(next)?),
-                Rule::string => DuperInner::String(Self::unescape_str(
+                Rule::tuple => DuperInner::Tuple(Self::build_tuple(next)?),
+                Rule::string => DuperInner::String(DuperString(Self::unescape_str(
                     next.into_inner().next().unwrap().as_str(),
-                )),
-                Rule::raw_string => {
-                    DuperInner::String(Cow::Borrowed(next.into_inner().next().unwrap().as_str()))
-                }
-                Rule::bytes => DuperInner::Bytes(Cow::Owned(
+                ))),
+                Rule::raw_string => DuperInner::String(DuperString(Cow::Borrowed(
+                    next.into_inner().next().unwrap().as_str(),
+                ))),
+                Rule::bytes => DuperInner::Bytes(DuperBytes(Cow::Owned(
                     Self::unescape_str(next.into_inner().next().unwrap().as_str())
                         .as_bytes()
                         .to_vec(),
-                )),
-                Rule::raw_bytes => DuperInner::Bytes(Cow::Borrowed(
+                ))),
+                Rule::raw_bytes => DuperInner::Bytes(DuperBytes(Cow::Borrowed(
                     next.into_inner().next().unwrap().as_str().as_bytes(),
-                )),
+                ))),
                 Rule::integer => DuperInner::Integer({
                     let integer_inner = next.into_inner().next().unwrap();
                     match integer_inner.as_rule() {

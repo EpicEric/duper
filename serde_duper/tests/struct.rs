@@ -19,7 +19,7 @@ fn serialize() {
             "string": r#"Hello   world!"#,
             bools: [true, true, false,],
             map: {
-                r#"quantum"#: X-Measurement((-7, null)),
+                r#"quantum"#: X-Measurement((-7, "whatever")),
             },
         }
     "##,

@@ -1,5 +1,4 @@
-use std::borrow::Cow;
-
+use duper::DuperKey;
 use duper::{DuperInner, DuperValue, parser::DuperParser};
 use serde_core::Deserialize;
 use serde_core::de::{self, DeserializeSeed, IntoDeserializer, Visitor};
@@ -53,31 +52,31 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 inner: DuperInner::Object(object),
                 ..
             }) => {
-                let map = MapDeserializer::new(object);
+                let map = MapDeserializer::new(object.into_inner());
                 visitor.visit_map(map)
             }
             Some(DuperValue {
                 inner: DuperInner::Array(array),
                 ..
             }) => {
-                let seq = SequenceDeserializer::new(array);
+                let seq = SequenceDeserializer::new(array.into_inner());
                 visitor.visit_seq(seq)
             }
             Some(DuperValue {
                 inner: DuperInner::Tuple(tuple),
                 ..
             }) => {
-                let seq = SequenceDeserializer::new(tuple);
+                let seq = SequenceDeserializer::new(tuple.into_inner());
                 visitor.visit_seq(seq)
             }
             Some(DuperValue {
                 inner: DuperInner::String(string),
                 ..
-            }) => visitor.visit_str(&string),
+            }) => visitor.visit_str(string.as_ref()),
             Some(DuperValue {
                 inner: DuperInner::Bytes(bytes),
                 ..
-            }) => visitor.visit_bytes(&bytes),
+            }) => visitor.visit_bytes(bytes.as_ref()),
             Some(DuperValue {
                 inner: DuperInner::Integer(integer),
                 ..
@@ -221,11 +220,12 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             Some(DuperValue {
                 inner: DuperInner::String(string),
                 ..
-            }) => visitor.visit_enum(string.into_deserializer()),
+            }) => visitor.visit_enum(string.as_ref().into_deserializer()),
             Some(DuperValue {
-                inner: DuperInner::Object(mut object),
+                inner: DuperInner::Object(object),
                 ..
             }) if object.len() == 1 => {
+                let mut object = object.into_inner();
                 let pair = object.remove(0);
                 visitor.visit_enum(EnumDeserializer {
                     variant: pair.0,
@@ -380,12 +380,12 @@ impl<'de> de::SeqAccess<'de> for SequenceDeserializer<'de> {
 }
 
 struct MapDeserializer<'de> {
-    iter: std::vec::IntoIter<(Cow<'de, str>, DuperValue<'de>)>,
+    iter: std::vec::IntoIter<(DuperKey<'de>, DuperValue<'de>)>,
     value: Option<DuperValue<'de>>,
 }
 
 impl<'de> MapDeserializer<'de> {
-    fn new(vec: Vec<(Cow<'de, str>, DuperValue<'de>)>) -> Self {
+    fn new(vec: Vec<(DuperKey<'de>, DuperValue<'de>)>) -> Self {
         Self {
             iter: vec.into_iter(),
             value: None,
@@ -403,7 +403,7 @@ impl<'de> de::MapAccess<'de> for MapDeserializer<'de> {
         match self.iter.next() {
             Some((key, value)) => {
                 self.value = Some(value);
-                seed.deserialize(key.into_deserializer()).map(Some)
+                seed.deserialize(key.as_ref().into_deserializer()).map(Some)
             }
             None => Ok(None),
         }
@@ -421,7 +421,7 @@ impl<'de> de::MapAccess<'de> for MapDeserializer<'de> {
 }
 
 struct EnumDeserializer<'de> {
-    variant: Cow<'de, str>,
+    variant: DuperKey<'de>,
     value: DuperValue<'de>,
 }
 
@@ -433,7 +433,7 @@ impl<'de> de::EnumAccess<'de> for EnumDeserializer<'de> {
     where
         V: DeserializeSeed<'de>,
     {
-        let variant = seed.deserialize(self.variant.into_deserializer())?;
+        let variant = seed.deserialize(self.variant.as_ref().into_deserializer())?;
         Ok((
             variant,
             VariantDeserializer {
@@ -474,7 +474,7 @@ impl<'de> de::VariantAccess<'de> for VariantDeserializer<'de> {
     {
         match self.value.map(|value| value.inner) {
             Some(DuperInner::Array(vec)) => {
-                let seq = SequenceDeserializer::new(vec);
+                let seq = SequenceDeserializer::new(vec.into_inner());
                 visitor.visit_seq(seq)
             }
             Some(_) => Err(de::Error::custom("expected array for tuple variant")),
@@ -492,7 +492,7 @@ impl<'de> de::VariantAccess<'de> for VariantDeserializer<'de> {
     {
         match self.value.map(|value| value.inner) {
             Some(DuperInner::Object(obj)) => {
-                let map = MapDeserializer::new(obj);
+                let map = MapDeserializer::new(obj.into_inner());
                 visitor.visit_map(map)
             }
             Some(_) => Err(de::Error::custom("expected object for struct variant")),

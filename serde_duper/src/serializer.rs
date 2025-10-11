@@ -1,6 +1,9 @@
 use std::{borrow::Cow, marker::PhantomData};
 
-use duper::{DuperInner, DuperValue, Serializer as DuperSerializer};
+use duper::{
+    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
+    DuperTuple, DuperValue, Serializer as DuperSerializer,
+};
 use serde_core::{Serialize, ser};
 
 use crate::Error;
@@ -65,21 +68,21 @@ pub struct SerializeTupleVariant<'a, 'b> {
 
 pub struct SerializeMap<'a, 'b> {
     serializer: &'a mut Serializer<'b>,
-    entries: Vec<(Cow<'b, str>, DuperValue<'b>)>,
-    next_key: Option<Cow<'b, str>>,
+    entries: Vec<(DuperKey<'b>, DuperValue<'b>)>,
+    next_key: Option<DuperKey<'b>>,
 }
 
 pub struct SerializeStruct<'a, 'b> {
     serializer: &'a mut Serializer<'b>,
     name: &'static str,
-    fields: Vec<(Cow<'b, str>, DuperValue<'b>)>,
+    fields: Vec<(DuperKey<'b>, DuperValue<'b>)>,
 }
 
 pub struct SerializeStructVariant<'a, 'b> {
     serializer: &'a mut Serializer<'b>,
     name: &'static str,
     variant: &'static str,
-    fields: Vec<(Cow<'b, str>, DuperValue<'b>)>,
+    fields: Vec<(DuperKey<'b>, DuperValue<'b>)>,
 }
 
 impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
@@ -178,21 +181,21 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::String(Cow::Owned(v.into())),
+            inner: DuperInner::String(DuperString::from(Cow::Owned(v.into()))),
         })
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::String(Cow::Owned(v.into())),
+            inner: DuperInner::String(DuperString::from(Cow::Owned(v.into()))),
         })
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::Bytes(Cow::Owned(v.into())),
+            inner: DuperInner::Bytes(DuperBytes::from(Cow::Owned(v.into()))),
         })
     }
 
@@ -219,7 +222,7 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            identifier: Some(Cow::Owned(format!("X-{name}"))),
+            identifier: Some(DuperIdentifier::from(Cow::Owned(format!("X-{name}")))),
             inner: DuperInner::Null,
         })
     }
@@ -231,8 +234,8 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            identifier: Some(Cow::Owned(format!("X-{name}"))),
-            inner: DuperInner::String(Cow::Borrowed(variant)),
+            identifier: Some(DuperIdentifier::from(Cow::Owned(format!("X-{name}")))),
+            inner: DuperInner::String(DuperString::from(Cow::Borrowed(variant))),
         })
     }
 
@@ -246,7 +249,7 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     {
         let value = value.serialize(self)?;
         Ok(DuperValue {
-            identifier: Some(Cow::Owned(format!("X-{name}"))),
+            identifier: Some(DuperIdentifier::from(Cow::Owned(format!("X-{name}")))),
             inner: value.inner,
         })
     }
@@ -263,7 +266,7 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     {
         let value = value.serialize(self)?;
         Ok(DuperValue {
-            identifier: Some(Cow::Owned(format!("X-{name}"))),
+            identifier: Some(DuperIdentifier::from(Cow::Owned(format!("X-{name}")))),
             inner: value.inner,
         })
     }
@@ -361,7 +364,7 @@ impl<'a, 'b> ser::SerializeSeq for SerializeSeq<'a, 'b> {
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::Array(self.elements),
+            inner: DuperInner::Array(DuperArray::from(self.elements)),
         })
     }
 }
@@ -382,7 +385,7 @@ impl<'a, 'b> ser::SerializeTuple for SerializeTuple<'a, 'b> {
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::Tuple(self.elements),
+            inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
         })
     }
 }
@@ -402,8 +405,11 @@ impl<'a, 'b> ser::SerializeTupleStruct for SerializeTupleStruct<'a, 'b> {
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            identifier: Some(Cow::Owned(format!("X-{}", self.name))),
-            inner: DuperInner::Tuple(self.elements),
+            identifier: Some(DuperIdentifier::from(Cow::Owned(format!(
+                "X-{}",
+                self.name
+            )))),
+            inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
         })
     }
 }
@@ -424,16 +430,19 @@ impl<'a, 'b> ser::SerializeTupleVariant for SerializeTupleVariant<'a, 'b> {
     fn end(self) -> Result<Self::Ok, Self::Error> {
         let mut fields = Vec::new();
         fields.push((
-            Cow::Borrowed(self.variant),
+            DuperKey::from(Cow::Borrowed(self.variant)),
             DuperValue {
                 identifier: None,
-                inner: DuperInner::Tuple(self.elements),
+                inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
             },
         ));
 
         Ok(DuperValue {
-            identifier: Some(Cow::Owned(format!("X-{}", self.name))),
-            inner: DuperInner::Object(fields),
+            identifier: Some(DuperIdentifier::from(Cow::Owned(format!(
+                "X-{}",
+                self.name
+            )))),
+            inner: DuperInner::Object(DuperObject::from(fields)),
         })
     }
 }
@@ -449,7 +458,7 @@ impl<'a, 'b> ser::SerializeMap for SerializeMap<'a, 'b> {
         let key_value = key.serialize(&mut *self.serializer)?;
         match key_value.inner {
             DuperInner::String(s) => {
-                self.next_key = Some(s);
+                self.next_key = Some(DuperKey::from(s.into_inner()));
                 Ok(())
             }
             _ => Err(Error::invalid_value("map key must be a string")),
@@ -474,7 +483,7 @@ impl<'a, 'b> ser::SerializeMap for SerializeMap<'a, 'b> {
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::Object(self.entries),
+            inner: DuperInner::Object(DuperObject::from(self.entries)),
         })
     }
 }
@@ -488,14 +497,18 @@ impl<'a, 'b> ser::SerializeStruct for SerializeStruct<'a, 'b> {
         T: ?Sized + Serialize,
     {
         let value = value.serialize(&mut *self.serializer)?;
-        self.fields.push((Cow::Borrowed(key), value));
+        self.fields
+            .push((DuperKey::from(Cow::Borrowed(key)), value));
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            identifier: Some(Cow::Owned(format!("X-{}", self.name))),
-            inner: DuperInner::Object(self.fields),
+            identifier: Some(DuperIdentifier::from(Cow::Owned(format!(
+                "X-{}",
+                self.name
+            )))),
+            inner: DuperInner::Object(DuperObject::from(self.fields)),
         })
     }
 }
@@ -509,23 +522,27 @@ impl<'a, 'b> ser::SerializeStructVariant for SerializeStructVariant<'a, 'b> {
         T: ?Sized + Serialize,
     {
         let value = value.serialize(&mut *self.serializer)?;
-        self.fields.push((Cow::Borrowed(key), value));
+        self.fields
+            .push((DuperKey::from(Cow::Borrowed(key)), value));
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         let mut variant_obj = Vec::new();
         variant_obj.push((
-            Cow::Borrowed(self.variant),
+            DuperKey::from(Cow::Borrowed(self.variant)),
             DuperValue {
                 identifier: None,
-                inner: DuperInner::Object(self.fields),
+                inner: DuperInner::Object(DuperObject::from(self.fields)),
             },
         ));
 
         Ok(DuperValue {
-            identifier: Some(Cow::Owned(format!("X-{}", self.name))),
-            inner: DuperInner::Object(variant_obj),
+            identifier: Some(DuperIdentifier::from(Cow::Owned(format!(
+                "X-{}",
+                self.name
+            )))),
+            inner: DuperInner::Object(DuperObject::from(variant_obj)),
         })
     }
 }

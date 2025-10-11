@@ -7,7 +7,10 @@ mod serializer;
 pub mod types;
 pub mod visitor;
 
-pub use ast::{DuperInner, DuperValue};
+pub use ast::{
+    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
+    DuperTuple, DuperValue,
+};
 pub use pretty_printer::PrettyPrinter;
 pub use serializer::Serializer;
 

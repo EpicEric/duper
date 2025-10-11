@@ -1,0 +1,12 @@
+---
+source: duper/src/pretty_printer.rs
+expression: pp
+---
+[
+  [
+    [
+      "So many arrays!",
+    ],
+  ],
+  "\"Hello world!\"",
+]

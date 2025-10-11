@@ -1,0 +1,7 @@
+---
+source: duper/src/pretty_printer.rs
+expression: pp
+---
+[
+  42,
+]

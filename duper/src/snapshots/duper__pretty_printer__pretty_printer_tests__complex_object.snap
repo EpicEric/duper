@@ -1,0 +1,14 @@
+---
+source: duper/src/pretty_printer.rs
+expression: pp
+---
+X-Start({
+  "first object": {
+    second_object: {
+      "third object": X-Msg(
+        "This is a very long string that will push itself into the next line."
+      ),
+      addendum: null,
+    },
+  },
+})

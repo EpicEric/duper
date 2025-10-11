@@ -1,7 +1,7 @@
-use std::borrow::Cow;
-
 use crate::{
-    ast::DuperValue,
+    ast::{
+        DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTuple, DuperValue,
+    },
     format::{
         format_boolean, format_bytes, format_float, format_integer, format_key, format_string,
     },
@@ -17,7 +17,7 @@ impl PrettyPrinter {
         Self { indent: 0 }
     }
 
-    pub fn serialize<'a>(&mut self, value: DuperValue<'a>) -> String {
+    pub fn pretty_print<'a>(&mut self, value: DuperValue<'a>) -> String {
         value.accept(self)
     }
 
@@ -39,8 +39,8 @@ impl DuperVisitor for PrettyPrinter {
 
     fn visit_object<'a>(
         &mut self,
-        identifier: Option<&Cow<'a, str>>,
-        object: &Vec<(Cow<'a, str>, DuperValue<'a>)>,
+        identifier: Option<&DuperIdentifier<'a>>,
+        object: &DuperObject<'a>,
     ) -> Self::Value {
         let mut string = String::new();
 
@@ -51,7 +51,7 @@ impl DuperVisitor for PrettyPrinter {
             } else {
                 string.push_str("({\n");
                 self.increase_indentation();
-                for (key, value) in object.into_iter() {
+                for (key, value) in object.iter() {
                     string.push_str(&self.indentation());
                     string.push_str(&format_key(key));
                     string.push_str(": ");
@@ -68,13 +68,15 @@ impl DuperVisitor for PrettyPrinter {
             } else {
                 string.push_str("{\n");
                 self.increase_indentation();
-                for (key, value) in object.into_iter() {
+                for (key, value) in object.iter() {
+                    string.push_str(&self.indentation());
                     string.push_str(&format_key(key));
                     string.push_str(": ");
                     string.push_str(&value.accept(self));
                     string.push_str(",\n");
                 }
                 self.decrease_indentation();
+                string.push_str(&self.indentation());
                 string.push('}');
             }
         }
@@ -84,8 +86,8 @@ impl DuperVisitor for PrettyPrinter {
 
     fn visit_array<'a>(
         &mut self,
-        identifier: Option<&Cow<'a, str>>,
-        array: &Vec<DuperValue<'a>>,
+        identifier: Option<&DuperIdentifier<'a>>,
+        array: &DuperArray<'a>,
     ) -> Self::Value {
         let mut string = String::new();
 
@@ -94,9 +96,9 @@ impl DuperVisitor for PrettyPrinter {
             if array.is_empty() {
                 string.push_str("([])");
             } else {
-                string.push_str("([");
+                string.push_str("([\n");
                 self.increase_indentation();
-                for value in array.into_iter() {
+                for value in array.iter() {
                     string.push_str(&self.indentation());
                     string.push_str(&value.accept(self));
                     string.push_str(",\n");
@@ -109,9 +111,9 @@ impl DuperVisitor for PrettyPrinter {
             if array.is_empty() {
                 string.push_str("[]");
             } else {
-                string.push('[');
+                string.push_str("[\n");
                 self.increase_indentation();
-                for value in array.into_iter() {
+                for value in array.iter() {
                     string.push_str(&self.indentation());
                     string.push_str(&value.accept(self));
                     string.push_str(",\n");
@@ -127,8 +129,8 @@ impl DuperVisitor for PrettyPrinter {
 
     fn visit_tuple<'a>(
         &mut self,
-        identifier: Option<&Cow<'a, str>>,
-        tuple: &Vec<DuperValue<'a>>,
+        identifier: Option<&DuperIdentifier<'a>>,
+        tuple: &DuperTuple<'a>,
     ) -> Self::Value {
         let mut string = String::new();
 
@@ -141,9 +143,9 @@ impl DuperVisitor for PrettyPrinter {
                 string.push_str(&tuple.get(0).unwrap().accept(self));
                 string.push_str(",))");
             } else {
-                string.push_str("((");
+                string.push_str("((\n");
                 self.increase_indentation();
-                for value in tuple.into_iter() {
+                for value in tuple.iter() {
                     string.push_str(&self.indentation());
                     string.push_str(&value.accept(self));
                     string.push_str(",\n");
@@ -160,14 +162,15 @@ impl DuperVisitor for PrettyPrinter {
                 string.push_str(&tuple.get(0).unwrap().accept(self));
                 string.push_str(",)");
             } else {
-                string.push('(');
+                string.push_str("(\n");
                 self.increase_indentation();
-                for value in tuple.into_iter() {
+                for value in tuple.iter() {
                     string.push_str(&self.indentation());
                     string.push_str(&value.accept(self));
                     string.push_str(",\n");
                 }
                 self.decrease_indentation();
+                string.push_str(&self.indentation());
                 string.push(')');
             }
         }
@@ -177,18 +180,19 @@ impl DuperVisitor for PrettyPrinter {
 
     fn visit_string<'a>(
         &mut self,
-        identifier: Option<&Cow<'a, str>>,
-        value: &Cow<'a, str>,
+        identifier: Option<&DuperIdentifier<'a>>,
+        value: &DuperString<'a>,
     ) -> Self::Value {
         if let Some(identifier) = identifier {
             let value = format_string(value);
             if value.len() + self.indent > 60 {
                 let mut string = String::new();
-                string.push_str(&identifier);
+                string.push_str(identifier.as_ref());
                 string.push_str("(\n");
                 self.increase_indentation();
                 string.push_str(&self.indentation());
                 string.push_str(&value);
+                string.push('\n');
                 self.decrease_indentation();
                 string.push_str(&self.indentation());
                 string.push_str(")");
@@ -203,14 +207,14 @@ impl DuperVisitor for PrettyPrinter {
 
     fn visit_bytes<'a>(
         &mut self,
-        identifier: Option<&Cow<'a, str>>,
-        bytes: &Cow<'a, [u8]>,
+        identifier: Option<&DuperIdentifier<'a>>,
+        bytes: &DuperBytes<'a>,
     ) -> Self::Value {
         if let Some(identifier) = identifier {
             let bytes = format_bytes(bytes);
             if bytes.len() + self.indent > 60 {
                 let mut string = String::new();
-                string.push_str(&identifier);
+                string.push_str(identifier.as_ref());
                 string.push_str("(\n");
                 self.increase_indentation();
                 string.push_str(&self.indentation());
@@ -227,16 +231,20 @@ impl DuperVisitor for PrettyPrinter {
         }
     }
 
-    fn visit_integer(&mut self, identifier: Option<&Cow<'_, str>>, integer: i64) -> Self::Value {
+    fn visit_integer(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'_>>,
+        integer: i64,
+    ) -> Self::Value {
         if let Some(identifier) = identifier {
-            let value = format_integer(integer, identifier.as_ref().try_into().ok());
+            let value = format_integer(integer, identifier.try_into().ok());
             format!("{identifier}({value})")
         } else {
             format_integer(integer, None)
         }
     }
 
-    fn visit_float(&mut self, identifier: Option<&Cow<'_, str>>, float: f64) -> Self::Value {
+    fn visit_float(&mut self, identifier: Option<&DuperIdentifier<'_>>, float: f64) -> Self::Value {
         if let Some(identifier) = identifier {
             let value = format_float(float);
             format!("{identifier}({value})")
@@ -245,7 +253,11 @@ impl DuperVisitor for PrettyPrinter {
         }
     }
 
-    fn visit_boolean(&mut self, identifier: Option<&Cow<'_, str>>, boolean: bool) -> Self::Value {
+    fn visit_boolean(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'_>>,
+        boolean: bool,
+    ) -> Self::Value {
         if let Some(identifier) = identifier {
             let value = format_boolean(boolean);
             format!("{identifier}({value})")
@@ -254,11 +266,219 @@ impl DuperVisitor for PrettyPrinter {
         }
     }
 
-    fn visit_null(&mut self, identifier: Option<&Cow<'_, str>>) -> Self::Value {
+    fn visit_null(&mut self, identifier: Option<&DuperIdentifier<'_>>) -> Self::Value {
         if let Some(identifier) = identifier {
             format!("{identifier}(null)")
         } else {
             "null".into()
         }
+    }
+}
+
+#[cfg(test)]
+mod pretty_printer_tests {
+    use std::borrow::Cow;
+
+    use insta::assert_snapshot;
+
+    use crate::{
+        DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
+        DuperTuple, DuperValue, PrettyPrinter, parser::DuperParser,
+    };
+
+    #[test]
+    fn empty_object() {
+        let value = DuperValue {
+            identifier: None,
+            inner: DuperInner::Object(DuperObject(vec![])),
+        };
+        let pp = PrettyPrinter::new().pretty_print(value);
+        assert_snapshot!(pp);
+        let _ = DuperParser::parse_duper(&pp).unwrap();
+    }
+
+    #[test]
+    fn empty_array() {
+        let value = DuperValue {
+            identifier: None,
+            inner: DuperInner::Array(DuperArray(vec![])),
+        };
+        let pp = PrettyPrinter::new().pretty_print(value);
+        assert_snapshot!(pp);
+        let _ = DuperParser::parse_duper(&pp).unwrap();
+    }
+
+    #[test]
+    fn single_element_object() {
+        let value = DuperValue {
+            identifier: None,
+            inner: DuperInner::Object(DuperObject(vec![(
+                DuperKey::from(Cow::Borrowed("chess")),
+                DuperValue {
+                    identifier: None,
+                    inner: DuperInner::String(DuperString::from(Cow::Borrowed("✅"))),
+                },
+            )])),
+        };
+        let pp = PrettyPrinter::new().pretty_print(value);
+        assert_snapshot!(pp);
+        let _ = DuperParser::parse_duper(&pp).unwrap();
+    }
+
+    #[test]
+    fn single_element_array() {
+        let value = DuperValue {
+            identifier: None,
+            inner: DuperInner::Array(DuperArray(vec![DuperValue {
+                identifier: None,
+                inner: DuperInner::Integer(42),
+            }])),
+        };
+        let pp = PrettyPrinter::new().pretty_print(value);
+        assert_snapshot!(pp);
+        let _ = DuperParser::parse_duper(&pp).unwrap();
+    }
+
+    #[test]
+    fn basic_object() {
+        let value = DuperValue {
+            identifier: None,
+            inner: DuperInner::Object(DuperObject(vec![
+                (
+                    DuperKey::from(Cow::Borrowed("zero")),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Tuple(DuperTuple::from(vec![])),
+                    },
+                ),
+                (
+                    DuperKey::from(Cow::Borrowed("one")),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Tuple(DuperTuple::from(vec![DuperValue {
+                            identifier: None,
+                            inner: DuperInner::String(DuperString::from(Cow::Borrowed("Sandhole"))),
+                        }])),
+                    },
+                ),
+                (
+                    DuperKey::from(Cow::Borrowed("two")),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Tuple(DuperTuple::from(vec![
+                            DuperValue {
+                                identifier: None,
+                                inner: DuperInner::String(DuperString::from(Cow::Borrowed("rust"))),
+                            },
+                            DuperValue {
+                                identifier: None,
+                                inner: DuperInner::String(DuperString::from(Cow::Borrowed("pest"))),
+                            },
+                        ])),
+                    },
+                ),
+            ])),
+        };
+        let pp = PrettyPrinter::new().pretty_print(value);
+        assert_snapshot!(pp);
+        let _ = DuperParser::parse_duper(&pp).unwrap();
+    }
+
+    #[test]
+    fn basic_array() {
+        let value = DuperValue {
+            identifier: None,
+            inner: DuperInner::Array(DuperArray(vec![
+                DuperValue {
+                    identifier: None,
+                    inner: DuperInner::Bytes(DuperBytes::from(Cow::Borrowed(b"foobar".as_ref()))),
+                },
+                DuperValue {
+                    identifier: None,
+                    inner: DuperInner::Null,
+                },
+                DuperValue {
+                    identifier: None,
+                    inner: DuperInner::Boolean(false),
+                },
+            ])),
+        };
+        let pp = PrettyPrinter::new().pretty_print(value);
+        assert_snapshot!(pp);
+        let _ = DuperParser::parse_duper(&pp).unwrap();
+    }
+
+    #[test]
+    fn complex_object() {
+        let value = DuperValue {
+            identifier: Some(DuperIdentifier::from(Cow::Borrowed("X-Start"))),
+            inner: DuperInner::Object(DuperObject(vec![(
+                DuperKey::from(Cow::Borrowed("first object")),
+                DuperValue {
+                    identifier: None,
+                    inner: DuperInner::Object(DuperObject(vec![(
+                        DuperKey::from(Cow::Borrowed("second_object")),
+                        DuperValue {
+                            identifier: None,
+                            inner: DuperInner::Object(DuperObject(vec![
+                                (
+                                    DuperKey::from(Cow::Borrowed("third object")),
+                                    DuperValue {
+                                        identifier: Some(DuperIdentifier::from(Cow::Borrowed(
+                                            "X-Msg",
+                                        ))),
+                                        inner: DuperInner::String(DuperString::from(
+                                            Cow::Borrowed(
+                                                "This is a very long string that will push itself into the next line.",
+                                            ),
+                                        )),
+                                    },
+                                ),
+                                (
+                                    DuperKey::from(Cow::Borrowed("addendum")),
+                                    DuperValue {
+                                        identifier: None,
+                                        inner: DuperInner::Null,
+                                    },
+                                ),
+                            ])),
+                        },
+                    )])),
+                },
+            )])),
+        };
+        let pp = PrettyPrinter::new().pretty_print(value);
+        assert_snapshot!(pp);
+        let _ = DuperParser::parse_duper(&pp).unwrap();
+    }
+
+    #[test]
+    fn complex_array() {
+        let value = DuperValue {
+            identifier: None,
+            inner: DuperInner::Array(DuperArray(vec![
+                DuperValue {
+                    identifier: None,
+                    inner: DuperInner::Array(DuperArray(vec![DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Array(DuperArray(vec![DuperValue {
+                            identifier: None,
+                            inner: DuperInner::String(DuperString::from(Cow::Borrowed(
+                                "So many arrays!",
+                            ))),
+                        }])),
+                    }])),
+                },
+                DuperValue {
+                    identifier: None,
+                    inner: DuperInner::String(DuperString::from(Cow::Borrowed(
+                        r#""Hello world!""#,
+                    ))),
+                },
+            ])),
+        };
+        let pp = PrettyPrinter::new().pretty_print(value);
+        assert_snapshot!(pp);
+        let _ = DuperParser::parse_duper(&pp).unwrap();
     }
 }
