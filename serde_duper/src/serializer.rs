@@ -386,7 +386,7 @@ impl<'a, 'b> ser::SerializeTuple for SerializeTuple<'a, 'b> {
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::Array(self.elements),
+            inner: DuperInner::Tuple(self.elements),
         })
     }
 }
@@ -407,7 +407,7 @@ impl<'a, 'b> ser::SerializeTupleStruct for SerializeTupleStruct<'a, 'b> {
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: Some(Cow::Owned(format!("X-{}", self.name))),
-            inner: DuperInner::Array(self.elements),
+            inner: DuperInner::Tuple(self.elements),
         })
     }
 }
@@ -431,7 +431,7 @@ impl<'a, 'b> ser::SerializeTupleVariant for SerializeTupleVariant<'a, 'b> {
             Cow::Borrowed(self.variant),
             DuperValue {
                 identifier: None,
-                inner: DuperInner::Array(self.elements),
+                inner: DuperInner::Tuple(self.elements),
             },
         ));
 

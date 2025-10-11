@@ -91,6 +91,44 @@ impl DuperVisitor for DuperSerializer {
         string
     }
 
+    fn visit_tuple<'a>(
+        &mut self,
+        identifier: Option<Cow<'a, str>>,
+        tuple: Vec<DuperValue<'a>>,
+    ) -> Self::Value {
+        let mut string = String::new();
+        let len = tuple.len();
+
+        if let Some(identifier) = identifier {
+            string.push_str(identifier.as_ref());
+            string.push_str("((");
+            for (i, value) in tuple.into_iter().enumerate() {
+                string.push_str(&value.accept(self));
+                if i < len - 1 {
+                    string.push_str(", ");
+                }
+            }
+            if len <= 1 {
+                string.push(',');
+            }
+            string.push_str("))");
+        } else {
+            string.push('(');
+            for (i, value) in tuple.into_iter().enumerate() {
+                string.push_str(&value.accept(self));
+                if i < len - 1 {
+                    string.push_str(", ");
+                }
+            }
+            if len <= 1 {
+                string.push(',');
+            }
+            string.push(')');
+        }
+
+        string
+    }
+
     fn visit_string<'a>(
         &mut self,
         identifier: Option<Cow<'a, str>>,

@@ -6,3 +6,6 @@ edition = "2024"
 [dependencies]
 serde_core = "1.0.228"
 duper = { path = "../duper" }
+
+[dev-dependencies]
+serde = { version = "1.0.228", features = ["derive"] }

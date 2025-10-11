@@ -9,6 +9,8 @@ mod visitor;
 pub use ast::{DuperInner, DuperValue};
 pub use parser::DuperParser;
 pub use serializer::DuperSerializer;
+pub use types::DuperTypes;
+pub use visitor::DuperVisitor;
 
 #[cfg(test)]
 mod tests {

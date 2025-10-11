@@ -64,6 +64,13 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 visitor.visit_seq(seq)
             }
             Some(DuperValue {
+                inner: DuperInner::Tuple(tuple),
+                ..
+            }) => {
+                let seq = SequenceDeserializer::new(tuple);
+                visitor.visit_seq(seq)
+            }
+            Some(DuperValue {
                 inner: DuperInner::String(string),
                 ..
             }) => visitor.visit_str(&string),

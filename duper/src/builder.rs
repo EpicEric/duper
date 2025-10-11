@@ -72,7 +72,7 @@ impl DuperBuilder {
     }
 
     fn build_array(pair: Pair<'_, Rule>) -> Result<Vec<DuperValue<'_>>, Error<Rule>> {
-        debug_assert!(matches!(pair.as_rule(), Rule::array));
+        debug_assert!(matches!(pair.as_rule(), Rule::array | Rule::tuple));
         pair.into_inner()
             .map(|pair| Self::build_value(pair))
             .collect()
@@ -94,6 +94,7 @@ impl DuperBuilder {
             inner: match next.as_rule() {
                 Rule::object => DuperInner::Object(Self::build_object(next)?),
                 Rule::array => DuperInner::Array(Self::build_array(next)?),
+                Rule::tuple => DuperInner::Tuple(Self::build_array(next)?),
                 Rule::string => DuperInner::String(Self::unescape_str(
                     next.into_inner().next().unwrap().as_str(),
                 )),

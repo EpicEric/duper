@@ -12,6 +12,7 @@ pub struct DuperValue<'a> {
 pub enum DuperInner<'a> {
     Object(Vec<(Cow<'a, str>, DuperValue<'a>)>),
     Array(Vec<DuperValue<'a>>),
+    Tuple(Vec<DuperValue<'a>>),
     String(Cow<'a, str>),
     Bytes(Cow<'a, [u8]>),
     Integer(i64),
@@ -25,6 +26,7 @@ impl<'a> DuperValue<'a> {
         match self.inner {
             DuperInner::Object(object) => visitor.visit_object(self.identifier, object),
             DuperInner::Array(array) => visitor.visit_array(self.identifier, array),
+            DuperInner::Tuple(tuple) => visitor.visit_tuple(self.identifier, tuple),
             DuperInner::String(string) => visitor.visit_string(self.identifier, string),
             DuperInner::Bytes(bytes) => visitor.visit_bytes(self.identifier, bytes),
             DuperInner::Integer(integer) => visitor.visit_integer(self.identifier, integer),

@@ -8,7 +8,7 @@ duper_trunk = { identifier ~ "(" ~ (object | array) ~ ")" | object | array }
 identifier = @{ "X-" ~ LETTER ~ ("-"? ~ LETTER | NUMBER)* | UPPERCASE_LETTER ~ (LETTER | NUMBER)* }
 
 described_value = { identifier ~ "(" ~ value ~ ")" | value }
-value = _{ object | array | string | raw_string | bytes | raw_bytes | float | integer | boolean | null }
+value = _{ object | array | tuple | string | raw_string | bytes | raw_bytes | float | integer | boolean | null }
 
 object = {
     "{" ~ ","? ~ "}" |
@@ -17,6 +17,11 @@ object = {
 pair = { key ~ ":" ~ described_value }
 key = _{ string | raw_string | plain_key }
 plain_key = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
+tuple = {
+    "(" ~ "," ~ ")" |
+    "(" ~ described_value ~ ("," ~ described_value)* ~ ","? ~ ")"
+}
 
 array = {
     "[" ~ ","? ~ "]" |
