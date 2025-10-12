@@ -1,4 +1,4 @@
-use pest::{Parser as _, error::Error};
+use pest::{Parser, error::Error, iterators::Pairs};
 
 use crate::{ast::DuperValue, builder::DuperBuilder};
 
@@ -7,6 +7,16 @@ use crate::{ast::DuperValue, builder::DuperBuilder};
 pub struct DuperParser;
 
 impl DuperParser {
+    pub fn try_parse(input: &'_ str) -> Result<Pairs<'_, Rule>, String> {
+        if let Ok(pairs) = Self::parse(Rule::duper_stream, input) {
+            Ok(pairs)
+        } else if let Ok(pairs) = Self::parse(Rule::duper_value, input) {
+            Ok(pairs)
+        } else {
+            Err("No matching rule found".into())
+        }
+    }
+
     pub fn parse_duper_stream(input: &'_ str) -> Result<Vec<DuperValue<'_>>, Box<Error<Rule>>> {
         let mut pairs = Self::parse(Rule::duper_stream, input)?;
         DuperBuilder::build_duper_stream(pairs.next().unwrap())

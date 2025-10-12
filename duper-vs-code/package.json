@@ -1,0 +1,34 @@
+{
+  "name": "duper-vs-code",
+  "displayName": "duper-vs-code",
+  "description": "Adds support to VSCode for Duper.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.105.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "duper",
+        "aliases": [
+          "Duper",
+          "duper"
+        ],
+        "extensions": [
+          ".duper"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "duper",
+        "scopeName": "source.duper",
+        "path": "./syntaxes/duper.tmLanguage.json"
+      }
+    ]
+  }
+}

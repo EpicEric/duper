@@ -1,5 +1,5 @@
 [package]
-name = "serde_duper"
+name = "serde-duper"
 description = "Serde support for Duper."
 version = "0.1.0"
 edition = "2024"

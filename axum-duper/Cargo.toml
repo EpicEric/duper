@@ -1,5 +1,5 @@
 [package]
-name = "axum_duper"
+name = "axum-duper"
 description = "Axum extractor/response for Duper."
 version = "0.1.0"
 edition = "2024"
@@ -9,4 +9,4 @@ authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 [dependencies]
 axum = { version = "0.8.6", default-features = false }
 serde_core = "1.0.228"
-serde_duper = { path = "../serde_duper" }
+serde-duper = { path = "../serde-duper" }

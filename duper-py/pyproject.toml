@@ -1,5 +1,5 @@
 [project]
-name = "duper_py"
+name = "duper-py"
 description = "The format that's super."
 license = "MIT"
 authors = [{ name = "Eric Rodrigues Pires", email = "eric@eric.dev.br" }]

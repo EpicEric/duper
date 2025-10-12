@@ -1,0 +1,239 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Duper",
+  "patterns": [
+    {
+      "include": "#values"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.duper",
+          "match": "\\b(true|false|null)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.duper",
+          "begin": "b?\"",
+          "end": "\""
+        },
+        {
+          "name": "string.quoted.double.raw_one.duper",
+          "begin": "b?r(#*)\"",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.raw.duper"
+            }
+          },
+          "end": "\"(\\1)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.raw.duper"
+            }
+          }
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "entity.name.type.duper",
+          "match": "[A-Z](-?[A-Za-z0-9])*"
+        }
+      ]
+    },
+    "plainkeys": {
+      "patterns": [
+        {
+          "name": "string.unquoted.duper",
+          "match": "[a-z](_?[A-Za-z0-9])*"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.duper",
+          "match": "0x[0-9a-fA-F]+|0o[0-7]+|0b[0-1]+|[+-]?(0|[1-9](_?[0-9]*))(\\.[0-9](_?[0-9])*([eE][+-]?[0-9](_?[0-9])*)?)?"
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.duper",
+          "match": "(//).*$\\n?"
+        }
+      ]
+    },
+    "multilinecomments": {
+      "patterns": [
+        {
+          "name": "comment.block.duper",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "patterns": [
+            {
+              "include": "#multilinecomments"
+            }
+          ]
+        }
+      ]
+    },
+    "arrays": {
+      "begin": "\\[",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.arrays.begin.duper"
+        }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.arrays.end.duper"
+        }
+      },
+      "name": "meta.structure.arrays.duper",
+      "patterns": [
+        {
+          "include": "#values"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.arrays.duper"
+        },
+        {
+          "match": "[^\\s\\]]",
+          "name": "invalid.illegal.expected-arrays-separator.duper"
+        }
+      ]
+    },
+    "tuples": {
+      "begin": "\\(",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.tuple.begin.duper"
+        }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.tuple.end.duper"
+        }
+      },
+      "name": "meta.structure.tuple.duper",
+      "patterns": [
+        {
+          "include": "#values"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.tuple.duper"
+        },
+        {
+          "match": "[^\\s\\)]",
+          "name": "invalid.illegal.expected-tuple-separator.duper"
+        }
+      ]
+    },
+    "objects": {
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.dictionary.begin.duper"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.dictionary.end.duper"
+        }
+      },
+      "name": "meta.structure.dictionary.duper",
+      "patterns": [
+        {
+          "include": "#objectkeys"
+        },
+        {
+          "include": "#comments"
+        },
+        {
+          "begin": ":",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.separator.dictionary.key-s.duper"
+            }
+          },
+          "end": "(,)|(?=\\})",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.separator.dictionary.pair.duper"
+            }
+          },
+          "name": "meta.structure.dictionary.value.duper",
+          "patterns": [
+            {
+              "include": "#values"
+            },
+            {
+              "match": "[^\\s,]",
+              "name": "invalid.illegal.expected-dictionary-separator.duper"
+            }
+          ]
+        },
+        {
+          "match": "[^\\s\\}]",
+          "name": "invalid.illegal.expected-dictionary-separator.duper"
+        }
+      ]
+    },
+    "objectkeys": {
+      "patterns": [{ "include": "#strings" }, { "include": "#plainkeys" }]
+    },
+    "stringcontent": {
+      "patterns": [
+        {
+          "match": "\\\\.",
+          "name": "invalid.illegal.unrecognized-string-escape.duper"
+        }
+      ]
+    },
+    "values": {
+      "patterns": [
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#identifiers"
+        },
+        {
+          "include": "#strings"
+        },
+        {
+          "include": "#objects"
+        },
+        {
+          "include": "#arrays"
+        },
+        {
+          "include": "#tuples"
+        },
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#multilinecomments"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.duper"
+}
