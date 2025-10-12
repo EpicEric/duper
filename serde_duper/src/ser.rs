@@ -21,29 +21,26 @@ impl<'a> Serializer<'a> {
     }
 }
 
-pub fn to_duper<'a, T>(value: &'a T) -> Result<DuperValue<'a>, String>
+pub fn to_duper<'a, T>(value: &'a T) -> Result<DuperValue<'a>, Error>
 where
     T: Serialize,
 {
     let mut serializer = Serializer::new();
-    let value = value
-        .serialize(&mut serializer)
-        .map_err(|e| format!("Serialization error: {e:?}"))?;
-    Ok(value)
+    value.serialize(&mut serializer)
 }
 
-pub fn to_string<T>(value: &T) -> Result<String, String>
+pub fn to_string<T>(value: &T) -> Result<String, Error>
 where
     T: Serialize,
 {
     Ok(DuperSerializer::new().serialize(to_duper(value)?))
 }
 
-pub fn to_string_pretty<T>(value: &T) -> Result<String, String>
+pub fn to_string_pretty<T>(value: &T, indent: usize) -> Result<String, Error>
 where
     T: Serialize,
 {
-    Ok(DuperPrettyPrinter::new().pretty_print(to_duper(value)?))
+    Ok(DuperPrettyPrinter::new(indent).pretty_print(to_duper(value)?))
 }
 
 pub struct SerializeSeq<'a, 'b> {
@@ -158,12 +155,15 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
+        let Ok(integer) = v.try_into() else {
+            return Ok(DuperValue {
+                identifier: None,
+                inner: DuperInner::Float(v as f64),
+            });
+        };
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::Integer(
-                v.try_into()
-                    .map_err(|_| Error::invalid_value("integer must fit in i64"))?,
-            ),
+            inner: DuperInner::Integer(integer),
         })
     }
 
@@ -464,7 +464,7 @@ impl<'a, 'b> ser::SerializeMap for SerializeMap<'a, 'b> {
                 self.next_key = Some(DuperKey::from(s.into_inner()));
                 Ok(())
             }
-            _ => Err(Error::invalid_value("map key must be a string")),
+            _ => Err(Error::serialization("map key must be a string")),
         }
     }
 

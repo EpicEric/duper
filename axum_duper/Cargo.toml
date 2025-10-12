@@ -1,7 +1,10 @@
 [package]
 name = "axum_duper"
+description = "Axum extractor/response for Duper."
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 
 [dependencies]
 axum = { version = "0.8.6", default-features = false }

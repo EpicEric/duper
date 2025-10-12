@@ -10,18 +10,22 @@ use crate::{
 };
 
 pub struct PrettyPrinter {
+    curr_indent: usize,
     indent: usize,
 }
 
 impl Default for PrettyPrinter {
     fn default() -> Self {
-        Self::new()
+        Self::new(2)
     }
 }
 
 impl PrettyPrinter {
-    pub fn new() -> Self {
-        Self { indent: 0 }
+    pub fn new(indent: usize) -> Self {
+        Self {
+            curr_indent: 0,
+            indent,
+        }
     }
 
     pub fn pretty_print<'a>(&mut self, value: DuperValue<'a>) -> String {
@@ -29,15 +33,15 @@ impl PrettyPrinter {
     }
 
     fn increase_indentation(&mut self) {
-        self.indent += 2
+        self.curr_indent += self.indent;
     }
 
     fn decrease_indentation(&mut self) {
-        self.indent -= 2
+        self.curr_indent -= self.indent;
     }
 
     fn indentation(&self) -> String {
-        (0..self.indent).map(|_| ' ').collect()
+        (0..self.curr_indent).map(|_| ' ').collect()
     }
 }
 
@@ -186,7 +190,7 @@ impl DuperVisitor for PrettyPrinter {
     ) -> Self::Value {
         if let Some(identifier) = identifier {
             let value = format_duper_string(value);
-            if value.len() + self.indent > 60 {
+            if value.len() + self.curr_indent > 60 {
                 let mut string = String::new();
                 string.push_str(identifier.as_ref());
                 string.push_str("(\n");
@@ -213,7 +217,7 @@ impl DuperVisitor for PrettyPrinter {
     ) -> Self::Value {
         if let Some(identifier) = identifier {
             let bytes = format_duper_bytes(bytes);
-            if bytes.len() + self.indent > 60 {
+            if bytes.len() + self.curr_indent > 60 {
                 let mut string = String::new();
                 string.push_str(identifier.as_ref());
                 string.push_str("(\n");
@@ -293,7 +297,7 @@ mod pretty_printer_tests {
             identifier: None,
             inner: DuperInner::Object(DuperObject(vec![])),
         };
-        let pp = PrettyPrinter::new().pretty_print(value);
+        let pp = PrettyPrinter::new(2).pretty_print(value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper(&pp).unwrap();
     }
@@ -304,7 +308,7 @@ mod pretty_printer_tests {
             identifier: None,
             inner: DuperInner::Array(DuperArray(vec![])),
         };
-        let pp = PrettyPrinter::new().pretty_print(value);
+        let pp = PrettyPrinter::new(2).pretty_print(value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper(&pp).unwrap();
     }
@@ -321,7 +325,7 @@ mod pretty_printer_tests {
                 },
             )])),
         };
-        let pp = PrettyPrinter::new().pretty_print(value);
+        let pp = PrettyPrinter::new(2).pretty_print(value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper(&pp).unwrap();
     }
@@ -335,7 +339,7 @@ mod pretty_printer_tests {
                 inner: DuperInner::Integer(42),
             }])),
         };
-        let pp = PrettyPrinter::new().pretty_print(value);
+        let pp = PrettyPrinter::new(2).pretty_print(value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper(&pp).unwrap();
     }
@@ -380,7 +384,7 @@ mod pretty_printer_tests {
                 ),
             ])),
         };
-        let pp = PrettyPrinter::new().pretty_print(value);
+        let pp = PrettyPrinter::new(2).pretty_print(value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper(&pp).unwrap();
     }
@@ -404,7 +408,7 @@ mod pretty_printer_tests {
                 },
             ])),
         };
-        let pp = PrettyPrinter::new().pretty_print(value);
+        let pp = PrettyPrinter::new(2).pretty_print(value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper(&pp).unwrap();
     }
@@ -448,7 +452,7 @@ mod pretty_printer_tests {
                 },
             )])),
         };
-        let pp = PrettyPrinter::new().pretty_print(value);
+        let pp = PrettyPrinter::new(2).pretty_print(value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper(&pp).unwrap();
     }
@@ -478,7 +482,7 @@ mod pretty_printer_tests {
                 },
             ])),
         };
-        let pp = PrettyPrinter::new().pretty_print(value);
+        let pp = PrettyPrinter::new(2).pretty_print(value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper(&pp).unwrap();
     }

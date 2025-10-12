@@ -1,11 +1,14 @@
 [package]
 name = "serde_duper"
+description = "Serde support for Duper."
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 
 [dependencies]
 serde_core = "1.0.228"
-duper = { path = "../duper" }
+duper = { path = "../duper", features = ["serde"] }
 pest = "2.8.3"
 
 [dev-dependencies]

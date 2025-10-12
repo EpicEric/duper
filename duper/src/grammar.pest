@@ -1,73 +1,66 @@
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
-COMMENT = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+COMMENT    = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 
-duper = _{ SOI ~ duper_trunk ~ EOI }
+duper        = _{ SOI ~ duper_trunk ~ EOI }
 duper_stream = _{ SOI ~ duper_trunk? ~ ("---"+ ~ duper_trunk?)* ~ EOI }
 
-duper_trunk = { identifier ~ "(" ~ (object | array) ~ ")" | object | array }
-identifier = @{ "X-" ~ LETTER ~ ("-"? ~ LETTER | NUMBER)* | UPPERCASE_LETTER ~ (LETTER | NUMBER)* }
+duper_trunk =  { identifier ~ "(" ~ (object | array) ~ ")" | object | array }
+identifier  = @{ "X-" ~ LETTER ~ ("-"? ~ LETTER | NUMBER)* | UPPERCASE_LETTER ~ (LETTER | NUMBER)* }
 
-described_value = { identifier ~ "(" ~ value ~ ")" | value }
-value = _{ object | array | tuple | string | raw_string | bytes | raw_bytes | float | integer | boolean | null }
+described_value =  { identifier ~ "(" ~ value ~ ")" | value }
+value           = _{ object | array | tuple | string | raw_string | bytes | raw_bytes | float | integer | boolean | null }
 
-object = {
-    "{" ~ ","? ~ "}" |
-    "{" ~ pair ~ ("," ~ pair)* ~ ","? ~ "}"
+object    =  {
+    "{" ~ ","? ~ "}"
+  | "{" ~ pair ~ ("," ~ pair)* ~ ","? ~ "}"
 }
-pair = { key ~ ":" ~ described_value }
-key = _{ string | raw_string | plain_key }
+pair      =  { key ~ ":" ~ described_value }
+key       = _{ string | raw_string | plain_key }
 plain_key = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 
 tuple = {
-    "(" ~ described_value? ~ "," ~ ")" |
-    "(" ~ described_value ~ ("," ~ described_value)+ ~ ","? ~ ")"
+    "(" ~ described_value? ~ "," ~ ")"
+  | "(" ~ described_value ~ ("," ~ described_value)+ ~ ","? ~ ")"
 }
 
 array = {
-    "[" ~ ","? ~ "]" |
-    "[" ~ described_value ~ ("," ~ described_value)* ~ ","? ~ "]"
+    "[" ~ ","? ~ "]"
+  | "[" ~ described_value ~ ("," ~ described_value)* ~ ","? ~ "]"
 }
 
 inner = @{ char* }
-char = {
+char  =  {
     !("\"" | "\\") ~ ANY
-    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
-    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+  | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+  | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
 
 string = ${ "\"" ~ inner ~ "\"" }
 
 bytes = ${ "b\"" ~ inner ~ "\"" }
 
-raw_string = ${
-    "r" ~ PUSH("#"*) ~ "\""
-    ~ raw_string_interior
-    ~ "\"" ~ POP
+raw_string          = ${
+    "r" ~ PUSH("#"*) ~ "\"" ~ raw_string_interior ~ "\"" ~ POP
 }
-raw_string_interior = @{ ( !("\"" ~ PEEK) ~ ANY )* }
+raw_string_interior = @{ (!("\"" ~ PEEK) ~ ANY)* }
 
-raw_bytes = ${
-    "br" ~ PUSH("#"*) ~ "\""
-    ~ raw_bytes_interior
-    ~ "\"" ~ POP
+raw_bytes          = ${
+    "br" ~ PUSH("#"*) ~ "\"" ~ raw_bytes_interior ~ "\"" ~ POP
 }
-raw_bytes_interior = @{ ( !("\"" ~ PEEK) ~ ANY )* }
+raw_bytes_interior = @{ (!("\"" ~ PEEK) ~ ANY)* }
 
-integer = { hex_integer | octal_integer | binary_integer | decimal_integer }
+integer         =  { hex_integer | octal_integer | binary_integer | decimal_integer }
 decimal_integer = @{ ("+" | "-")? ~ decimal_digits }
-decimal_digits = { "0" | ASCII_NONZERO_DIGIT ~ ("_"? ~ ASCII_DIGIT)* }
-hex_integer = @{ "0x" ~ hex_digits }
-hex_digits = { ASCII_HEX_DIGIT ~ ("_"? ~ ASCII_HEX_DIGIT)* }
-octal_integer = @{ "0o" ~ octal_digits }
-octal_digits = { ASCII_OCT_DIGIT ~ ("_"? ~ ASCII_OCT_DIGIT)* }
-binary_integer = @{ "0b" ~ binary_digits }
-binary_digits = { ASCII_BIN_DIGIT ~ ("_"? ~ ASCII_BIN_DIGIT)* }
+decimal_digits  =  { "0" | ASCII_NONZERO_DIGIT ~ ("_"? ~ ASCII_DIGIT)* }
+hex_integer     = @{ "0x" ~ hex_digits }
+hex_digits      =  { ASCII_HEX_DIGIT ~ ("_"? ~ ASCII_HEX_DIGIT)* }
+octal_integer   = @{ "0o" ~ octal_digits }
+octal_digits    =  { ASCII_OCT_DIGIT ~ ("_"? ~ ASCII_OCT_DIGIT)* }
+binary_integer  = @{ "0b" ~ binary_digits }
+binary_digits   =  { ASCII_BIN_DIGIT ~ ("_"? ~ ASCII_BIN_DIGIT)* }
 
 float = @{
-    ("+" | "-")?
-    ~ ("0" | ASCII_NONZERO_DIGIT ~ ("_"? ~ ASCII_DIGIT)*)
-    ~ "." ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)*
-    ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)*)?
+    ("+" | "-")? ~ ("0" | ASCII_NONZERO_DIGIT ~ ("_"? ~ ASCII_DIGIT)*) ~ "." ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)* ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)*)?
 }
 
 boolean = { "true" | "false" }

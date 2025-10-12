@@ -1,8 +1,9 @@
 mod ast;
 mod builder;
 mod format;
-pub mod parser;
+mod parser;
 mod pretty_printer;
+mod serde;
 mod serializer;
 pub mod types;
 pub mod visitor;
@@ -11,6 +12,7 @@ pub use ast::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
     DuperTuple, DuperValue,
 };
+pub use parser::{DuperParser, Rule as DuperRule};
 pub use pretty_printer::PrettyPrinter;
 pub use serializer::Serializer;
 

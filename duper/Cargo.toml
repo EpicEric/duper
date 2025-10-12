@@ -1,12 +1,20 @@
 [package]
 name = "duper"
+description = "The format that's super."
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+
+[features]
+default = ["serde"]
+serde = ["dep:serde_core"]
 
 [dependencies]
 json-escape = "0.3.0"
 pest = "2.8.3"
 pest_derive = "2.8.3"
+serde_core = { version = "1.0.228", optional = true }
 
 [dev-dependencies]
 insta = "1.43.2"

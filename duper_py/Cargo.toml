@@ -1,0 +1,18 @@
+[package]
+name = "duper_py"
+description = "The format that's super."
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+
+[lib]
+name = "duper"
+crate-type = ["cdylib"]
+
+[dependencies]
+duper = { path = "../duper" }
+pyo3 = "0.24.0"
+serde = "1.0.228"
+serde-pyobject = "0.6.2"
+serde_duper = { path = "../serde_duper" }

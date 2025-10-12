@@ -1,3 +1,3 @@
 [workspace]
 resolver = "3"
-members = ["axum_duper","duper", "serde_duper"]
+members = ["axum_duper", "duper", "duper_py", "serde_duper"]

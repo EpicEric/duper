@@ -1,5 +1,5 @@
 use duper::DuperKey;
-use duper::{DuperInner, DuperValue, parser::DuperParser};
+use duper::{DuperInner, DuperParser, DuperValue};
 use serde_core::Deserialize;
 use serde_core::de::{self, DeserializeSeed, IntoDeserializer, Visitor};
 
@@ -66,7 +66,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
                 inner: DuperInner::Tuple(tuple),
                 ..
             }) => {
-                let seq = SequenceDeserializer::new(tuple.into_inner());
+                let seq = TupleDeserializer::new(tuple.into_inner());
                 visitor.visit_seq(seq)
             }
             Some(DuperValue {
@@ -138,16 +138,13 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        match self.value.take() {
+        match &self.value {
             Some(DuperValue {
                 inner: DuperInner::Null,
                 ..
             })
             | None => visitor.visit_none(),
-            value => {
-                self.value = value;
-                visitor.visit_some(self)
-            }
+            _ => visitor.visit_some(self),
         }
     }
 
@@ -169,23 +166,41 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         self.deserialize_any(visitor)
     }
 
-    fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        self.deserialize_seq(visitor)
+        match self.value.take() {
+            Some(DuperValue {
+                inner: DuperInner::Array(array),
+                ..
+            }) if array.len() == len => {
+                let seq = TupleDeserializer::new(array.into_inner());
+                visitor.visit_seq(seq)
+            }
+            Some(DuperValue {
+                inner: DuperInner::Tuple(tuple),
+                ..
+            }) if tuple.len() == len => {
+                let seq = TupleDeserializer::new(tuple.into_inner());
+                visitor.visit_seq(seq)
+            }
+            value => Err(de::Error::custom(format!(
+                "expected tuple of len {len}, found {value:?}"
+            ))),
+        }
     }
 
     fn deserialize_tuple_struct<V>(
         self,
         _name: &'static str,
-        _len: usize,
+        len: usize,
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        self.deserialize_seq(visitor)
+        self.deserialize_tuple(len, visitor)
     }
 
     fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -294,7 +309,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        self.deserialize_i64(visitor)
+        self.deserialize_f64(visitor)
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -376,6 +391,41 @@ impl<'de> de::SeqAccess<'de> for SequenceDeserializer<'de> {
                 .map(Some),
             None => Ok(None),
         }
+    }
+}
+
+struct TupleDeserializer<'de> {
+    iter: std::vec::IntoIter<DuperValue<'de>>,
+    len: usize,
+}
+
+impl<'de> TupleDeserializer<'de> {
+    fn new(vec: Vec<DuperValue<'de>>) -> Self {
+        let len = vec.len();
+        Self {
+            iter: vec.into_iter(),
+            len,
+        }
+    }
+}
+
+impl<'de> de::SeqAccess<'de> for TupleDeserializer<'de> {
+    type Error = de::value::Error;
+
+    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
+    where
+        T: DeserializeSeed<'de>,
+    {
+        match self.iter.next() {
+            Some(value) => seed
+                .deserialize(&mut Deserializer::from_value(value))
+                .map(Some),
+            None => Ok(None),
+        }
+    }
+
+    fn size_hint(&self) -> Option<usize> {
+        Some(self.len)
     }
 }
 
