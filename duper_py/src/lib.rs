@@ -1,10 +1,10 @@
 use duper::{DuperParser, DuperValue, PrettyPrinter, Serializer};
 use pyo3::{exceptions::PyValueError, prelude::*};
-use serde_pyobject::from_pyobject;
 
-use crate::visitor::Visitor;
+use crate::{de::Visitor, ser::serialize_pyany};
 
-mod visitor;
+mod de;
+mod ser;
 
 /// Utilities for converting to and from Python types into Duper.
 #[pymodule(name = "duper")]
@@ -13,7 +13,7 @@ fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     #[pyfn(m)]
     #[pyo3(signature = (obj, *, indent=None))]
     fn dumps<'py>(obj: Bound<'py, PyAny>, indent: Option<usize>) -> PyResult<String> {
-        let value: DuperValue = from_pyobject(obj)?;
+        let value: DuperValue = serialize_pyany(obj)?;
         if let Some(indent) = indent {
             Ok(PrettyPrinter::new(indent).pretty_print(value))
         } else {

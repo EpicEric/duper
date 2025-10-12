@@ -12,7 +12,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 duper = { path = "../duper" }
-pyo3 = "0.24.0"
-serde = "1.0.228"
-serde-pyobject = "0.6.2"
-serde_duper = { path = "../serde_duper" }
+pyo3 = "0.26.0"

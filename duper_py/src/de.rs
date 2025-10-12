@@ -1,8 +1,5 @@
 use duper::visitor::DuperVisitor;
-use pyo3::{
-    Bound, PyAny, PyResult, Python,
-    types::{IntoPyDict, PyBool, PyBytes, PyFloat, PyInt, PyList, PyString, PyTuple},
-};
+use pyo3::{prelude::*, types::*};
 
 #[derive(Clone)]
 pub(crate) struct Visitor<'py> {
