@@ -1,10 +1,7 @@
 use json_escape::explicit::escape_str;
 use std::{ascii, borrow::Cow};
 
-use crate::{
-    ast::{DuperBytes, DuperKey, DuperString},
-    types::DuperTypes,
-};
+use crate::ast::{DuperBytes, DuperKey, DuperString};
 
 pub(crate) fn format_key<'a>(key: &'a DuperKey<'a>) -> Cow<'a, str> {
     if key.0.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
@@ -128,13 +125,8 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
     }
 }
 
-pub(crate) fn format_integer(integer: i64, typ: Option<DuperTypes>) -> String {
-    match typ {
-        Some(DuperTypes::HexInteger) => format!("0x{integer:x}"),
-        Some(DuperTypes::OctInteger) => format!("0o{integer:o}"),
-        Some(DuperTypes::BinInteger) => format!("0b{integer:b}"),
-        _ => integer.to_string(),
-    }
+pub(crate) fn format_integer(integer: i64) -> String {
+    integer.to_string()
 }
 
 pub(crate) fn format_float(float: f64) -> String {

@@ -1,0 +1,7 @@
+---
+source: duper/src/visitor/pretty_printer.rs
+expression: pp
+---
+{
+  chess: "✅",
+}

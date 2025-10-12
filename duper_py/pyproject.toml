@@ -1,5 +1,5 @@
 [project]
-name = "duper-py"
+name = "duper_py"
 description = "The format that's super."
 license = "MIT"
 authors = [{ name = "Eric Rodrigues Pires", email = "eric@eric.dev.br" }]
@@ -16,7 +16,10 @@ requires = ["maturin>=1.9,<2.0"]
 build-backend = "maturin"
 
 [tool.maturin]
+python-source = "python"
+module-name = "duper._duper"
 features = ["pyo3/extension-module"]
+bindings = "pyo3"
 
 [dependency-groups]
 dev = ["maturin>=1.9.6"]

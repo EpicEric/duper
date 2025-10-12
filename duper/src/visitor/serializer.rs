@@ -168,10 +168,10 @@ impl DuperVisitor for Serializer {
         integer: i64,
     ) -> Self::Value {
         if let Some(identifier) = identifier {
-            let value = format_integer(integer, identifier.try_into().ok());
+            let value = format_integer(integer);
             format!("{identifier}({value})")
         } else {
-            format_integer(integer, None)
+            format_integer(integer)
         }
     }
 

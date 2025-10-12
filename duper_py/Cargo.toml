@@ -7,7 +7,7 @@ license = "MIT"
 authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 
 [lib]
-name = "duper"
+name = "_duper"
 crate-type = ["cdylib"]
 
 [dependencies]

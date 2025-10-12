@@ -1,3 +1,6 @@
+pub mod pretty_printer;
+pub mod serializer;
+
 use crate::ast::{DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTuple};
 
 pub trait DuperVisitor {

@@ -2,10 +2,13 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 COMMENT    = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 
 duper        = _{ SOI ~ duper_trunk ~ EOI }
-duper_stream = _{ SOI ~ duper_trunk? ~ ("---"+ ~ duper_trunk?)* ~ EOI }
+duper_stream = _{ SOI ~ stream ~ EOI }
+duper_value  = _{ SOI ~ described_value ~ EOI }
+
+stream = { duper_trunk? ~ ("---"+ ~ duper_trunk?)* }
 
 duper_trunk =  { identifier ~ "(" ~ (object | array) ~ ")" | object | array }
-identifier  = @{ "X-" ~ LETTER ~ ("-"? ~ LETTER | NUMBER)* | UPPERCASE_LETTER ~ (LETTER | NUMBER)* }
+identifier  = @{ UPPERCASE_LETTER ~ ("-"? ~ LETTER | NUMBER)* }
 
 described_value =  { identifier ~ "(" ~ value ~ ")" | value }
 value           = _{ object | array | tuple | string | raw_string | bytes | raw_bytes | float | integer | boolean | null }

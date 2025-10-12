@@ -29,7 +29,14 @@ impl DuperBuilder {
         Self::build_duper_trunk(pair)
     }
 
+    pub(crate) fn build_duper_value(
+        pair: Pair<'_, Rule>,
+    ) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
+        Self::build_value(pair)
+    }
+
     fn build_duper_trunk(pair: Pair<'_, Rule>) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
+        debug_assert!(matches!(pair.as_rule(), Rule::duper_trunk));
         let span = pair.as_span();
         let mut duper_trunk = pair.into_inner();
         let mut next = duper_trunk.next().unwrap();

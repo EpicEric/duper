@@ -1,6 +1,8 @@
+#[cfg(feature = "serde")]
 use crate::{DuperArray, DuperBytes, DuperInner, DuperKey, DuperObject, DuperString, DuperValue};
 #[cfg(feature = "serde")]
 use serde_core::de::Visitor;
+#[cfg(feature = "serde")]
 use std::borrow::Cow;
 
 #[cfg(feature = "serde")]

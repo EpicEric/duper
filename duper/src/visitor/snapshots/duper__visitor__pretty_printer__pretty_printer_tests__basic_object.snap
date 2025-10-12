@@ -1,5 +1,5 @@
 ---
-source: duper/src/pretty_printer.rs
+source: duper/src/visitor/pretty_printer.rs
 expression: pp
 ---
 {
