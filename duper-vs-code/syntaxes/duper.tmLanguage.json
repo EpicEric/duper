@@ -51,7 +51,7 @@
       "patterns": [
         {
           "name": "string.unquoted.duper",
-          "match": "[a-z](_?[A-Za-z0-9])*"
+          "match": "[a-zA-Z](_?[A-Za-z0-9])*"
         }
       ]
     },

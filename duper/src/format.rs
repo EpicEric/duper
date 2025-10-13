@@ -130,7 +130,7 @@ pub(crate) fn format_integer(integer: i64) -> String {
 }
 
 pub(crate) fn format_float(float: f64) -> String {
-    float.to_string()
+    ryu::Buffer::new().format(float).into()
 }
 
 pub(crate) fn format_boolean(bool: bool) -> String {

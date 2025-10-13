@@ -203,6 +203,7 @@ dependencies = [
  "json-escape",
  "pest",
  "pest_derive",
+ "ryu",
  "serde_core",
 ]
 

@@ -14,6 +14,7 @@ serde = ["dep:serde_core"]
 json-escape = "0.3.0"
 pest = "2.8.3"
 pest_derive = "2.8.3"
+ryu = "1.0.20"
 serde_core = { version = "1.0.228", optional = true }
 
 [dev-dependencies]
