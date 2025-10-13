@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Annotated, Any, Generic, TypeAlias, TypeVar
+from typing import Annotated, Any, Generic, TypeAlias, TypeVar, cast
 
 from fastapi import Depends, HTTPException, Request, status
 from pydantic import BaseModel as PydanticBaseModel, TypeAdapter
@@ -68,4 +68,4 @@ class DuperBody(Generic[T]):
             except Exception:
                 return parsed
 
-        return Annotated[model_type, Depends(_get_duper_body)]
+        return Depends(_get_duper_body)

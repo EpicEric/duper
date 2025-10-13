@@ -26,14 +26,18 @@ async def response_pydantic() -> DuperResponse:
 
 
 @app.post("/body_dict")
-async def body_dict(body: DuperBody[dict[str, Any]]) -> dict[str, bool]:
+async def body_dict(
+    body: Annotated[dict[str, Any], DuperBody[dict[str, Any]]],
+) -> dict[str, bool]:
     if body == {"duper": (1, 2.0, None, ["FastAPI", True]), "bytes": b"12345"}:
         return {"success": True}
     raise HTTPException(status_code=400, detail=body)
 
 
 @app.post("/body_pydantic")
-async def body_pydantic(body: DuperBody[PydanticModel]) -> dict[str, bool]:
+async def body_pydantic(
+    body: Annotated[PydanticModel, DuperBody[PydanticModel]],
+) -> dict[str, bool]:
     if body == PydanticModel(tup=("hello", b"world")):
         return {"success": True}
     raise HTTPException(status_code=400, detail=body)
