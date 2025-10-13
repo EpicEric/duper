@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Annotated, Any, Generic, TypeAlias, TypeVar, cast
+from typing import Any, TypeVar
 
 from fastapi import Depends, HTTPException, Request, status
 from pydantic import BaseModel as PydanticBaseModel, TypeAdapter
@@ -41,31 +41,30 @@ class DuperResponse(Response):
         return dumps(content, strip_identifiers=self._strip_identifiers).encode("utf-8")
 
 
-class DuperBody(Generic[T]):
-    def __class_getitem__(cls, model_type: type[T]) -> type[T]:
-        if issubclass(model_type, PydanticBaseModel) and not issubclass(
-            model_type, BaseModel
-        ):
-            raise TypeError(
-                "DuperBody requires you to use the BaseModel from duper.pydantic"
+def DuperBody(model_type: type[T]) -> Depends:
+    if issubclass(model_type, PydanticBaseModel) and not issubclass(
+        model_type, BaseModel
+    ):
+        raise TypeError(
+            "DuperBody requires you to use the BaseModel from duper.pydantic"
+        )
+
+    async def _get_duper_body(request: Request) -> T:
+        if request.headers.get("Content-Type") != DUPER_CONTENT_TYPE:
+            raise HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail=f"Content-Type header must be {DUPER_CONTENT_TYPE}",
             )
 
-        async def _get_duper_body(request: Request) -> T:
-            if request.headers.get("Content-Type") != DUPER_CONTENT_TYPE:
-                raise HTTPException(
-                    status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                    detail=f"Content-Type header must be {DUPER_CONTENT_TYPE}",
-                )
+        body = await request.body()
+        parsed = loads(body.decode(encoding="utf-8"))
 
-            body = await request.body()
-            parsed = loads(body.decode(encoding="utf-8"))
+        if issubclass(model_type, BaseModel):
+            return model_type.model_validate_duper(parsed)
+        try:
+            adapter = TypeAdapter(model_type)
+            return adapter.validate_python(parsed)
+        except Exception:
+            return parsed
 
-            if issubclass(model_type, BaseModel):
-                return model_type.model_validate_duper(parsed)
-            try:
-                adapter = TypeAdapter(model_type)
-                return adapter.validate_python(parsed)
-            except Exception:
-                return parsed
-
-        return Depends(_get_duper_body)
+    return Depends(_get_duper_body)
