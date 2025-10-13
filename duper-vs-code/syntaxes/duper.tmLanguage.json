@@ -4,6 +4,9 @@
   "patterns": [
     {
       "include": "#values"
+    },
+    {
+      "include": "#identifiers"
     }
   ],
   "repository": {
@@ -43,7 +46,23 @@
       "patterns": [
         {
           "name": "entity.name.type.duper",
-          "match": "[A-Z](-?[A-Za-z0-9])*"
+          "begin": "[A-Z](-?[A-Za-z0-9])*(\\()",
+          "beginCaptures": {
+            "2": {
+              "name": "punctuation.definition.identifiers.begin.duper"
+            }
+          },
+          "end": "(\\))",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.identifiers.end.duper"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#values"
+            }
+          ]
         }
       ]
     },

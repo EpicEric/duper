@@ -6,39 +6,43 @@ use crate::{de::Visitor, ser::serialize_pyany};
 mod de;
 mod ser;
 
-/// Utilities for converting to and from Python types into the Duper format.
 #[pymodule(name = "_duper")]
 fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    /// Serialize obj as a Duper value formatted str.
     #[pyfn(m)]
-    #[pyo3(signature = (obj, *, indent=None))]
-    fn dumps<'py>(obj: Bound<'py, PyAny>, indent: Option<usize>) -> PyResult<String> {
+    #[pyo3(signature = (obj, *, indent=None, strip_identifiers=false))]
+    fn dumps<'py>(
+        obj: Bound<'py, PyAny>,
+        indent: Option<usize>,
+        strip_identifiers: bool,
+    ) -> PyResult<String> {
         let value: DuperValue = serialize_pyany(obj)?;
         if let Some(indent) = indent {
-            Ok(PrettyPrinter::new(indent).pretty_print(value))
+            Ok(PrettyPrinter::new(strip_identifiers, indent).pretty_print(value))
         } else {
-            Ok(Serializer::new().serialize(value))
+            Ok(Serializer::new(strip_identifiers).serialize(value))
         }
     }
 
-    /// Serialize obj as a Duper value formatted stream to fp (a file-like object).
     #[pyfn(m)]
-    #[pyo3(signature = (obj, fp, *, indent=None))]
+    #[pyo3(signature = (obj, fp, *, indent=None, strip_identifiers=false))]
     fn dump<'py>(
         obj: Bound<'py, PyAny>,
         fp: Bound<'py, PyAny>,
         indent: Option<usize>,
+        strip_identifiers: bool,
     ) -> PyResult<()> {
         let value: DuperValue = serialize_pyany(obj)?;
-        if let Some(indent) = indent {
-            fp.call_method1("write", (PrettyPrinter::new(indent).pretty_print(value),))?;
-        } else {
-            fp.call_method1("write", (Serializer::new().serialize(value),))?;
-        }
+        fp.call_method1(
+            "write",
+            if let Some(indent) = indent {
+                (PrettyPrinter::new(strip_identifiers, indent).pretty_print(value),)
+            } else {
+                (Serializer::new(strip_identifiers).serialize(value),)
+            },
+        )?;
         Ok(())
     }
 
-    /// Deserialize s (a str instance containing a Duper object or array) to a Python object.
     #[pyfn(m)]
     #[pyo3(signature = (s, *, parse_any=false))]
     fn loads<'py>(py: Python<'py>, s: &str, parse_any: bool) -> PyResult<Bound<'py, PyAny>> {
@@ -50,7 +54,6 @@ fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
         value.accept(&mut Visitor { py })
     }
 
-    /// Deserialize fp (a file-like object containing a Duper object or array) to a Python object.
     #[pyfn(m)]
     #[pyo3(signature = (fp, *, parse_any=false))]
     fn load<'py>(

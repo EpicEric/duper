@@ -8,12 +8,21 @@ __all__ = [
     "load",
 ]
 
-__doc__ = """Utilities for converting to and from Python types into the Duper format."""
-
-def dumps(obj: Any, *, indent: int | None = None) -> str:
+def dumps(
+    obj: Any,
+    *,
+    indent: int | None = None,
+    strip_identifiers: bool = False,
+) -> str:
     """Serialize obj as a Duper value formatted str."""
 
-def dump(obj: Any, fp: TextIOBase, *, indent: int | None = None) -> None:
+def dump(
+    obj: Any,
+    fp: TextIOBase,
+    *,
+    indent: int | None = None,
+    strip_identifiers: bool = False,
+) -> None:
     """Serialize obj as a Duper value formatted stream to fp (a file-like object)."""
 
 def loads(s: str, *, parse_any: bool = False) -> Any:

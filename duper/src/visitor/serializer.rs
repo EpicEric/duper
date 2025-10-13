@@ -9,17 +9,21 @@ use crate::{
     visitor::DuperVisitor,
 };
 
-pub struct Serializer;
+pub struct Serializer {
+    strip_identifiers: bool,
+}
 
 impl Default for Serializer {
     fn default() -> Self {
-        Self::new()
+        Self {
+            strip_identifiers: false,
+        }
     }
 }
 
 impl Serializer {
-    pub fn new() -> Self {
-        Self
+    pub fn new(strip_identifiers: bool) -> Self {
+        Self { strip_identifiers }
     }
 
     pub fn serialize<'a>(&mut self, value: DuperValue<'a>) -> String {
@@ -38,7 +42,9 @@ impl DuperVisitor for Serializer {
         let mut string = String::new();
         let len = object.len();
 
-        if let Some(identifier) = identifier {
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
             string.push_str(identifier.as_ref());
             string.push_str("({");
             for (i, (key, value)) in object.iter().enumerate() {
@@ -74,7 +80,9 @@ impl DuperVisitor for Serializer {
         let mut string = String::new();
         let len = array.len();
 
-        if let Some(identifier) = identifier {
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
             string.push_str(identifier.as_ref());
             string.push_str("([");
             for (i, value) in array.iter().enumerate() {
@@ -106,7 +114,9 @@ impl DuperVisitor for Serializer {
         let mut string = String::new();
         let len = tuple.len();
 
-        if let Some(identifier) = identifier {
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
             string.push_str(identifier.as_ref());
             string.push_str("((");
             for (i, value) in tuple.iter().enumerate() {
@@ -141,7 +151,9 @@ impl DuperVisitor for Serializer {
         identifier: Option<&DuperIdentifier<'a>>,
         value: &DuperString<'a>,
     ) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
             let value = format_duper_string(value);
             format!("{identifier}({value})")
         } else {
@@ -154,7 +166,9 @@ impl DuperVisitor for Serializer {
         identifier: Option<&DuperIdentifier<'a>>,
         bytes: &DuperBytes<'a>,
     ) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
             let bytes = format_duper_bytes(bytes);
             format!("{identifier}({bytes})")
         } else {
@@ -167,7 +181,9 @@ impl DuperVisitor for Serializer {
         identifier: Option<&DuperIdentifier<'_>>,
         integer: i64,
     ) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
             let value = format_integer(integer);
             format!("{identifier}({value})")
         } else {
@@ -176,7 +192,9 @@ impl DuperVisitor for Serializer {
     }
 
     fn visit_float(&mut self, identifier: Option<&DuperIdentifier<'_>>, float: f64) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
             let value = format_float(float);
             format!("{identifier}({value})")
         } else {
@@ -189,7 +207,9 @@ impl DuperVisitor for Serializer {
         identifier: Option<&DuperIdentifier<'_>>,
         boolean: bool,
     ) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
             let value = format_boolean(boolean);
             format!("{identifier}({value})")
         } else {
@@ -198,7 +218,9 @@ impl DuperVisitor for Serializer {
     }
 
     fn visit_null(&mut self, identifier: Option<&DuperIdentifier<'_>>) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
             format!("{identifier}(null)")
         } else {
             "null".into()

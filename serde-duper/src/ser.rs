@@ -33,14 +33,21 @@ pub fn to_string<T>(value: &T) -> Result<String, Error>
 where
     T: Serialize,
 {
-    Ok(DuperSerializer::new().serialize(to_duper(value)?))
+    Ok(DuperSerializer::new(false).serialize(to_duper(value)?))
+}
+
+pub fn to_string_minified<T>(value: &T) -> Result<String, Error>
+where
+    T: Serialize,
+{
+    Ok(DuperSerializer::new(true).serialize(to_duper(value)?))
 }
 
 pub fn to_string_pretty<T>(value: &T, indent: usize) -> Result<String, Error>
 where
     T: Serialize,
 {
-    Ok(DuperPrettyPrinter::new(indent).pretty_print(to_duper(value)?))
+    Ok(DuperPrettyPrinter::new(false, indent).pretty_print(to_duper(value)?))
 }
 
 pub struct SerializeSeq<'a, 'b> {
