@@ -240,7 +240,8 @@ fn serialize_specialized_python_types<'py>(
     if let Some(identifier) = serialize_pyclass_identifier(obj)? {
         match identifier.as_ref() {
             "Timedelta" | "Uuid" | "Ipv4address" | "Ipv4interface" | "Ipv4network"
-            | "Ipv6address" | "Ipv6interface" | "Ipv6network" => {
+            | "Ipv6address" | "Ipv6interface" | "Ipv6network" | "Path" | "Posixpath"
+            | "Windowspath" | "Purepath" | "Pureposixpath" | "Purewindowspath" => {
                 let string = obj.str()?.extract()?;
                 Ok(Some(DuperValue {
                     identifier: Some(identifier),

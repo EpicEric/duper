@@ -11,6 +11,7 @@ from ipaddress import (
     IPv6Interface,
     IPv6Network,
 )
+from pathlib import Path
 import re
 from typing import NamedTuple
 from typing_extensions import TypedDict
@@ -21,7 +22,7 @@ from pydantic import ByteSize
 from duper.pydantic import BaseModel
 
 
-def test_pydantic_model_dump_simple():
+def test_pydantic_simple():
     class Foo(BaseModel):
         int: int
         list: list[str]
@@ -49,7 +50,7 @@ def test_pydantic_model_dump_simple():
     assert val == val2
 
 
-def test_pydantic_model_dump_complex():
+def test_pydantic_complex():
     class MyTuple(NamedTuple):
         x: int
         y: int
@@ -87,6 +88,7 @@ def test_pydantic_model_dump_complex():
         decimal: Decimal
         enum: Color
         typeddict: Point2D
+        path: Path
         regex: Regex
         sub: Submodel
 
@@ -100,6 +102,7 @@ def test_pydantic_model_dump_complex():
         decimal=Decimal("12.34"),
         enum=Color.GREEN,
         typeddict={"x": 1, "y": 2, "label": "good"},
+        path="/dev/null",
         regex=Regex(pattern=re.compile(r"^Hello w.rld!$")),
         sub=Submodel(
             address4=IPv4Address("192.168.0.1"),
@@ -115,7 +118,7 @@ def test_pydantic_model_dump_complex():
 
     assert (
         val_dump
-        == """Bar({datetime: Datetime("2025-10-12T20:01:28.400086"), uuid: Uuid("a708f86d-ee5b-4ce8-b505-8f59d3d26850"), deque: Deque([]), named_tuple: (34, 35), set: Set([1, 2, 4]), bytesize: Bytesize(3072000), decimal: Decimal("12.34"), enum: Color(2), typeddict: {x: 1, y: 2, label: "good"}, regex: Regex({pattern: Pattern("^Hello w.rld!$"), matches: null}), sub: Submodel({address4: Ipv4address("192.168.0.1"), interface4: Ipv4interface("192.168.0.2/32"), network4: Ipv4network("192.168.0.0/24"), address6: Ipv6address("2001:db8::1"), interface6: Ipv6interface("2001:db8::2/128"), network6: Ipv6network("2001:db8::/128")})})"""
+        == """Bar({datetime: Datetime("2025-10-12T20:01:28.400086"), uuid: Uuid("a708f86d-ee5b-4ce8-b505-8f59d3d26850"), deque: Deque([]), named_tuple: (34, 35), set: Set([1, 2, 4]), bytesize: Bytesize(3072000), decimal: Decimal("12.34"), enum: Color(2), typeddict: {x: 1, y: 2, label: "good"}, path: Posixpath("/dev/null"), regex: Regex({pattern: Pattern("^Hello w.rld!$"), matches: null}), sub: Submodel({address4: Ipv4address("192.168.0.1"), interface4: Ipv4interface("192.168.0.2/32"), network4: Ipv4network("192.168.0.0/24"), address6: Ipv6address("2001:db8::1"), interface6: Ipv6interface("2001:db8::2/128"), network6: Ipv6network("2001:db8::/128")})})"""
     )
 
     val2 = Bar.model_validate_duper(val_dump)

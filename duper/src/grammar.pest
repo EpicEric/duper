@@ -62,9 +62,11 @@ octal_digits    =  { ASCII_OCT_DIGIT ~ ("_"? ~ ASCII_OCT_DIGIT)* }
 binary_integer  = @{ "0b" ~ binary_digits }
 binary_digits   =  { ASCII_BIN_DIGIT ~ ("_"? ~ ASCII_BIN_DIGIT)* }
 
-float = @{
-    ("+" | "-")? ~ ("0" | ASCII_NONZERO_DIGIT ~ ("_"? ~ ASCII_DIGIT)*) ~ "." ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)* ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)*)?
+float    = @{
+    ("+" | "-")? ~ ("0" | ASCII_NONZERO_DIGIT ~ ("_"? ~ ASCII_DIGIT)*) ~ ((decimal ~ exponent?) | (decimal? ~ exponent))
 }
+decimal  =  { "." ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)* ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)*)? }
+exponent =  { ^"e" ~ ("+" | "-")? ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)* }
 
 boolean = { "true" | "false" }
 
