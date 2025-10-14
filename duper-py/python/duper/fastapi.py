@@ -41,7 +41,7 @@ class DuperResponse(Response):
         return dumps(content, strip_identifiers=self._strip_identifiers).encode("utf-8")
 
 
-def DuperBody(model_type: type[T]) -> Depends:
+def DuperBody(model_type: type[T]) -> Any:
     if issubclass(model_type, PydanticBaseModel) and not issubclass(
         model_type, BaseModel
     ):

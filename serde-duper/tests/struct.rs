@@ -11,7 +11,7 @@ struct Test {
 }
 
 #[test]
-fn serialize() {
+fn deserialize_struct() {
     let value: Test = serde_duper::from_string(
         r##"
         {
@@ -19,7 +19,7 @@ fn serialize() {
             "string": r#"Hello   world!"#,
             bools: [true, true, false,],
             map: {
-                r#"quantum"#: X-Measurement((-7, "whatever")),
+                r#"quantum"#: Measurement((-7, "whatever")),
             },
         }
     "##,

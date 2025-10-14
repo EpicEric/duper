@@ -2,10 +2,10 @@
 source: duper/src/visitor/pretty_printer.rs
 expression: pp
 ---
-X-Start({
+Start({
   "first object": {
     second_object: {
-      "third object": X-Msg(
+      "third object": Msg(
         "This is a very long string that will push itself into the next line."
       ),
       addendum: null,

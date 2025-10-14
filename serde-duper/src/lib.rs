@@ -1,6 +1,7 @@
 mod de;
 mod error;
 mod ser;
+pub mod types;
 
 pub use de::{Deserializer, from_string, from_value};
 pub use duper::{DuperInner, DuperValue};

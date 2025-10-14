@@ -17,7 +17,8 @@ pub enum DuperRejection {
     InternalDuperError,
 }
 
-static DUPER_CONTENT_TYPE: &str = "application/duper";
+pub static DUPER_CONTENT_TYPE: &str = "application/duper";
+pub static DUPER_ALT_CONTENT_TYPE: &str = "application/x-duper";
 
 impl IntoResponse for DuperRejection {
     fn into_response(self) -> Response {
@@ -70,18 +71,19 @@ where
     type Rejection = DuperRejection;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        if req
+        if let Some(content_type) = req
             .headers()
             .get(CONTENT_TYPE)
             .and_then(|content_type| content_type.to_str().ok())
-            != Some(DUPER_CONTENT_TYPE)
         {
-            return Err(DuperRejection::MissingDuperContentType);
-        }
-        let string = String::from_request(req, state)
-            .await
-            .map_err(|_| DuperRejection::DuperDataError)?;
-        Self::from_string(&string)
+            if content_type == DUPER_CONTENT_TYPE || content_type == DUPER_ALT_CONTENT_TYPE {
+                let string = String::from_request(req, state)
+                    .await
+                    .map_err(|_| DuperRejection::DuperDataError)?;
+                return Self::from_string(&string);
+            }
+        };
+        Err(DuperRejection::MissingDuperContentType)
     }
 }
 
@@ -96,13 +98,15 @@ where
         let Some(content_type) = req.headers().get(CONTENT_TYPE) else {
             return Ok(None);
         };
-        if content_type.to_str().ok() != Some(DUPER_CONTENT_TYPE) {
-            return Err(DuperRejection::MissingDuperContentType);
-        }
-        let string = String::from_request(req, state)
-            .await
-            .map_err(|_| DuperRejection::DuperDataError)?;
-        Ok(Some(Self::from_string(&string)?))
+        if let Ok(content_type) = content_type.to_str() {
+            if content_type == DUPER_CONTENT_TYPE || content_type == DUPER_ALT_CONTENT_TYPE {
+                let string = String::from_request(req, state)
+                    .await
+                    .map_err(|_| DuperRejection::DuperDataError)?;
+                return Self::from_string(&string).map(Some);
+            }
+        };
+        Err(DuperRejection::MissingDuperContentType)
     }
 }
 

@@ -1,11 +1,7 @@
-#[cfg(feature = "serde")]
 use crate::{DuperArray, DuperBytes, DuperInner, DuperKey, DuperObject, DuperString, DuperValue};
-#[cfg(feature = "serde")]
 use serde_core::de::Visitor;
-#[cfg(feature = "serde")]
 use std::borrow::Cow;
 
-#[cfg(feature = "serde")]
 impl<'a> serde_core::Serialize for DuperValue<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -50,10 +46,8 @@ impl<'a> serde_core::Serialize for DuperValue<'a> {
     }
 }
 
-#[cfg(feature = "serde")]
 struct DuperValueDeserializerVisitor;
 
-#[cfg(feature = "serde")]
 impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
     type Value = DuperValue<'de>;
 
@@ -276,7 +270,6 @@ impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
     }
 }
 
-#[cfg(feature = "serde")]
 impl<'de> serde_core::Deserialize<'de> for DuperValue<'de> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

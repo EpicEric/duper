@@ -2,6 +2,7 @@ mod ast;
 mod builder;
 mod format;
 mod parser;
+#[cfg(feature = "serde")]
 mod serde;
 pub mod types;
 pub mod visitor;

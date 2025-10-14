@@ -440,7 +440,7 @@ mod pretty_printer_tests {
     #[test]
     fn complex_object() {
         let value = DuperValue {
-            identifier: Some(DuperIdentifier::from(Cow::Borrowed("X-Start"))),
+            identifier: Some(DuperIdentifier::from(Cow::Borrowed("Start"))),
             inner: DuperInner::Object(DuperObject(vec![(
                 DuperKey::from(Cow::Borrowed("first object")),
                 DuperValue {
@@ -454,7 +454,7 @@ mod pretty_printer_tests {
                                     DuperKey::from(Cow::Borrowed("third object")),
                                     DuperValue {
                                         identifier: Some(DuperIdentifier::from(Cow::Borrowed(
-                                            "X-Msg",
+                                            "Msg",
                                         ))),
                                         inner: DuperInner::String(DuperString::from(
                                             Cow::Borrowed(

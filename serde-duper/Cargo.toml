@@ -6,10 +6,23 @@ edition = "2024"
 license = "MIT"
 authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 
+[features]
+default = []
+uuid = ["dep:uuid"]
+bytes = ["dep:bytes"]
+chrono = ["dep:chrono"]
+
 [dependencies]
-serde_core = "1.0.228"
+# Core dependencies
 duper = { path = "../duper", features = ["serde"] }
 pest = "2.8.3"
+serde_core = "1.0.228"
+
+# Type dependencies
+bytes = { version = "1.10.1", features = ["serde"], optional = true }
+chrono = { version = "0.4.42", features = ["serde"], optional = true }
+uuid = { version = "1.18.1", features = ["serde"], optional = true }
 
 [dev-dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
+uuid = { version = "1.18.1", features = ["serde"] }
