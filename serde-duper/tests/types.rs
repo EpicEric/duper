@@ -3,24 +3,24 @@ use serde::{Deserialize, Serialize};
 #[test]
 fn net() {
     use serde_duper::types::net::{
-        duper_ip_addr, duper_ipv4_addr, duper_ipv6_addr, duper_socket_addr, duper_socket_addr_v4,
-        duper_socket_addr_v6,
+        DuperIpAddr, DuperIpv4Addr, DuperIpv6Addr, DuperSocketAddr, DuperSocketAddrV4,
+        DuperSocketAddrV6,
     };
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
     #[derive(Debug, Serialize, Deserialize)]
     struct Test {
-        #[serde(with = "duper_ip_addr")]
+        #[serde(with = "DuperIpAddr")]
         ip_addr: IpAddr,
-        #[serde(with = "duper_ipv4_addr")]
+        #[serde(with = "DuperIpv4Addr")]
         ipv4_addr: Ipv4Addr,
-        #[serde(with = "duper_ipv6_addr")]
+        #[serde(with = "DuperIpv6Addr")]
         ipv6_addr: Ipv6Addr,
-        #[serde(with = "duper_socket_addr")]
+        #[serde(with = "DuperSocketAddr")]
         socket_addr: SocketAddr,
-        #[serde(with = "duper_socket_addr_v4")]
+        #[serde(with = "DuperSocketAddrV4")]
         socket_addr_v4: SocketAddrV4,
-        #[serde(with = "duper_socket_addr_v6")]
+        #[serde(with = "DuperSocketAddrV6")]
         socket_addr_v6: SocketAddrV6,
     }
 
@@ -49,14 +49,457 @@ fn net() {
 }
 
 #[test]
-#[cfg(feature = "bytes")]
-fn bytes() {
-    use bytes::Bytes;
-    use serde_duper::types::duper_bytes;
+fn num() {
+    use serde_duper::types::num::{
+        DuperNonZeroI8, DuperNonZeroI16, DuperNonZeroI32, DuperNonZeroI64, DuperNonZeroI128,
+        DuperNonZeroIsize, DuperNonZeroU8, DuperNonZeroU16, DuperNonZeroU32, DuperNonZeroU64,
+        DuperNonZeroU128, DuperNonZeroUsize, DuperSaturating, DuperWrapping,
+    };
+    use std::num::{
+        NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroIsize, NonZeroU8,
+        NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroUsize, Saturating, Wrapping,
+    };
 
     #[derive(Debug, Serialize, Deserialize)]
     struct Test {
-        #[serde(with = "duper_bytes")]
+        #[serde(with = "DuperNonZeroI8")]
+        nz_i8: NonZeroI8,
+        #[serde(with = "DuperNonZeroI16")]
+        nz_i16: NonZeroI16,
+        #[serde(with = "DuperNonZeroI32")]
+        nz_i32: NonZeroI32,
+        #[serde(with = "DuperNonZeroI64")]
+        nz_i64: NonZeroI64,
+        #[serde(with = "DuperNonZeroI128")]
+        nz_i128: NonZeroI128,
+        #[serde(with = "DuperNonZeroIsize")]
+        nz_isize: NonZeroIsize,
+        #[serde(with = "DuperNonZeroU8")]
+        nz_u8: NonZeroU8,
+        #[serde(with = "DuperNonZeroU16")]
+        nz_u16: NonZeroU16,
+        #[serde(with = "DuperNonZeroU32")]
+        nz_u32: NonZeroU32,
+        #[serde(with = "DuperNonZeroU64")]
+        nz_u64: NonZeroU64,
+        #[serde(with = "DuperNonZeroU128")]
+        nz_u128: NonZeroU128,
+        #[serde(with = "DuperNonZeroUsize")]
+        nz_usize: NonZeroUsize,
+        #[serde(with = "DuperWrapping")]
+        wrapping: Wrapping<i32>,
+        #[serde(with = "DuperSaturating")]
+        saturating: Saturating<u32>,
+    }
+
+    let value = Test {
+        nz_i8: NonZeroI8::new(42).unwrap(),
+        nz_i16: NonZeroI16::new(1234).unwrap(),
+        nz_i32: NonZeroI32::new(123456).unwrap(),
+        nz_i64: NonZeroI64::new(123456789).unwrap(),
+        nz_i128: NonZeroI128::new(123456789012).unwrap(),
+        nz_isize: NonZeroIsize::new(999).unwrap(),
+        nz_u8: NonZeroU8::new(42).unwrap(),
+        nz_u16: NonZeroU16::new(1234).unwrap(),
+        nz_u32: NonZeroU32::new(123456).unwrap(),
+        nz_u64: NonZeroU64::new(123456789).unwrap(),
+        nz_u128: NonZeroU128::new(123456789012).unwrap(),
+        nz_usize: NonZeroUsize::new(999).unwrap(),
+        wrapping: Wrapping(100),
+        saturating: Saturating(200),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+
+    assert_eq!(value.nz_i8, deserialized.nz_i8);
+    assert_eq!(value.nz_i16, deserialized.nz_i16);
+    assert_eq!(value.nz_i32, deserialized.nz_i32);
+    assert_eq!(value.nz_i64, deserialized.nz_i64);
+    assert_eq!(value.nz_i128, deserialized.nz_i128);
+    assert_eq!(value.nz_isize, deserialized.nz_isize);
+    assert_eq!(value.nz_u8, deserialized.nz_u8);
+    assert_eq!(value.nz_u16, deserialized.nz_u16);
+    assert_eq!(value.nz_u32, deserialized.nz_u32);
+    assert_eq!(value.nz_u64, deserialized.nz_u64);
+    assert_eq!(value.nz_u128, deserialized.nz_u128);
+    assert_eq!(value.nz_usize, deserialized.nz_usize);
+    assert_eq!(value.wrapping, deserialized.wrapping);
+    assert_eq!(value.saturating, deserialized.saturating);
+}
+
+#[test]
+fn atomic() {
+    use serde_duper::types::atomic::{
+        DuperAtomicBool, DuperAtomicI8, DuperAtomicI16, DuperAtomicI32, DuperAtomicI64,
+        DuperAtomicIsize, DuperAtomicU8, DuperAtomicU16, DuperAtomicU32, DuperAtomicU64,
+        DuperAtomicUsize,
+    };
+    use std::sync::atomic::{
+        AtomicBool, AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicIsize, AtomicU8, AtomicU16,
+        AtomicU32, AtomicU64, AtomicUsize,
+    };
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperAtomicBool")]
+        atomic_bool: AtomicBool,
+        #[serde(with = "DuperAtomicI8")]
+        atomic_i8: AtomicI8,
+        #[serde(with = "DuperAtomicI16")]
+        atomic_i16: AtomicI16,
+        #[serde(with = "DuperAtomicI32")]
+        atomic_i32: AtomicI32,
+        #[serde(with = "DuperAtomicI64")]
+        atomic_i64: AtomicI64,
+        #[serde(with = "DuperAtomicIsize")]
+        atomic_isize: AtomicIsize,
+        #[serde(with = "DuperAtomicU8")]
+        atomic_u8: AtomicU8,
+        #[serde(with = "DuperAtomicU16")]
+        atomic_u16: AtomicU16,
+        #[serde(with = "DuperAtomicU32")]
+        atomic_u32: AtomicU32,
+        #[serde(with = "DuperAtomicU64")]
+        atomic_u64: AtomicU64,
+        #[serde(with = "DuperAtomicUsize")]
+        atomic_usize: AtomicUsize,
+    }
+
+    let value = Test {
+        atomic_bool: AtomicBool::new(true),
+        atomic_i8: AtomicI8::new(-42),
+        atomic_i16: AtomicI16::new(-1234),
+        atomic_i32: AtomicI32::new(-123456),
+        atomic_i64: AtomicI64::new(-123456789),
+        atomic_isize: AtomicIsize::new(-999),
+        atomic_u8: AtomicU8::new(42),
+        atomic_u16: AtomicU16::new(1234),
+        atomic_u32: AtomicU32::new(123456),
+        atomic_u64: AtomicU64::new(123456789),
+        atomic_usize: AtomicUsize::new(999),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+
+    assert_eq!(
+        value.atomic_bool.load(std::sync::atomic::Ordering::SeqCst),
+        deserialized
+            .atomic_bool
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    assert_eq!(
+        value.atomic_i8.load(std::sync::atomic::Ordering::SeqCst),
+        deserialized
+            .atomic_i8
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    assert_eq!(
+        value.atomic_i16.load(std::sync::atomic::Ordering::SeqCst),
+        deserialized
+            .atomic_i16
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    assert_eq!(
+        value.atomic_i32.load(std::sync::atomic::Ordering::SeqCst),
+        deserialized
+            .atomic_i32
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    assert_eq!(
+        value.atomic_i64.load(std::sync::atomic::Ordering::SeqCst),
+        deserialized
+            .atomic_i64
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    assert_eq!(
+        value.atomic_isize.load(std::sync::atomic::Ordering::SeqCst),
+        deserialized
+            .atomic_isize
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    assert_eq!(
+        value.atomic_u8.load(std::sync::atomic::Ordering::SeqCst),
+        deserialized
+            .atomic_u8
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    assert_eq!(
+        value.atomic_u16.load(std::sync::atomic::Ordering::SeqCst),
+        deserialized
+            .atomic_u16
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    assert_eq!(
+        value.atomic_u32.load(std::sync::atomic::Ordering::SeqCst),
+        deserialized
+            .atomic_u32
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    assert_eq!(
+        value.atomic_u64.load(std::sync::atomic::Ordering::SeqCst),
+        deserialized
+            .atomic_u64
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+    assert_eq!(
+        value.atomic_usize.load(std::sync::atomic::Ordering::SeqCst),
+        deserialized
+            .atomic_usize
+            .load(std::sync::atomic::Ordering::SeqCst)
+    );
+}
+
+#[test]
+fn time() {
+    use serde_duper::types::{DuperDuration, DuperSystemTime};
+    use std::time::{Duration, SystemTime};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperDuration")]
+        duration: Duration,
+        #[serde(with = "DuperSystemTime")]
+        system_time: SystemTime,
+    }
+
+    let value = Test {
+        duration: Duration::from_secs(3600),
+        system_time: SystemTime::now(),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+
+    assert_eq!(value.duration, deserialized.duration);
+    // SystemTime comparison with small epsilon for potential nanosecond differences
+    assert!(
+        value
+            .system_time
+            .duration_since(deserialized.system_time)
+            .unwrap()
+            .as_secs()
+            < 1
+    );
+}
+
+#[test]
+fn path() {
+    use serde_duper::types::{DuperPath, DuperPathBuf};
+    use std::path::{Path, PathBuf};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test<'a> {
+        #[serde(with = "DuperPathBuf")]
+        path_buf: PathBuf,
+        #[serde(borrow, with = "DuperPath")]
+        path: &'a Path,
+    }
+
+    let value = Test {
+        path_buf: PathBuf::from("/home/user/file.txt"),
+        path: Path::new("/tmp/test"),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+
+    assert_eq!(value.path_buf, deserialized.path_buf);
+    assert_eq!(value.path, deserialized.path);
+}
+
+#[test]
+fn ffi() {
+    use serde_duper::types::{DuperCString, DuperOsString};
+    use std::ffi::{CString, OsString};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperCString")]
+        c_string: CString,
+        #[serde(with = "DuperOsString")]
+        os_string: OsString,
+    }
+
+    let value = Test {
+        c_string: CString::new("hello").unwrap(),
+        os_string: OsString::from("test_os_string"),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+
+    assert_eq!(value.c_string, deserialized.c_string);
+    assert_eq!(value.os_string, deserialized.os_string);
+}
+
+#[test]
+fn smart_pointers() {
+    use serde_duper::types::{
+        DuperArc, DuperBox, DuperCell, DuperMutex, DuperRc, DuperRefCell, DuperRwLock,
+    };
+    use std::cell::{Cell, RefCell};
+    use std::rc::Rc;
+    use std::sync::{Arc, Mutex, RwLock};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperBox")]
+        boxed: Box<i32>,
+        #[serde(with = "DuperRc")]
+        rc: Rc<String>,
+        #[serde(with = "DuperArc")]
+        arc: Arc<Vec<i32>>,
+        #[serde(with = "DuperCell")]
+        cell: Cell<bool>,
+        #[serde(with = "DuperRefCell")]
+        ref_cell: RefCell<u32>,
+        #[serde(with = "DuperMutex")]
+        mutex: Mutex<f64>,
+        #[serde(with = "DuperRwLock")]
+        rw_lock: RwLock<char>,
+    }
+
+    let value = Test {
+        boxed: Box::new(42),
+        rc: Rc::new("hello".to_string()),
+        arc: Arc::new(vec![1, 2, 3]),
+        cell: Cell::new(true),
+        ref_cell: RefCell::new(100),
+        mutex: Mutex::new(3.14),
+        rw_lock: RwLock::new('x'),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+
+    assert_eq!(*value.boxed, *deserialized.boxed);
+    assert_eq!(*value.rc, *deserialized.rc);
+    assert_eq!(*value.arc, *deserialized.arc);
+    assert_eq!(value.cell.get(), deserialized.cell.get());
+    assert_eq!(*value.ref_cell.borrow(), *deserialized.ref_cell.borrow());
+    assert_eq!(
+        *value.mutex.lock().unwrap(),
+        *deserialized.mutex.lock().unwrap()
+    );
+    assert_eq!(
+        *value.rw_lock.read().unwrap(),
+        *deserialized.rw_lock.read().unwrap()
+    );
+}
+
+#[test]
+fn collections() {
+    use serde_duper::types::DuperReverse;
+    use serde_duper::types::collections::{
+        DuperBTreeMap, DuperBTreeSet, DuperBinaryHeap, DuperHashMap, DuperHashSet, DuperLinkedList,
+        DuperVecDeque,
+    };
+    use std::collections::{
+        BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, LinkedList, VecDeque,
+    };
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperBinaryHeap")]
+        binary_heap: BinaryHeap<i32>,
+        #[serde(with = "DuperBTreeSet")]
+        btree_set: BTreeSet<String>,
+        #[serde(with = "DuperHashSet")]
+        hash_set: HashSet<u32>,
+        #[serde(with = "DuperLinkedList")]
+        linked_list: LinkedList<char>,
+        #[serde(with = "DuperVecDeque")]
+        vec_deque: VecDeque<bool>,
+        #[serde(with = "DuperBTreeMap")]
+        btree_map: BTreeMap<String, i32>,
+        #[serde(with = "DuperHashMap")]
+        hash_map: HashMap<u32, String>,
+        #[serde(with = "DuperReverse")]
+        reverse: std::cmp::Reverse<usize>,
+    }
+
+    let value = Test {
+        binary_heap: vec![3, 1, 4, 1, 5].into_iter().collect(),
+        btree_set: vec![
+            "apple".to_string(),
+            "banana".to_string(),
+            "cherry".to_string(),
+        ]
+        .into_iter()
+        .collect(),
+        hash_set: vec![1, 2, 3, 4, 5].into_iter().collect(),
+        linked_list: vec!['a', 'b', 'c'].into_iter().collect(),
+        vec_deque: vec![true, false, true].into_iter().collect(),
+        btree_map: vec![
+            ("one".to_string(), 1),
+            ("two".to_string(), 2),
+            ("three".to_string(), 3),
+        ]
+        .into_iter()
+        .collect(),
+        hash_map: vec![
+            (1, "uno".to_string()),
+            (2, "dos".to_string()),
+            (3, "tres".to_string()),
+        ]
+        .into_iter()
+        .collect(),
+        reverse: std::cmp::Reverse(42),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+
+    assert_eq!(
+        value.binary_heap.into_sorted_vec(),
+        deserialized.binary_heap.into_sorted_vec()
+    );
+    assert_eq!(value.btree_set, deserialized.btree_set);
+    assert_eq!(value.hash_set, deserialized.hash_set);
+    assert_eq!(value.linked_list, deserialized.linked_list);
+    assert_eq!(value.vec_deque, deserialized.vec_deque);
+    assert_eq!(value.btree_map, deserialized.btree_map);
+    assert_eq!(value.hash_map, deserialized.hash_map);
+    assert_eq!(value.reverse, deserialized.reverse);
+}
+
+#[test]
+fn cow() {
+    use serde_duper::types::DuperCow;
+    use std::borrow::Cow;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test<'a> {
+        #[serde(with = "DuperCow")]
+        cow_owned: Cow<'a, str>,
+        #[serde(with = "DuperCow")]
+        cow_borrowed: Cow<'a, str>,
+    }
+
+    let borrowed = "hello";
+    let value = Test {
+        cow_owned: Cow::Owned("world".to_string()),
+        cow_borrowed: Cow::Borrowed(borrowed),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    let deserialized: Test<'static> = serde_duper::from_string(&serialized).unwrap();
+
+    assert_eq!(value.cow_owned, deserialized.cow_owned);
+    assert_eq!(value.cow_borrowed, deserialized.cow_borrowed);
+}
+
+#[test]
+#[cfg(feature = "bytes")]
+fn bytes() {
+    use bytes::Bytes;
+    use serde_duper::types::DuperBytes;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperBytes")]
         data: Bytes,
     }
 
@@ -76,23 +519,22 @@ fn bytes() {
 fn chrono() {
     use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, TimeDelta, Utc};
     use serde_duper::types::chrono::{
-        duper_date_time, duper_naive_date, duper_naive_date_time, duper_naive_time,
-        duper_time_delta,
+        DuperDateTime, DuperNaiveDate, DuperNaiveDateTime, DuperNaiveTime, DuperTimeDelta,
     };
 
     #[derive(Debug, Serialize, Deserialize)]
     struct Test {
-        #[serde(with = "duper_date_time")]
+        #[serde(with = "DuperDateTime")]
         utc: DateTime<Utc>,
-        #[serde(with = "duper_date_time")]
+        #[serde(with = "DuperDateTime")]
         fo: DateTime<FixedOffset>,
-        #[serde(with = "duper_naive_date_time")]
+        #[serde(with = "DuperNaiveDateTime")]
         ndt: NaiveDateTime,
-        #[serde(with = "duper_naive_date")]
+        #[serde(with = "DuperNaiveDate")]
         nd: NaiveDate,
-        #[serde(with = "duper_naive_time")]
+        #[serde(with = "DuperNaiveTime")]
         nt: NaiveTime,
-        #[serde(with = "duper_time_delta")]
+        #[serde(with = "DuperTimeDelta")]
         td: TimeDelta,
     }
 
@@ -123,12 +565,12 @@ fn chrono() {
 #[test]
 #[cfg(feature = "uuid")]
 fn uuid() {
-    use serde_duper::types::duper_uuid;
+    use serde_duper::types::DuperUuid;
     use uuid::Uuid;
 
     #[derive(Debug, Serialize, Deserialize)]
     struct Test {
-        #[serde(with = "duper_uuid")]
+        #[serde(with = "DuperUuid")]
         id: Uuid,
     }
 

@@ -50,46 +50,6 @@ where
     Ok(DuperPrettyPrinter::new(false, indent).pretty_print(to_duper(value)?))
 }
 
-pub struct SerializeSeq<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
-    elements: Vec<DuperValue<'b>>,
-}
-
-pub struct SerializeTuple<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
-    elements: Vec<DuperValue<'b>>,
-}
-
-pub struct SerializeTupleStruct<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
-    name: &'static str,
-    elements: Vec<DuperValue<'b>>,
-}
-
-pub struct SerializeTupleVariant<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
-    variant: &'static str,
-    elements: Vec<DuperValue<'b>>,
-}
-
-pub struct SerializeMap<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
-    entries: Vec<(DuperKey<'b>, DuperValue<'b>)>,
-    next_key: Option<DuperKey<'b>>,
-}
-
-pub struct SerializeStruct<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
-    name: &'static str,
-    fields: Vec<(DuperKey<'b>, DuperValue<'b>)>,
-}
-
-pub struct SerializeStructVariant<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
-    variant: &'static str,
-    fields: Vec<(DuperKey<'b>, DuperValue<'b>)>,
-}
-
 impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     type Ok = DuperValue<'b>;
 
@@ -138,6 +98,27 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
         })
     }
 
+    fn serialize_i128(self, v: i128) -> Result<Self::Ok, Self::Error> {
+        if let Ok(integer) = v.try_into() {
+            Ok(DuperValue {
+                identifier: None,
+                inner: DuperInner::Integer(integer),
+            })
+        } else if let float = v as f64
+            && float as i128 == v
+        {
+            Ok(DuperValue {
+                identifier: None,
+                inner: DuperInner::Float(float),
+            })
+        } else {
+            Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("I128"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
+            })
+        }
+    }
+
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: None,
@@ -160,16 +141,45 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        let Ok(integer) = v.try_into() else {
-            return Ok(DuperValue {
+        if let Ok(integer) = v.try_into() {
+            Ok(DuperValue {
                 identifier: None,
-                inner: DuperInner::Float(v as f64),
-            });
-        };
-        Ok(DuperValue {
-            identifier: None,
-            inner: DuperInner::Integer(integer),
-        })
+                inner: DuperInner::Integer(integer),
+            })
+        } else if let float = v as f64
+            && float as u64 == v
+        {
+            Ok(DuperValue {
+                identifier: None,
+                inner: DuperInner::Float(float),
+            })
+        } else {
+            Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U64"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
+            })
+        }
+    }
+
+    fn serialize_u128(self, v: u128) -> Result<Self::Ok, Self::Error> {
+        if let Ok(integer) = v.try_into() {
+            Ok(DuperValue {
+                identifier: None,
+                inner: DuperInner::Integer(integer),
+            })
+        } else if let float = v as f64
+            && float as u128 == v
+        {
+            Ok(DuperValue {
+                identifier: None,
+                inner: DuperInner::Float(float),
+            })
+        } else {
+            Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U128"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
+            })
+        }
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
@@ -188,7 +198,7 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            identifier: None,
+            identifier: Some(DuperIdentifier::from(Cow::Borrowed("Char"))),
             inner: DuperInner::String(DuperString::from(Cow::Owned(v.into()))),
         })
     }
@@ -224,26 +234,26 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::Null,
+            inner: DuperInner::Tuple(DuperTuple::from(Vec::new())),
         })
     }
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: Some(DuperIdentifier::from(Cow::Borrowed(name))),
-            inner: DuperInner::Null,
+            inner: DuperInner::Tuple(DuperTuple::from(Vec::new())),
         })
     }
 
     fn serialize_unit_variant(
         self,
-        name: &'static str,
+        _name: &'static str,
         _variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            identifier: Some(DuperIdentifier::from(Cow::Borrowed(name))),
-            inner: DuperInner::String(DuperString::from(Cow::Borrowed(variant))),
+            identifier: Some(DuperIdentifier::from(Cow::Borrowed(variant))),
+            inner: DuperInner::Tuple(DuperTuple::from(Vec::new())),
         })
     }
 
@@ -354,6 +364,11 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     }
 }
 
+pub struct SerializeSeq<'a, 'b> {
+    serializer: &'a mut Serializer<'b>,
+    elements: Vec<DuperValue<'b>>,
+}
+
 impl<'a, 'b> ser::SerializeSeq for SerializeSeq<'a, 'b> {
     type Ok = DuperValue<'b>;
     type Error = Error;
@@ -373,6 +388,11 @@ impl<'a, 'b> ser::SerializeSeq for SerializeSeq<'a, 'b> {
             inner: DuperInner::Array(DuperArray::from(self.elements)),
         })
     }
+}
+
+pub struct SerializeTuple<'a, 'b> {
+    serializer: &'a mut Serializer<'b>,
+    elements: Vec<DuperValue<'b>>,
 }
 
 impl<'a, 'b> ser::SerializeTuple for SerializeTuple<'a, 'b> {
@@ -396,6 +416,12 @@ impl<'a, 'b> ser::SerializeTuple for SerializeTuple<'a, 'b> {
     }
 }
 
+pub struct SerializeTupleStruct<'a, 'b> {
+    serializer: &'a mut Serializer<'b>,
+    name: &'static str,
+    elements: Vec<DuperValue<'b>>,
+}
+
 // Serialize struct Rgb(u8, u8, u8) as Rgb((..., ..., ...))
 impl<'a, 'b> ser::SerializeTupleStruct for SerializeTupleStruct<'a, 'b> {
     type Ok = DuperValue<'b>;
@@ -416,6 +442,12 @@ impl<'a, 'b> ser::SerializeTupleStruct for SerializeTupleStruct<'a, 'b> {
             inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
         })
     }
+}
+
+pub struct SerializeTupleVariant<'a, 'b> {
+    serializer: &'a mut Serializer<'b>,
+    variant: &'static str,
+    elements: Vec<DuperValue<'b>>,
 }
 
 // Serialize enum E { T(u8, u8) } as T((..., ...))
@@ -444,6 +476,12 @@ impl<'a, 'b> ser::SerializeTupleVariant for SerializeTupleVariant<'a, 'b> {
             inner: DuperInner::Tuple(DuperTuple::from(fields)),
         })
     }
+}
+
+pub struct SerializeMap<'a, 'b> {
+    serializer: &'a mut Serializer<'b>,
+    entries: Vec<(DuperKey<'b>, DuperValue<'b>)>,
+    next_key: Option<DuperKey<'b>>,
 }
 
 impl<'a, 'b> ser::SerializeMap for SerializeMap<'a, 'b> {
@@ -487,6 +525,12 @@ impl<'a, 'b> ser::SerializeMap for SerializeMap<'a, 'b> {
     }
 }
 
+pub struct SerializeStruct<'a, 'b> {
+    serializer: &'a mut Serializer<'b>,
+    name: &'static str,
+    fields: Vec<(DuperKey<'b>, DuperValue<'b>)>,
+}
+
 // Serialize struct Rgb { r: u8, g: u8, b: u8 } as Rgb({r: ..., g: ..., b: ...})
 impl<'a, 'b> ser::SerializeStruct for SerializeStruct<'a, 'b> {
     type Ok = DuperValue<'b>;
@@ -508,6 +552,12 @@ impl<'a, 'b> ser::SerializeStruct for SerializeStruct<'a, 'b> {
             inner: DuperInner::Object(DuperObject::from(self.fields)),
         })
     }
+}
+
+pub struct SerializeStructVariant<'a, 'b> {
+    serializer: &'a mut Serializer<'b>,
+    variant: &'static str,
+    fields: Vec<(DuperKey<'b>, DuperValue<'b>)>,
 }
 
 // Serialize enum E { S { x: i32, y: String } } as S({x: ..., y: ...})

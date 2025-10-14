@@ -16,7 +16,7 @@ chrono = ["dep:chrono"]
 # Core dependencies
 duper = { path = "../duper", features = ["serde"] }
 pest = "2.8.3"
-serde_core = "1.0.228"
+serde_core = { version = "1.0.228", features = ["rc"] }
 
 # Type dependencies
 bytes = { version = "1.10.1", features = ["serde"], optional = true }
