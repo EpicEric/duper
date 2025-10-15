@@ -154,11 +154,12 @@ impl DuperBuilder {
                 Rule::raw_string => DuperInner::String(DuperString(Cow::Borrowed(
                     next.into_inner().next().unwrap().as_str(),
                 ))),
-                Rule::bytes => DuperInner::Bytes(DuperBytes(Cow::Owned(
-                    Self::unescape_str(next.into_inner().next().unwrap().as_str())
-                        .as_bytes()
-                        .to_vec(),
-                ))),
+                Rule::bytes => DuperInner::Bytes(DuperBytes(
+                    match Self::unescape_str(next.into_inner().next().unwrap().as_str()) {
+                        Cow::Borrowed(str) => Cow::Borrowed(str.as_bytes()),
+                        Cow::Owned(str) => Cow::Owned(str.into_bytes()),
+                    },
+                )),
                 Rule::raw_bytes => DuperInner::Bytes(DuperBytes(Cow::Borrowed(
                     next.into_inner().next().unwrap().as_str().as_bytes(),
                 ))),
