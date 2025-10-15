@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use serde::{Deserialize, Serialize};
+use serde_duper::bytes::{self, ByteBuf};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Test<'a> {
@@ -8,7 +9,9 @@ struct Test<'a> {
     string: String,
     str: &'a str,
     bools: Vec<bool>,
-    map: HashMap<String, (i32, (), &'a [u8])>,
+    #[serde(borrow, with = "bytes")]
+    cow: Cow<'a, [u8]>,
+    map: HashMap<String, (i32, (), ByteBuf)>,
 }
 
 #[test]
@@ -20,8 +23,9 @@ fn deserialize_struct() {
             "string": r#"Hello   world!"#,
             str: "duper",
             bools: [true, true, false,],
+            cow: b"cool",
             map: {
-                r#"quantum"#: Measurement((-7, "whatever", b"abc")),
+                r#"quantum"#: Measurement((-7, "whatever", b"crazy")),
             },
         }
     "##,
@@ -32,6 +36,9 @@ fn deserialize_struct() {
     assert_eq!(value.str, "duper");
     assert_eq!(value.bools, vec![true, true, false]);
     assert_eq!(value.map.len(), 1);
-    assert_eq!(value.map["quantum"], (-7, (), &b"abc"[..]));
-    serde_duper::to_string(&value).unwrap();
+    assert_eq!(value.map["quantum"], (-7, (), b"crazy".to_vec().into()));
+    assert_eq!(
+        serde_duper::to_string(&value).unwrap(),
+        r#"Test({int: 42, string: "Hello   world!", str: "duper", bools: [true, true, false], cow: b"cool", map: {quantum: (-7, (,), b"crazy")}})"#
+    );
 }

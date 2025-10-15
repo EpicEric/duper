@@ -1,3 +1,4 @@
+pub mod bytes;
 mod de;
 mod error;
 mod ser;

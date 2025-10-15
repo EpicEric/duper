@@ -118,8 +118,6 @@ duper_serde_module!(DuperDuration, ::std::time::Duration, "Duration");
 duper_serde_module!(DuperSystemTime, ::std::time::SystemTime, "SystemTime");
 
 duper_serde_module!(DuperPathBuf, ::std::path::PathBuf, "PathBuf");
-duper_serde_module!(DuperCString, ::std::ffi::CString, "CString");
-duper_serde_module!(DuperOsString, ::std::ffi::OsString, "OsString");
 
 pub mod DuperPath {
     use super::*;
@@ -130,47 +128,52 @@ pub mod DuperPath {
     {
         serializer.serialize_newtype_struct("Path", value)
     }
-
-    pub fn deserialize<'de: 'a, 'a, D>(deserializer: D) -> Result<&'a ::std::path::Path, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        <&'a ::std::path::Path>::deserialize(deserializer)
-    }
 }
 
-duper_serde_module!(DuperBox<T>, ::std::boxed::Box<T>, "Box");
-duper_serde_module!(DuperRc<T>, ::std::rc::Rc<T>, "Rc");
-duper_serde_module!(DuperArc<T>, ::std::sync::Arc<T>, "Arc");
-duper_serde_module!(DuperCell<T>, ::std::cell::Cell<T>, "Cell");
-duper_serde_module!(DuperRefCell<T>, ::std::cell::RefCell<T>, "RefCell");
-duper_serde_module!(DuperMutex<T>, ::std::sync::Mutex<T>, "Mutex");
-duper_serde_module!(DuperRwLock<T>, ::std::sync::RwLock<T>, "RwLock");
-
-pub mod DuperCow {
+pub mod ffi {
     use super::*;
-    use std::borrow::Cow;
 
-    pub fn serialize<'a, S, T>(value: &Cow<'a, T>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-        T: Serialize + ToOwned + ?Sized,
-    {
-        serializer.serialize_newtype_struct("Cow", value)
+    duper_serde_module!(DuperCString, ::std::ffi::CString, "CString");
+    duper_serde_module!(DuperOsString, ::std::ffi::OsString, "OsString");
+
+    pub mod DuperCStr {
+        use super::*;
+
+        pub fn serialize<S>(value: &::std::ffi::CStr, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_newtype_struct("CStr", value)
+        }
     }
 
-    pub fn deserialize<'de, 'a, D, T>(deserializer: D) -> Result<Cow<'a, T>, D::Error>
-    where
-        D: Deserializer<'de>,
-        T: ToOwned + ?Sized,
-        T::Owned: Deserialize<'de> + Clone,
-    {
-        T::Owned::deserialize(deserializer).map(Cow::Owned)
+    pub mod DuperOsStr {
+        use super::*;
+
+        pub fn serialize<S>(value: &::std::ffi::OsStr, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_newtype_struct("OsStr", value)
+        }
     }
 }
+
+// Maybe one day...
+// pub mod DuperBox {}
+// pub mod DuperCow {}
+// pub mod DuperRc {}
+// pub mod DuperRcWeak {}
+// pub mod DuperArc {}
+// pub mod DuperArcWeak {}
+// pub mod DuperCell {}
+// pub mod DuperRefCell {}
+// pub mod DuperMutex {}
+// pub mod DuperRwLock {}
 
 duper_serde_module!(DuperVec<T>, ::std::vec::Vec<T>, "Vec");
 duper_serde_module!(DuperReverse<T>, ::std::cmp::Reverse<T>, "Reverse");
+
 pub mod collections {
     pub use super::*;
 

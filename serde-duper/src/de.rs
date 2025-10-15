@@ -1,7 +1,12 @@
-use duper::DuperKey;
+use std::borrow::Cow;
+
+use duper::{DuperArray, DuperKey};
 use duper::{DuperInner, DuperParser, DuperValue};
-use serde_core::Deserialize;
-use serde_core::de::{self, DeserializeSeed, IntoDeserializer, Visitor};
+use serde_core::{
+    Deserialize,
+    de::{self, DeserializeSeed, IntoDeserializer, Visitor},
+    forward_to_deserialize_any,
+};
 
 use crate::Error;
 
@@ -41,6 +46,10 @@ where
 impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
     type Error = de::value::Error;
 
+    fn is_human_readable(&self) -> bool {
+        true
+    }
+
     // --- Deserialize DuperValue ---
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -72,11 +81,17 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
             Some(DuperValue {
                 inner: DuperInner::String(string),
                 ..
-            }) => visitor.visit_str(string.as_ref()),
+            }) => match string.into_inner() {
+                Cow::Borrowed(s) => visitor.visit_borrowed_str(s),
+                Cow::Owned(s) => visitor.visit_string(s),
+            },
             Some(DuperValue {
                 inner: DuperInner::Bytes(bytes),
                 ..
-            }) => visitor.visit_bytes(bytes.as_ref()),
+            }) => match bytes.into_inner() {
+                Cow::Borrowed(b) => visitor.visit_borrowed_bytes(b),
+                Cow::Owned(b) => visitor.visit_byte_buf(b),
+            },
             Some(DuperValue {
                 inner: DuperInner::Integer(integer),
                 ..
@@ -98,41 +113,6 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
     }
 
     // --- Known values ---
-
-    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_any(visitor)
-    }
-
-    fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_any(visitor)
-    }
-
-    fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_any(visitor)
-    }
-
-    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_any(visitor)
-    }
-
-    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_any(visitor)
-    }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
@@ -159,13 +139,6 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         visitor.visit_newtype_struct(self)
     }
 
-    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_any(visitor)
-    }
-
     fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
@@ -185,9 +158,11 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
                 let seq = TupleDeserializer::new(tuple.into_inner());
                 visitor.visit_seq(seq)
             }
-            value => Err(de::Error::custom(format!(
-                "expected tuple of len {len}, found {value:?}"
+            Some(value) => Err(de::Error::custom(format!(
+                "expected tuple of len {len}, found {:?}",
+                value.inner
             ))),
+            None => Err(de::Error::custom("already consumed deserializer value")),
         }
     }
 
@@ -201,25 +176,6 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         self.deserialize_tuple(len, visitor)
-    }
-
-    fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_any(visitor)
-    }
-
-    fn deserialize_struct<V>(
-        self,
-        _name: &'static str,
-        _fields: &'static [&'static str],
-        visitor: V,
-    ) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_map(visitor)
     }
 
     fn deserialize_enum<V>(
@@ -247,98 +203,15 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
                     value: pair.1,
                 })
             }
-            value => Err(de::Error::custom(format!(
+            Some(value) => Err(de::Error::custom(format!(
                 "expected string or single-keyed object for enum, found {:?}",
-                value
+                value.inner
             ))),
+            None => Err(de::Error::custom("already consumed deserializer value")),
         }
     }
 
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_str(visitor)
-    }
-
     // --- Others ---
-
-    fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_i64(visitor)
-    }
-
-    fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_i64(visitor)
-    }
-
-    fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_i64(visitor)
-    }
-
-    fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_i64(visitor)
-    }
-
-    fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_i64(visitor)
-    }
-
-    fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_i64(visitor)
-    }
-
-    fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_f64(visitor)
-    }
-
-    fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_f64(visitor)
-    }
-
-    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_str(visitor)
-    }
-
-    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_str(visitor)
-    }
-
-    fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_bytes(visitor)
-    }
 
     fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
@@ -358,11 +231,38 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         self.deserialize_unit(visitor)
     }
 
-    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
+        self.value = match self.value.take() {
+            Some(DuperValue {
+                inner: DuperInner::Bytes(bytes),
+                identifier,
+            }) => {
+                // Ugly hack to deal with poor Serde support for bytes
+                Some(DuperValue {
+                    identifier,
+                    inner: DuperInner::Array(DuperArray::from(
+                        bytes
+                            .into_inner()
+                            .into_iter()
+                            .map(|v| DuperValue {
+                                identifier: None,
+                                inner: DuperInner::Integer(i64::from(*v)),
+                            })
+                            .collect::<Vec<_>>(),
+                    )),
+                })
+            }
+            value => value,
+        };
         self.deserialize_any(visitor)
+    }
+
+    forward_to_deserialize_any! {
+        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char
+        str string bytes byte_buf identifier map struct ignored_any
     }
 }
 

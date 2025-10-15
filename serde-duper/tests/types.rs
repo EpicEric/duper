@@ -110,8 +110,12 @@ fn num() {
     };
 
     let serialized = serde_duper::to_string(&value).unwrap();
-    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({nz_i8: NonZeroI8(42), nz_i16: NonZeroI16(1234), nz_i32: NonZeroI32(123456), nz_i64: NonZeroI64(123456789), nz_i128: NonZeroI128(123456789012), nz_isize: NonZeroIsize(999), nz_u8: NonZeroU8(42), nz_u16: NonZeroU16(1234), nz_u32: NonZeroU32(123456), nz_u64: NonZeroU64(123456789), nz_u128: NonZeroU128(123456789012), nz_usize: NonZeroUsize(999), wrapping: Wrapping(100), saturating: Saturating(200)})"#
+    );
 
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
     assert_eq!(value.nz_i8, deserialized.nz_i8);
     assert_eq!(value.nz_i16, deserialized.nz_i16);
     assert_eq!(value.nz_i32, deserialized.nz_i32);
@@ -181,8 +185,12 @@ fn atomic() {
     };
 
     let serialized = serde_duper::to_string(&value).unwrap();
-    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({atomic_bool: AtomicBool(true), atomic_i8: AtomicI8(-42), atomic_i16: AtomicI16(-1234), atomic_i32: AtomicI32(-123456), atomic_i64: AtomicI64(-123456789), atomic_isize: AtomicIsize(-999), atomic_u8: AtomicU8(42), atomic_u16: AtomicU16(1234), atomic_u32: AtomicU32(123456), atomic_u64: AtomicU64(123456789), atomic_usize: AtomicUsize(999)})"#
+    );
 
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
     assert_eq!(
         value.atomic_bool.load(std::sync::atomic::Ordering::SeqCst),
         deserialized
@@ -270,10 +278,13 @@ fn time() {
     };
 
     let serialized = serde_duper::to_string(&value).unwrap();
-    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert!(
+        serialized.starts_with(
+        r#"Test({duration: Duration({secs: 3600, nanos: 0}), system_time: SystemTime({secs_since_epoch: "#)
+    );
 
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
     assert_eq!(value.duration, deserialized.duration);
-    // SystemTime comparison with small epsilon for potential nanosecond differences
     assert!(
         value
             .system_time
@@ -290,29 +301,42 @@ fn path() {
     use std::path::{Path, PathBuf};
 
     #[derive(Debug, Serialize, Deserialize)]
-    struct Test<'a> {
+    struct Test {
         #[serde(with = "DuperPathBuf")]
         path_buf: PathBuf,
-        #[serde(borrow, with = "DuperPath")]
-        path: &'a Path,
     }
 
     let value = Test {
         path_buf: PathBuf::from("/home/user/file.txt"),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({path_buf: PathBuf("/home/user/file.txt")})"#
+    );
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(value.path_buf, deserialized.path_buf);
+
+    #[derive(Debug, Serialize)]
+    struct TestTwo<'a> {
+        #[serde(borrow, with = "DuperPath")]
+        path: &'a Path,
+    }
+
+    let value = TestTwo {
         path: Path::new("/tmp/test"),
     };
 
     let serialized = serde_duper::to_string(&value).unwrap();
-    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
-
-    assert_eq!(value.path_buf, deserialized.path_buf);
-    assert_eq!(value.path, deserialized.path);
+    assert_eq!(serialized, r#"TestTwo({path: Path("/tmp/test")})"#);
 }
 
 #[test]
 fn ffi() {
-    use serde_duper::types::{DuperCString, DuperOsString};
-    use std::ffi::{CString, OsString};
+    use serde_duper::types::ffi::{DuperCStr, DuperCString, DuperOsStr, DuperOsString};
+    use std::ffi::{CStr, CString, OsStr, OsString};
 
     #[derive(Debug, Serialize, Deserialize)]
     struct Test {
@@ -328,64 +352,32 @@ fn ffi() {
     };
 
     let serialized = serde_duper::to_string(&value).unwrap();
-    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({c_string: CString(b"hello"), os_string: OsString({Unix: [116, 101, 115, 116, 95, 111, 115, 95, 115, 116, 114, 105, 110, 103]})})"#
+    );
 
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
     assert_eq!(value.c_string, deserialized.c_string);
     assert_eq!(value.os_string, deserialized.os_string);
-}
 
-#[test]
-fn smart_pointers() {
-    use serde_duper::types::{
-        DuperArc, DuperBox, DuperCell, DuperMutex, DuperRc, DuperRefCell, DuperRwLock,
-    };
-    use std::cell::{Cell, RefCell};
-    use std::rc::Rc;
-    use std::sync::{Arc, Mutex, RwLock};
-
-    #[derive(Debug, Serialize, Deserialize)]
-    struct Test {
-        #[serde(with = "DuperBox")]
-        boxed: Box<i32>,
-        #[serde(with = "DuperRc")]
-        rc: Rc<String>,
-        #[serde(with = "DuperArc")]
-        arc: Arc<Vec<i32>>,
-        #[serde(with = "DuperCell")]
-        cell: Cell<bool>,
-        #[serde(with = "DuperRefCell")]
-        ref_cell: RefCell<u32>,
-        #[serde(with = "DuperMutex")]
-        mutex: Mutex<f64>,
-        #[serde(with = "DuperRwLock")]
-        rw_lock: RwLock<char>,
+    #[derive(Debug, Serialize)]
+    struct TestTwo<'a> {
+        #[serde(with = "DuperCStr")]
+        c_str: &'a CStr,
+        #[serde(with = "DuperOsStr")]
+        os_str: &'a OsStr,
     }
 
-    let value = Test {
-        boxed: Box::new(42),
-        rc: Rc::new("hello".to_string()),
-        arc: Arc::new(vec![1, 2, 3]),
-        cell: Cell::new(true),
-        ref_cell: RefCell::new(100),
-        mutex: Mutex::new(3.14),
-        rw_lock: RwLock::new('x'),
+    let value = TestTwo {
+        c_str: &CString::new("goodbye").unwrap(),
+        os_str: &OsString::from("test_os_str"),
     };
 
     let serialized = serde_duper::to_string(&value).unwrap();
-    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
-
-    assert_eq!(*value.boxed, *deserialized.boxed);
-    assert_eq!(*value.rc, *deserialized.rc);
-    assert_eq!(*value.arc, *deserialized.arc);
-    assert_eq!(value.cell.get(), deserialized.cell.get());
-    assert_eq!(*value.ref_cell.borrow(), *deserialized.ref_cell.borrow());
     assert_eq!(
-        *value.mutex.lock().unwrap(),
-        *deserialized.mutex.lock().unwrap()
-    );
-    assert_eq!(
-        *value.rw_lock.read().unwrap(),
-        *deserialized.rw_lock.read().unwrap()
+        serialized,
+        r#"TestTwo({c_str: CStr(b"goodbye"), os_str: OsStr({Unix: [116, 101, 115, 116, 95, 111, 115, 95, 115, 116, 114]})})"#
     );
 }
 
@@ -406,18 +398,18 @@ fn collections() {
         binary_heap: BinaryHeap<i32>,
         #[serde(with = "DuperBTreeSet")]
         btree_set: BTreeSet<String>,
-        #[serde(with = "DuperHashSet")]
-        hash_set: HashSet<u32>,
+        #[serde(with = "DuperBTreeMap")]
+        btree_map: BTreeMap<String, i32>,
         #[serde(with = "DuperLinkedList")]
         linked_list: LinkedList<char>,
         #[serde(with = "DuperVecDeque")]
         vec_deque: VecDeque<bool>,
-        #[serde(with = "DuperBTreeMap")]
-        btree_map: BTreeMap<String, i32>,
-        #[serde(with = "DuperHashMap")]
-        hash_map: HashMap<u32, String>,
         #[serde(with = "DuperReverse")]
         reverse: std::cmp::Reverse<usize>,
+        #[serde(with = "DuperHashMap")]
+        hash_map: HashMap<String, u32>,
+        #[serde(with = "DuperHashSet")]
+        hash_set: HashSet<u32>,
     }
 
     let value = Test {
@@ -440,9 +432,9 @@ fn collections() {
         .into_iter()
         .collect(),
         hash_map: vec![
-            (1, "uno".to_string()),
-            (2, "dos".to_string()),
-            (3, "tres".to_string()),
+            ("uno".to_string(), 1),
+            ("dos".to_string(), 2),
+            ("tres".to_string(), 3),
         ]
         .into_iter()
         .collect(),
@@ -450,8 +442,11 @@ fn collections() {
     };
 
     let serialized = serde_duper::to_string(&value).unwrap();
-    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert!(
+        serialized.starts_with(r#"Test({binary_heap: BinaryHeap([5, 3, 4, 1, 1]), btree_set: BTreeSet(["apple", "banana", "cherry"]), btree_map: BTreeMap({one: 1, three: 3, two: 2}), linked_list: LinkedList([Char("a"), Char("b"), Char("c")]), vec_deque: VecDeque([true, false, true]), reverse: Reverse(42), hash_map: HashMap({"#
+    ));
 
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
     assert_eq!(
         value.binary_heap.into_sorted_vec(),
         deserialized.binary_heap.into_sorted_vec()
@@ -463,32 +458,6 @@ fn collections() {
     assert_eq!(value.btree_map, deserialized.btree_map);
     assert_eq!(value.hash_map, deserialized.hash_map);
     assert_eq!(value.reverse, deserialized.reverse);
-}
-
-#[test]
-fn cow() {
-    use serde_duper::types::DuperCow;
-    use std::borrow::Cow;
-
-    #[derive(Debug, Serialize, Deserialize)]
-    struct Test<'a> {
-        #[serde(with = "DuperCow")]
-        cow_owned: Cow<'a, str>,
-        #[serde(with = "DuperCow")]
-        cow_borrowed: Cow<'a, str>,
-    }
-
-    let borrowed = "hello";
-    let value = Test {
-        cow_owned: Cow::Owned("world".to_string()),
-        cow_borrowed: Cow::Borrowed(borrowed),
-    };
-
-    let serialized = serde_duper::to_string(&value).unwrap();
-    let deserialized: Test<'static> = serde_duper::from_string(&serialized).unwrap();
-
-    assert_eq!(value.cow_owned, deserialized.cow_owned);
-    assert_eq!(value.cow_borrowed, deserialized.cow_borrowed);
 }
 
 #[test]

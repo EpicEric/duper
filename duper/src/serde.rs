@@ -1,5 +1,8 @@
-use crate::{DuperArray, DuperBytes, DuperInner, DuperKey, DuperObject, DuperString, DuperValue};
-use serde_core::de::Visitor;
+use crate::{
+    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
+    DuperTuple, DuperValue,
+};
+use serde_core::de::{VariantAccess, Visitor};
 use std::borrow::Cow;
 
 impl<'a> serde_core::Serialize for DuperValue<'a> {
@@ -7,41 +10,46 @@ impl<'a> serde_core::Serialize for DuperValue<'a> {
     where
         S: serde_core::Serializer,
     {
-        match &self.inner {
-            crate::DuperInner::Object(object) => {
-                use serde_core::ser::SerializeMap;
+        self.inner.serialize(serializer)
+    }
+}
 
-                let mut map = serializer.serialize_map(Some(object.0.len()))?;
-                for (key, value) in object.0.iter() {
-                    use serde_core::ser::SerializeMap;
+impl<'a> serde_core::Serialize for DuperInner<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde_core::Serializer,
+    {
+        match self {
+            DuperInner::Object(object) => {
+                use serde_core::ser::SerializeMap;
+                let mut map = serializer.serialize_map(Some(object.len()))?;
+                for (key, value) in object.iter() {
                     map.serialize_entry(key.as_ref(), value)?;
                 }
                 map.end()
             }
-            crate::DuperInner::Array(array) => {
+            DuperInner::Array(array) => {
                 use serde_core::ser::SerializeSeq;
-
-                let mut seq = serializer.serialize_seq(Some(array.0.len()))?;
-                for value in array.0.iter() {
+                let mut seq = serializer.serialize_seq(Some(array.len()))?;
+                for value in array.iter() {
                     seq.serialize_element(value)?;
                 }
                 seq.end()
             }
-            crate::DuperInner::Tuple(tuple) => {
+            DuperInner::Tuple(tuple) => {
                 use serde_core::ser::SerializeTuple;
-
-                let mut seq = serializer.serialize_tuple(tuple.0.len())?;
-                for value in tuple.0.iter() {
+                let mut seq = serializer.serialize_tuple(tuple.len())?;
+                for value in tuple.iter() {
                     seq.serialize_element(value)?;
                 }
                 seq.end()
             }
-            crate::DuperInner::String(string) => serializer.serialize_str(string.as_ref()),
-            crate::DuperInner::Bytes(bytes) => serializer.serialize_bytes(bytes.as_ref()),
-            crate::DuperInner::Integer(integer) => serializer.serialize_i64(*integer),
-            crate::DuperInner::Float(float) => serializer.serialize_f64(*float),
-            crate::DuperInner::Boolean(boolean) => serializer.serialize_bool(*boolean),
-            crate::DuperInner::Null => serializer.serialize_none(),
+            DuperInner::String(string) => serializer.serialize_str(string.as_ref()),
+            DuperInner::Bytes(bytes) => serializer.serialize_bytes(bytes.as_ref()),
+            DuperInner::Integer(integer) => serializer.serialize_i64(*integer),
+            DuperInner::Float(float) => serializer.serialize_f64(*float),
+            DuperInner::Boolean(boolean) => serializer.serialize_bool(*boolean),
+            DuperInner::Null => serializer.serialize_none(),
         }
     }
 }
@@ -96,6 +104,27 @@ impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
         })
     }
 
+    fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
+    where
+        E: serde_core::de::Error,
+    {
+        if let Ok(i) = v.try_into() {
+            self.visit_i64(i)
+        } else if let float = v as f64
+            && float as i128 == v
+        {
+            Ok(DuperValue {
+                identifier: None,
+                inner: DuperInner::Float(float),
+            })
+        } else {
+            Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("I128"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
+            })
+        }
+    }
+
     fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E>
     where
         E: serde_core::de::Error,
@@ -121,10 +150,41 @@ impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
     where
         E: serde_core::de::Error,
     {
-        if let Ok(i) = i64::try_from(v) {
+        if let Ok(i) = v.try_into() {
             self.visit_i64(i)
+        } else if let float = v as f64
+            && float as u64 == v
+        {
+            Ok(DuperValue {
+                identifier: None,
+                inner: DuperInner::Float(float),
+            })
         } else {
-            self.visit_f64(v as f64)
+            Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U64"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
+            })
+        }
+    }
+
+    fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
+    where
+        E: serde_core::de::Error,
+    {
+        if let Ok(i) = v.try_into() {
+            self.visit_i64(i)
+        } else if let float = v as f64
+            && float as u128 == v
+        {
+            Ok(DuperValue {
+                identifier: None,
+                inner: DuperInner::Float(float),
+            })
+        } else {
+            Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U128"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
+            })
         }
     }
 
@@ -227,21 +287,24 @@ impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
     where
         E: serde_core::de::Error,
     {
-        self.visit_none()
+        Ok(DuperValue {
+            identifier: None,
+            inner: DuperInner::Tuple(DuperTuple::from(Vec::new())),
+        })
     }
 
     fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: serde_core::Deserializer<'de>,
     {
-        serde_core::Deserialize::deserialize(deserializer)
+        deserializer.deserialize_any(Self)
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: serde_core::de::SeqAccess<'de>,
     {
-        let mut values = Vec::new();
+        let mut values = seq.size_hint().map(Vec::with_capacity).unwrap_or_default();
 
         while let Some(value) = seq.next_element()? {
             values.push(value);
@@ -257,7 +320,7 @@ impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
     where
         A: serde_core::de::MapAccess<'de>,
     {
-        let mut entries = Vec::new();
+        let mut entries = map.size_hint().map(Vec::with_capacity).unwrap_or_default();
 
         while let Some((key, value)) = map.next_entry()? {
             entries.push((DuperKey::from(Cow::Owned(key)), value));
@@ -268,6 +331,17 @@ impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
             inner: DuperInner::Object(DuperObject::from(entries)),
         })
     }
+
+    fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde_core::de::EnumAccess<'de>,
+    {
+        let (identifier, value) = data.variant::<String>()?;
+        Ok(DuperValue {
+            identifier: Some(DuperIdentifier::from(Cow::Owned(identifier))),
+            inner: value.newtype_variant()?,
+        })
+    }
 }
 
 impl<'de> serde_core::Deserialize<'de> for DuperValue<'de> {
@@ -276,5 +350,14 @@ impl<'de> serde_core::Deserialize<'de> for DuperValue<'de> {
         D: serde_core::Deserializer<'de>,
     {
         deserializer.deserialize_any(DuperValueDeserializerVisitor)
+    }
+}
+
+impl<'de> serde_core::Deserialize<'de> for DuperInner<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde_core::Deserializer<'de>,
+    {
+        Ok(DuperValue::deserialize(deserializer)?.inner)
     }
 }

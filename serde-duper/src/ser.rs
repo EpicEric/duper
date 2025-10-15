@@ -247,13 +247,13 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
 
     fn serialize_unit_variant(
         self,
-        _name: &'static str,
+        name: &'static str,
         _variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            identifier: Some(DuperIdentifier::from(Cow::Borrowed(variant))),
-            inner: DuperInner::Tuple(DuperTuple::from(Vec::new())),
+            identifier: Some(DuperIdentifier::from(Cow::Borrowed(name))),
+            inner: DuperInner::String(DuperString::from(Cow::Borrowed(variant))),
         })
     }
 
@@ -276,7 +276,7 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
         self,
         name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
@@ -285,7 +285,10 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
         let value = value.serialize(self)?;
         Ok(DuperValue {
             identifier: Some(DuperIdentifier::from(Cow::Borrowed(name))),
-            inner: value.inner,
+            inner: DuperInner::Object(DuperObject::from(vec![(
+                DuperKey::from(Cow::Borrowed(variant)),
+                value,
+            )])),
         })
     }
 
