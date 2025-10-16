@@ -337,7 +337,8 @@ fn path() {
 }
 
 #[test]
-fn ffi() {
+#[cfg(unix)]
+fn ffi_unix() {
     use serde_duper::types::ffi::{DuperCStr, DuperCString, DuperOsStr, DuperOsString};
     use std::ffi::{CStr, CString, OsStr, OsString};
 
@@ -357,7 +358,7 @@ fn ffi() {
     let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
         serialized,
-        r#"Test({c_string: CString(b"hello"), os_string: OsString({Unix: [116, 101, 115, 116, 95, 111, 115, 95, 115, 116, 114, 105, 110, 103]})})"#
+        r#"Test({c_string: CString(b"hello"), os_string: OsString({Unix: b"test_os_string"})})"#
     );
 
     let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
@@ -380,7 +381,56 @@ fn ffi() {
     let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
         serialized,
-        r#"TestSerializeOnly({c_str: CStr(b"goodbye"), os_str: OsStr({Unix: [116, 101, 115, 116, 95, 111, 115, 95, 115, 116, 114]})})"#
+        r#"TestSerializeOnly({c_str: CStr(b"goodbye"), os_str: OsStr({Unix: b"test_os_str"})})"#
+    );
+}
+
+#[test]
+#[cfg(windows)]
+fn ffi_windows() {
+    use serde_duper::types::ffi::{DuperCStr, DuperCString, DuperOsStr, DuperOsString};
+    use std::ffi::{CStr, CString, OsStr, OsString};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperCString")]
+        c_string: CString,
+        #[serde(with = "DuperOsString")]
+        os_string: OsString,
+    }
+
+    let value = Test {
+        c_string: CString::new("hello").unwrap(),
+        os_string: OsString::from("test_os_string"),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({c_string: CString(b"hello"), os_string: OsString({Windows: [0]})})"#
+    );
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(value.c_string, deserialized.c_string);
+    assert_eq!(value.os_string, deserialized.os_string);
+
+    #[derive(Debug, Serialize)]
+    struct TestSerializeOnly<'a> {
+        #[serde(with = "DuperCStr")]
+        c_str: &'a CStr,
+        #[serde(with = "DuperOsStr")]
+        os_str: &'a OsStr,
+    }
+
+    let value = TestSerializeOnly {
+        c_str: &CString::new("goodbye").unwrap(),
+        os_str: &OsString::from("test_os_str"),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r#"TestSerializeOnly({c_str: CStr(b"goodbye"), os_str: OsStr([])})"#
     );
 }
 

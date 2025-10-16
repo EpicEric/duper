@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
 use serde_core::{Deserialize, Deserializer, Serialize, Serializer};
 
+// -- Helper macro --
+
 #[macro_export]
 macro_rules! duper_serde_module {
     (
@@ -53,7 +55,7 @@ macro_rules! duper_serde_module {
     };
 }
 
-// Stdlib
+// -- Standard library --
 
 pub mod net {
     use super::*;
@@ -118,7 +120,6 @@ duper_serde_module!(DuperDuration, ::std::time::Duration, "Duration");
 duper_serde_module!(DuperSystemTime, ::std::time::SystemTime, "SystemTime");
 
 duper_serde_module!(DuperPathBuf, ::std::path::PathBuf, "PathBuf");
-
 pub mod DuperPath {
     use super::*;
 
@@ -134,7 +135,6 @@ pub mod ffi {
     use super::*;
 
     duper_serde_module!(DuperCString, ::std::ffi::CString, "CString");
-    duper_serde_module!(DuperOsString, ::std::ffi::OsString, "OsString");
 
     pub mod DuperCStr {
         use super::*;
@@ -147,14 +147,301 @@ pub mod ffi {
         }
     }
 
-    pub mod DuperOsStr {
+    #[cfg(unix)]
+    pub mod DuperOsString {
+        use ::std::os::unix::ffi::{OsStrExt, OsStringExt};
+
         use super::*;
+
+        enum OsString<'a> {
+            Unix(::std::borrow::Cow<'a, [u8]>),
+        }
+
+        impl Serialize for OsString<'_> {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                let OsString::Unix(bytes) = self;
+                serializer.serialize_bytes(bytes)
+            }
+        }
+
+        struct OsStringVisitor;
+
+        impl<'de> ::serde_core::de::Visitor<'de> for OsStringVisitor {
+            type Value = OsString<'de>;
+
+            fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                formatter.write_str("a Unix OsString")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: ::serde_core::de::Error,
+            {
+                Ok(OsString::Unix(std::borrow::Cow::Owned(v.to_vec())))
+            }
+
+            fn visit_borrowed_bytes<E>(self, v: &'de [u8]) -> Result<Self::Value, E>
+            where
+                E: ::serde_core::de::Error,
+            {
+                Ok(OsString::Unix(std::borrow::Cow::Borrowed(v)))
+            }
+
+            fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<Self::Value, E>
+            where
+                E: ::serde_core::de::Error,
+            {
+                Ok(OsString::Unix(std::borrow::Cow::Owned(v)))
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: ::serde_core::de::SeqAccess<'de>,
+            {
+                let mut vec = seq.size_hint().map(Vec::with_capacity).unwrap_or_default();
+                while let Some(value) = seq.next_element()? {
+                    vec.push(value);
+                }
+                Ok(OsString::Unix(std::borrow::Cow::Owned(vec)))
+            }
+
+            fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+            where
+                A: ::serde_core::de::EnumAccess<'de>,
+            {
+                use ::serde_core::de::VariantAccess;
+
+                let (variant, value) = data.variant::<String>()?;
+                match variant.as_ref() {
+                    "Unix" => Ok(OsString::Unix(value.newtype_variant()?)),
+                    "Windows" => Err(::serde_core::de::Error::custom(
+                        "cannot deserialize Windows CString in Unix",
+                    )),
+                    variant => Err(::serde_core::de::Error::unknown_variant(variant, &["Unix"])),
+                }
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: ::serde_core::de::MapAccess<'de>,
+            {
+                let Some((key, value)): Option<(String, &[u8])> = map.next_entry()? else {
+                    return Err(::serde_core::de::Error::invalid_length(0, &self));
+                };
+                match key.as_ref() {
+                    "Unix" => self.visit_bytes(value),
+                    "Windows" => Err(::serde_core::de::Error::custom(
+                        "cannot deserialize Windows CString in Unix",
+                    )),
+                    variant => Err(::serde_core::de::Error::unknown_variant(variant, &["Unix"])),
+                }
+            }
+        }
+
+        impl<'de> Deserialize<'de> for OsString<'de> {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                deserializer.deserialize_map(OsStringVisitor)
+            }
+        }
+
+        pub fn serialize<S>(value: &::std::ffi::OsString, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_newtype_variant(
+                "OsString",
+                0,
+                "Unix",
+                &OsString::Unix(::std::borrow::Cow::Borrowed(value.as_bytes())),
+            )
+        }
+
+        pub fn deserialize<'de, D>(deserializer: D) -> Result<::std::ffi::OsString, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let OsString::Unix(value) = OsString::deserialize(deserializer)?;
+            Ok(::std::ffi::OsString::from_vec(value.into_owned()))
+        }
+    }
+
+    #[cfg(unix)]
+    pub mod DuperOsStr {
+        use std::os::unix::ffi::OsStrExt;
+
+        use super::*;
+
+        enum OsStr<'a> {
+            Unix(&'a [u8]),
+        }
+
+        impl Serialize for OsStr<'_> {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                let OsStr::Unix(bytes) = self;
+                serializer.serialize_bytes(bytes)
+            }
+        }
 
         pub fn serialize<S>(value: &::std::ffi::OsStr, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
         {
-            serializer.serialize_newtype_struct("OsStr", value)
+            serializer.serialize_newtype_variant("OsStr", 0, "Unix", &OsStr::Unix(value.as_bytes()))
+        }
+    }
+
+    #[cfg(windows)]
+    pub mod DuperOsString {
+        use ::std::os::windows::ffi::{OsStrExt, OsStringExt};
+
+        use super::*;
+
+        enum OsString<'a> {
+            windows(::std::borrow::Cow<'a, [u16]>),
+        }
+
+        impl Serialize for OsString<'_> {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                let OsString::windows(bytes) = self;
+                serializer.serialize_bytes(bytes)
+            }
+        }
+
+        struct OsStringVisitor;
+
+        impl<'de> ::serde_core::de::Visitor<'de> for OsStringVisitor {
+            type Value = OsString<'de>;
+
+            fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                formatter.write_str("a Windows OsString")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: ::serde_core::de::SeqAccess<'de>,
+            {
+                let mut vec = seq.size_hint().map(Vec::with_capacity).unwrap_or_default();
+                while let Some(value) = seq.next_element()? {
+                    vec.push(value);
+                }
+                Ok(OsString::Windows(std::borrow::Cow::Owned(vec)))
+            }
+
+            fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+            where
+                A: ::serde_core::de::EnumAccess<'de>,
+            {
+                use ::serde_core::de::VariantAccess;
+
+                let (variant, value) = data.variant::<String>()?;
+                match variant.as_ref() {
+                    "Windows" => Ok(OsString::Windows(value.newtype_variant()?)),
+                    "Unix" => Err(::serde_core::de::Error::custom(
+                        "cannot deserialize Unix CString in Windows",
+                    )),
+                    variant => Err(::serde_core::de::Error::unknown_variant(
+                        variant,
+                        &["Windows"],
+                    )),
+                }
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: ::serde_core::de::MapAccess<'de>,
+            {
+                let Some((key, value)): Option<(String, &[u16])> = map.next_entry()? else {
+                    return Err(::serde_core::de::Error::invalid_length(0, &self));
+                };
+                match key.as_ref() {
+                    "Windows" => self.visit_seq(value),
+                    "Unix" => Err(::serde_core::de::Error::custom(
+                        "cannot deserialize Unix CString in windows",
+                    )),
+                    variant => Err(::serde_core::de::Error::unknown_variant(
+                        variant,
+                        &["Windows"],
+                    )),
+                }
+            }
+        }
+
+        impl<'de> Deserialize<'de> for OsString<'de> {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                deserializer.deserialize_map(OsStringVisitor)
+            }
+        }
+
+        pub fn serialize<S>(value: &::std::ffi::OsString, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_newtype_variant(
+                "OsString",
+                0,
+                "Windows",
+                &OsString::Windows(::std::borrow::Cow::Owned(value.encode_wide().collect())),
+            )
+        }
+
+        pub fn deserialize<'de, D>(deserializer: D) -> Result<::std::ffi::OsString, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let OsString::Windows(value) = OsString::deserialize(deserializer)?;
+            Ok(::std::ffi::OsString::from_wide(value.into_owned()))
+        }
+    }
+
+    #[cfg(windows)]
+    pub mod DuperOsStr {
+        use std::os::windows::ffi::OsStrExt;
+
+        use super::*;
+
+        enum OsStr<'a> {
+            Windows(&'a [u16]),
+        }
+
+        impl Serialize for OsStr<'_> {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                let OsStr::Windows(wides) = self;
+                let mut seq = serializer.serialize_seq(wides.len());
+                for wide in wides {
+                    seq.serialize_u16(wide)?;
+                }
+                seq.end();
+            }
+        }
+
+        pub fn serialize<S>(value: &::std::ffi::OsStr, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_newtype_variant(
+                "OsStr",
+                0,
+                "Windows",
+                &OsStr::Windows(value.encode_wide()),
+            )
         }
     }
 }
