@@ -77,11 +77,10 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
             inner: DuperInner::Null,
         })
     }
-    // Handle Pydantic models and specialized cases
-    else if is_pydantic_model(&obj)? {
-        serialize_pydantic_model(&obj)
-    } else if let Some(value) = serialize_specialized_python_types(&obj)? {
-        Ok(value)
+    // Handle well-known types
+    else if let Some(well_known_type) = WellKnownType::identify(&obj)? {
+        println!("wkt={well_known_type:?}");
+        Ok(well_known_type.serialize()?)
     }
     // Handle sequences
     else if let Ok(pyiter) = obj.try_iter() {
@@ -92,19 +91,29 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
         })
     }
     // Handle unknown types
-    else if obj.hasattr("__dict__")?
-        && let Ok(object) = serialize_pydict(obj.getattr("__dict__")?.downcast()?)
+    else if obj.hasattr("__bytes__")?
+        && let Ok(bytes) = obj
+            .call_method0("__bytes__")
+            .and_then(|bytes| bytes.extract())
     {
         let identifier = serialize_pyclass_identifier(&obj)?;
         Ok(DuperValue {
-            identifier,
-            inner: DuperInner::Object(DuperObject::from(object)),
+            identifier: identifier,
+            inner: DuperInner::Bytes(DuperBytes::from(Cow::Owned(bytes))),
         })
     } else if obj.hasattr("__slots__")?
         && let Ok(object) = serialize_pyslots(&obj)
     {
         Ok(DuperValue {
             identifier: None,
+            inner: DuperInner::Object(DuperObject::from(object)),
+        })
+    } else if obj.hasattr("__dict__")?
+        && let Ok(object) = serialize_pydict(obj.getattr("__dict__")?.downcast()?)
+    {
+        let identifier = serialize_pyclass_identifier(&obj)?;
+        Ok(DuperValue {
+            identifier,
             inner: DuperInner::Object(DuperObject::from(object)),
         })
     } else if obj.hasattr("__str__")?
@@ -114,16 +123,6 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
         Ok(DuperValue {
             identifier,
             inner: DuperInner::String(DuperString::from(Cow::Owned(string))),
-        })
-    } else if obj.hasattr("__bytes__")?
-        && let Ok(bytes) = obj
-            .call_method0("__bytes__")
-            .and_then(|bytes| bytes.extract())
-    {
-        let identifier = serialize_pyclass_identifier(&obj)?;
-        Ok(DuperValue {
-            identifier: identifier,
-            inner: DuperInner::Bytes(DuperBytes::from(Cow::Owned(bytes))),
         })
     } else {
         Err(PyErr::new::<PyValueError, String>(format!(
@@ -168,9 +167,278 @@ fn serialize_pyslots<'py>(
         .collect()
 }
 
-fn standardize_pyclass_identifier(identifier: &str) -> String {
-    let (start, end) = identifier.split_at(1);
-    format!("{}{}", start.to_uppercase(), end.to_lowercase())
+#[derive(Debug)]
+enum WellKnownType<'py> {
+    // collections
+    Deque(Bound<'py, PyAny>),
+    // dataclasses
+    Dataclass(Bound<'py, PyAny>),
+    // datetime
+    DateTime(Bound<'py, PyAny>),
+    TimeDelta(Bound<'py, PyAny>),
+    Date(Bound<'py, PyAny>),
+    Time(Bound<'py, PyAny>),
+    // decimal
+    Decimal(Bound<'py, PyAny>),
+    // duper
+    DuperBaseModel(Bound<'py, PyAny>),
+    // enum
+    Enum(Bound<'py, PyAny>),
+    // ipaddress
+    IPv4Address(Bound<'py, PyAny>),
+    IPv4Interface(Bound<'py, PyAny>),
+    IPv4Network(Bound<'py, PyAny>),
+    IPv6Address(Bound<'py, PyAny>),
+    IPv6Interface(Bound<'py, PyAny>),
+    IPv6Network(Bound<'py, PyAny>),
+    // pathlib
+    Path(Bound<'py, PyAny>),
+    PosixPath(Bound<'py, PyAny>),
+    WindowsPath(Bound<'py, PyAny>),
+    PurePath(Bound<'py, PyAny>),
+    PurePosixPath(Bound<'py, PyAny>),
+    PureWindowsPath(Bound<'py, PyAny>),
+    // pydantic
+    BaseModel(Bound<'py, PyAny>),
+    ByteSize(Bound<'py, PyAny>),
+    // re
+    Pattern(Bound<'py, PyAny>),
+    // uuid
+    Uuid(Bound<'py, PyAny>),
+}
+
+impl<'py> WellKnownType<'py> {
+    fn identify(value: &Bound<'py, PyAny>) -> PyResult<Option<Self>> {
+        if !value.hasattr("__class__")? {
+            return Ok(None);
+        }
+        let inspect: Bound<'py, PyModule> = value.py().import("inspect")?;
+        let mro = inspect
+            .getattr("getmro")?
+            .call1((value.getattr("__class__")?,))?;
+        for class in mro.try_iter()? {
+            let Ok(class) = class else {
+                continue;
+            };
+            let module_attr = class.getattr("__module__")?;
+            let module: &str = module_attr.extract()?;
+            let classname_attr = class.getattr("__name__")?;
+            let classname: &str = classname_attr.extract()?;
+            println!("module={module} classname={classname}");
+            match (module, classname) {
+                // collections
+                ("collections", "deque") => return Ok(Some(WellKnownType::Deque(value.clone()))),
+                // datetime
+                ("datetime", "datetime") => {
+                    return Ok(Some(WellKnownType::DateTime(value.clone())));
+                }
+                ("datetime", "timedelta") => {
+                    return Ok(Some(WellKnownType::TimeDelta(value.clone())));
+                }
+                ("datetime", "date") => return Ok(Some(WellKnownType::Date(value.clone()))),
+                ("datetime", "time") => return Ok(Some(WellKnownType::Time(value.clone()))),
+                // decimal
+                ("decimal", "Decimal") => return Ok(Some(WellKnownType::Decimal(value.clone()))),
+                // duper
+                ("duper.pydantic", "BaseModel") => {
+                    return Ok(Some(WellKnownType::DuperBaseModel(value.clone())));
+                }
+                // enum
+                ("enum", "Enum") => {
+                    return Ok(Some(WellKnownType::Enum(value.clone())));
+                }
+                // ipaddress
+                ("ipaddress", "IPv4Address") => {
+                    return Ok(Some(WellKnownType::IPv4Address(value.clone())));
+                }
+                ("ipaddress", "IPv4Interface") => {
+                    return Ok(Some(WellKnownType::IPv4Interface(value.clone())));
+                }
+                ("ipaddress", "IPv4Network") => {
+                    return Ok(Some(WellKnownType::IPv4Network(value.clone())));
+                }
+                ("ipaddress", "IPv6Address") => {
+                    return Ok(Some(WellKnownType::IPv6Address(value.clone())));
+                }
+                ("ipaddress", "IPv6Interface") => {
+                    return Ok(Some(WellKnownType::IPv6Interface(value.clone())));
+                }
+                ("ipaddress", "IPv6Network") => {
+                    return Ok(Some(WellKnownType::IPv6Network(value.clone())));
+                }
+                // pathlib
+                ("pathlib", "Path") => return Ok(Some(WellKnownType::Path(value.clone()))),
+                ("pathlib", "PosixPath") => {
+                    return Ok(Some(WellKnownType::PosixPath(value.clone())));
+                }
+                ("pathlib", "WindowsPath") => {
+                    return Ok(Some(WellKnownType::WindowsPath(value.clone())));
+                }
+                ("pathlib", "PurePath") => return Ok(Some(WellKnownType::PurePath(value.clone()))),
+                ("pathlib", "PurePosixPath") => {
+                    return Ok(Some(WellKnownType::PurePosixPath(value.clone())));
+                }
+                ("pathlib", "PureWindowsPath") => {
+                    return Ok(Some(WellKnownType::PureWindowsPath(value.clone())));
+                }
+                // pydantic
+                ("pydantic.main", "BaseModel") => {
+                    return Ok(Some(WellKnownType::BaseModel(value.clone())));
+                }
+                ("pydantic", "ByteSize") => {
+                    return Ok(Some(WellKnownType::ByteSize(value.clone())));
+                }
+                // re
+                ("re", "Pattern") => return Ok(Some(WellKnownType::Pattern(value.clone()))),
+                // uuid
+                ("uuid", "UUID") => return Ok(Some(WellKnownType::Uuid(value.clone()))),
+                _ => (),
+            }
+        }
+        let dataclasses: Bound<'py, PyModule> = value.py().import("dataclasses")?;
+        if dataclasses
+            .getattr("is_dataclass")?
+            .call1((value,))?
+            .extract()?
+        {
+            return Ok(Some(WellKnownType::Dataclass(value.clone())));
+        }
+        Ok(None)
+    }
+
+    fn serialize(self) -> PyResult<DuperValue<'py>> {
+        match self {
+            // collections
+            WellKnownType::Deque(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Deque"))),
+                inner: DuperInner::Array(DuperArray::from(
+                    value
+                        .try_iter()?
+                        .map(|elem| -> PyResult<DuperValue<'_>> { serialize_pyany(elem?) })
+                        .collect::<PyResult<Vec<_>>>()?,
+                )),
+            }),
+            // dataclasses
+            WellKnownType::Dataclass(value) => Ok(DuperValue {
+                identifier: serialize_pyclass_identifier(&value)?,
+                inner: serialize_pyany(value.getattr("__dict__")?)?.inner,
+            }),
+            // datetime
+            WellKnownType::DateTime(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("DateTime"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(
+                    value.call_method0("isoformat")?.extract()?,
+                ))),
+            }),
+            WellKnownType::TimeDelta(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("TimeDelta"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            WellKnownType::Date(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Date"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(
+                    value.call_method0("isoformat")?.extract()?,
+                ))),
+            }),
+            WellKnownType::Time(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Time"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(
+                    value.call_method0("isoformat")?.extract()?,
+                ))),
+            }),
+            // decimal
+            WellKnownType::Decimal(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Decimal"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            // duper
+            WellKnownType::DuperBaseModel(value) => serialize_pydantic_model(value),
+            // enum
+            WellKnownType::Enum(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv4Address"))),
+                inner: serialize_pyany(value.getattr("value")?)?.inner,
+            }),
+            // ipaddress
+            WellKnownType::IPv4Address(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv4Address"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            WellKnownType::IPv4Interface(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv4Interface"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            WellKnownType::IPv4Network(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv4Network"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            WellKnownType::IPv6Address(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv6Address"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            WellKnownType::IPv6Interface(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv6Interface"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            WellKnownType::IPv6Network(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv6Network"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            // pathlib
+            WellKnownType::Path(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Path"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            WellKnownType::PosixPath(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("PosixPath"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            WellKnownType::WindowsPath(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("WindowsPath"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            WellKnownType::PurePath(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("PurePath"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            WellKnownType::PurePosixPath(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("PurePosixPath"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            WellKnownType::PureWindowsPath(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("PureWindowsPath"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+            // pydantic
+            WellKnownType::BaseModel(value) => serialize_pydantic_model(value),
+            WellKnownType::ByteSize(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("ByteSize"))),
+                inner: serialize_pyany(value.call_method0("__int__")?)?.inner,
+            }),
+            // re
+            WellKnownType::Pattern(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Pattern"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(
+                    value.getattr("pattern")?.extract()?,
+                ))),
+            }),
+            // uuid
+            WellKnownType::Uuid(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Uuid"))),
+                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+            }),
+        }
+    }
+}
+
+fn standardize_pyclass_identifier(mut identifier: String) -> PyResult<String> {
+    let first_char = identifier.chars().next().ok_or_else(|| {
+        PyErr::new::<PyValueError, &'static str>("Class identifier is empty string")
+    })?;
+    identifier.replace_range(
+        0..first_char.len_utf8(),
+        &first_char.to_uppercase().to_string(),
+    );
+    Ok(identifier)
 }
 
 fn serialize_pyclass_identifier<'py>(
@@ -183,7 +451,7 @@ fn serialize_pyclass_identifier<'py>(
         && let Ok(identifier) = name.extract::<String>()
     {
         Ok(Some(DuperIdentifier::from(Cow::Owned(
-            standardize_pyclass_identifier(&identifier),
+            standardize_pyclass_identifier(identifier)?,
         ))))
     } else if let typ = obj.get_type()
         && typ.hasattr("__name__")?
@@ -191,22 +459,14 @@ fn serialize_pyclass_identifier<'py>(
         && let Ok(identifier) = name.extract::<String>()
     {
         Ok(Some(DuperIdentifier::from(Cow::Owned(
-            standardize_pyclass_identifier(&identifier),
+            standardize_pyclass_identifier(identifier)?,
         ))))
     } else {
         Ok(None)
     }
 }
 
-fn is_pydantic_model<'py>(obj: &Bound<'py, PyAny>) -> PyResult<bool> {
-    if obj.hasattr("__class__")? && obj.getattr("__class__")?.hasattr("model_fields")? {
-        Ok(true)
-    } else {
-        is_py_mro(obj, "BaseModel")
-    }
-}
-
-fn serialize_pydantic_model<'py>(obj: &Bound<'py, PyAny>) -> PyResult<DuperValue<'py>> {
+fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<'py>> {
     if let Ok(class) = obj.getattr("__class__") {
         let model_fields = class.getattr("model_fields")?;
         if model_fields.is_instance_of::<PyDict>() {
@@ -223,7 +483,7 @@ fn serialize_pydantic_model<'py>(obj: &Bound<'py, PyAny>) -> PyResult<DuperValue
                 })
                 .collect();
             return Ok(DuperValue {
-                identifier: serialize_pyclass_identifier(obj)?,
+                identifier: serialize_pyclass_identifier(&obj)?,
                 inner: DuperInner::Object(DuperObject::from(fields?)),
             });
         }
@@ -232,71 +492,4 @@ fn serialize_pydantic_model<'py>(obj: &Bound<'py, PyAny>) -> PyResult<DuperValue
         "Unsupported type: {}",
         obj.get_type()
     )))
-}
-
-fn serialize_specialized_python_types<'py>(
-    obj: &Bound<'py, PyAny>,
-) -> PyResult<Option<DuperValue<'py>>> {
-    if let Some(identifier) = serialize_pyclass_identifier(obj)? {
-        match identifier.as_ref() {
-            "Timedelta" | "Uuid" | "Ipv4address" | "Ipv4interface" | "Ipv4network"
-            | "Ipv6address" | "Ipv6interface" | "Ipv6network" | "Path" | "Posixpath"
-            | "Windowspath" | "Purepath" | "Pureposixpath" | "Purewindowspath" => {
-                let string = obj.str()?.extract()?;
-                Ok(Some(DuperValue {
-                    identifier: Some(identifier),
-                    inner: DuperInner::String(DuperString::from(Cow::Owned(string))),
-                }))
-            }
-            "Datetime" | "Date" | "Time" if obj.hasattr("isoformat")? => {
-                let string = obj.call_method0("isoformat")?.extract()?;
-                Ok(Some(DuperValue {
-                    identifier: Some(identifier),
-                    inner: DuperInner::String(DuperString::from(Cow::Owned(string))),
-                }))
-            }
-            "Pattern" if obj.hasattr("pattern")? => {
-                let string = obj.getattr("pattern")?.extract()?;
-                Ok(Some(DuperValue {
-                    identifier: Some(identifier),
-                    inner: DuperInner::String(DuperString::from(Cow::Owned(string))),
-                }))
-            }
-            _ if is_pyenum(obj)? => {
-                let identifier = serialize_pyclass_identifier(&obj)?;
-                let value = serialize_pyany(obj.getattr("value")?)?;
-                Ok(Some(DuperValue {
-                    identifier,
-                    inner: value.inner,
-                }))
-            }
-            // Ignore unknown types
-            _ => Ok(None),
-        }
-    } else {
-        Ok(None)
-    }
-}
-
-fn is_pyenum<'py>(obj: &Bound<'py, PyAny>) -> PyResult<bool> {
-    is_py_mro(obj, "Enum")
-}
-
-fn is_py_mro<'py>(obj: &Bound<'py, PyAny>, mro_str: &str) -> PyResult<bool> {
-    if obj.hasattr("name")?
-        && obj.hasattr("value")?
-        && obj.hasattr("__class__")?
-        && let Ok(mro) = obj.getattr("__class__")?.getattr("__mro__")
-    {
-        for base in mro.try_iter()? {
-            let base = base?;
-            if let Ok(base_name) = base.getattr("__name__")?.extract::<String>()
-                && base_name == mro_str
-            {
-                return Ok(true);
-            }
-        }
-    }
-
-    Ok(false)
 }

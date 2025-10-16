@@ -60,7 +60,7 @@ def test_duper_response_pydantic():
     response = client.get("/response_pydantic")
     assert response.status_code == 200
     assert response.headers.get("Content-Type") == "application/duper"
-    assert response.text == r"""Pydanticmodel({tup: ("hello", b"world")})"""
+    assert response.text == r"""PydanticModel({tup: ("hello", b"world")})"""
 
 
 def test_duper_body_dict():

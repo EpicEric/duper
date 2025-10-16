@@ -118,7 +118,7 @@ def test_pydantic_complex():
 
     assert (
         val_dump
-        == """Bar({datetime: Datetime("2025-10-12T20:01:28.400086"), uuid: Uuid("a708f86d-ee5b-4ce8-b505-8f59d3d26850"), deque: Deque([]), named_tuple: (34, 35), set: Set([1, 2, 4]), bytesize: Bytesize(3072000), decimal: Decimal("12.34"), enum: Color(2), typeddict: {x: 1, y: 2, label: "good"}, path: Posixpath("/dev/null"), regex: Regex({pattern: Pattern("^Hello w.rld!$"), matches: null}), sub: Submodel({address4: Ipv4address("192.168.0.1"), interface4: Ipv4interface("192.168.0.2/32"), network4: Ipv4network("192.168.0.0/24"), address6: Ipv6address("2001:db8::1"), interface6: Ipv6interface("2001:db8::2/128"), network6: Ipv6network("2001:db8::/128")})})"""
+        == """Bar({datetime: DateTime("2025-10-12T20:01:28.400086"), uuid: Uuid("a708f86d-ee5b-4ce8-b505-8f59d3d26850"), deque: Deque([]), named_tuple: (34, 35), set: Set([1, 2, 4]), bytesize: ByteSize(3072000), decimal: Decimal("12.34"), enum: IPv4Address(2), typeddict: {x: 1, y: 2, label: "good"}, path: PosixPath("/dev/null"), regex: Regex({pattern: Pattern("^Hello w.rld!$"), matches: null}), sub: Submodel({address4: IPv4Address("192.168.0.1"), interface4: IPv4Interface("192.168.0.2/32"), network4: IPv4Network("192.168.0.0/24"), address6: IPv6Address("2001:db8::1"), interface6: IPv6Interface("2001:db8::2/128"), network6: IPv6Network("2001:db8::/128")})})"""
     )
 
     val2 = Bar.model_validate_duper(val_dump)
