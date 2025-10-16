@@ -79,7 +79,6 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
     }
     // Handle well-known types
     else if let Some(well_known_type) = WellKnownType::identify(&obj)? {
-        println!("wkt={well_known_type:?}");
         Ok(well_known_type.serialize()?)
     }
     // Handle sequences
@@ -224,7 +223,6 @@ impl<'py> WellKnownType<'py> {
             let module: &str = module_attr.extract()?;
             let classname_attr = class.getattr("__name__")?;
             let classname: &str = classname_attr.extract()?;
-            println!("module={module} classname={classname}");
             match (module, classname) {
                 // collections
                 ("collections", "deque") => return Ok(Some(WellKnownType::Deque(value.clone()))),

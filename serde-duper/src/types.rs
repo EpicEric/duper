@@ -159,17 +159,184 @@ pub mod ffi {
     }
 }
 
-// Maybe one day...
-// pub mod DuperBox {}
-// pub mod DuperCow {}
-// pub mod DuperRc {}
-// pub mod DuperRcWeak {}
-// pub mod DuperArc {}
-// pub mod DuperArcWeak {}
-// pub mod DuperCell {}
-// pub mod DuperRefCell {}
-// pub mod DuperMutex {}
-// pub mod DuperRwLock {}
+// TO-DO: Specialization...
+pub mod DuperBox {
+    use super::*;
+
+    pub fn serialize<S, T>(value: &::std::boxed::Box<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: ?Sized + Serialize,
+    {
+        (**value).serialize(serializer)
+    }
+
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<::std::boxed::Box<T>, D::Error>
+    where
+        T: ?Sized + Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        T::deserialize(deserializer).map(::std::boxed::Box::new)
+    }
+}
+pub mod DuperCow {
+    use super::*;
+
+    pub fn serialize<'a, T, S>(
+        value: &::std::borrow::Cow<'a, T>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: ?Sized + Serialize + ToOwned,
+    {
+        (**value).serialize(serializer)
+    }
+
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<::std::borrow::Cow<'de, T>, D::Error>
+    where
+        T: ?Sized + ToOwned,
+        T::Owned: Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        T::Owned::deserialize(deserializer).map(::std::borrow::Cow::Owned)
+    }
+}
+pub mod DuperRc {
+    use super::*;
+
+    pub fn serialize<S, T>(value: &::std::rc::Rc<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: ?Sized + Serialize,
+    {
+        (**value).serialize(serializer)
+    }
+}
+pub mod DuperRcWeak {
+    use super::*;
+
+    pub fn serialize<S, T>(value: &::std::rc::Weak<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: ?Sized + Serialize,
+    {
+        value.upgrade().serialize(serializer)
+    }
+}
+pub mod DuperArc {
+    use super::*;
+
+    pub fn serialize<S, T>(value: &::std::sync::Arc<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: ?Sized + Serialize,
+    {
+        (**value).serialize(serializer)
+    }
+}
+pub mod DuperArcWeak {
+    use super::*;
+
+    pub fn serialize<S, T>(value: &::std::sync::Weak<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: ?Sized + Serialize,
+    {
+        value.upgrade().serialize(serializer)
+    }
+}
+pub mod DuperCell {
+    use super::*;
+
+    pub fn serialize<S, T>(value: &::std::cell::Cell<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: Serialize + Copy,
+    {
+        value.get().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<::std::cell::Cell<T>, D::Error>
+    where
+        T: Deserialize<'de> + Copy,
+        D: Deserializer<'de>,
+    {
+        T::deserialize(deserializer).map(::std::cell::Cell::new)
+    }
+}
+pub mod DuperRefCell {
+    use super::*;
+    use serde_core::ser::Error;
+
+    pub fn serialize<S, T>(
+        value: &::std::cell::RefCell<T>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: ?Sized + Serialize,
+    {
+        match value.try_borrow() {
+            Ok(value) => value.serialize(serializer),
+            Err(_) => Err(S::Error::custom("already mutably borrowed")),
+        }
+    }
+
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<::std::cell::RefCell<T>, D::Error>
+    where
+        T: ?Sized + Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        T::deserialize(deserializer).map(::std::cell::RefCell::new)
+    }
+}
+pub mod DuperMutex {
+    use super::*;
+    use serde_core::ser::Error;
+
+    pub fn serialize<S, T>(value: &::std::sync::Mutex<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: ?Sized + Serialize,
+    {
+        match value.lock() {
+            Ok(value) => value.serialize(serializer),
+            Err(_) => Err(S::Error::custom("lock poison error while serializing")),
+        }
+    }
+
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<::std::sync::Mutex<T>, D::Error>
+    where
+        T: ?Sized + Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        T::deserialize(deserializer).map(::std::sync::Mutex::new)
+    }
+}
+pub mod DuperRwLock {
+    use super::*;
+    use serde_core::ser::Error;
+
+    pub fn serialize<S, T>(value: &::std::sync::RwLock<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: ?Sized + Serialize,
+    {
+        match value.read() {
+            Ok(value) => value.serialize(serializer),
+            Err(_) => Err(S::Error::custom("lock poison error while serializing")),
+        }
+    }
+
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<::std::sync::RwLock<T>, D::Error>
+    where
+        T: ?Sized + Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        T::deserialize(deserializer).map(::std::sync::RwLock::new)
+    }
+}
 
 duper_serde_module!(DuperVec<T>, ::std::vec::Vec<T>, "Vec");
 duper_serde_module!(DuperReverse<T>, ::std::cmp::Reverse<T>, "Reverse");

@@ -320,17 +320,20 @@ fn path() {
     assert_eq!(value.path_buf, deserialized.path_buf);
 
     #[derive(Debug, Serialize)]
-    struct TestTwo<'a> {
+    struct TestSerializeOnly<'a> {
         #[serde(borrow, with = "DuperPath")]
         path: &'a Path,
     }
 
-    let value = TestTwo {
+    let value = TestSerializeOnly {
         path: Path::new("/tmp/test"),
     };
 
     let serialized = serde_duper::to_string(&value).unwrap();
-    assert_eq!(serialized, r#"TestTwo({path: Path("/tmp/test")})"#);
+    assert_eq!(
+        serialized,
+        r#"TestSerializeOnly({path: Path("/tmp/test")})"#
+    );
 }
 
 #[test]
@@ -362,14 +365,14 @@ fn ffi() {
     assert_eq!(value.os_string, deserialized.os_string);
 
     #[derive(Debug, Serialize)]
-    struct TestTwo<'a> {
+    struct TestSerializeOnly<'a> {
         #[serde(with = "DuperCStr")]
         c_str: &'a CStr,
         #[serde(with = "DuperOsStr")]
         os_str: &'a OsStr,
     }
 
-    let value = TestTwo {
+    let value = TestSerializeOnly {
         c_str: &CString::new("goodbye").unwrap(),
         os_str: &OsString::from("test_os_str"),
     };
@@ -377,7 +380,91 @@ fn ffi() {
     let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
         serialized,
-        r#"TestTwo({c_str: CStr(b"goodbye"), os_str: OsStr({Unix: [116, 101, 115, 116, 95, 111, 115, 95, 115, 116, 114]})})"#
+        r#"TestSerializeOnly({c_str: CStr(b"goodbye"), os_str: OsStr({Unix: [116, 101, 115, 116, 95, 111, 115, 95, 115, 116, 114]})})"#
+    );
+}
+
+#[test]
+fn smart_pointers() {
+    use serde_duper::types::{
+        DuperArc, DuperArcWeak, DuperBox, DuperCell, DuperCow, DuperMutex, DuperRc, DuperRcWeak,
+        DuperRefCell, DuperRwLock,
+    };
+    use std::borrow::Cow;
+    use std::cell::{Cell, RefCell};
+    use std::rc::{Rc, Weak as RcWeak};
+    use std::sync::{Arc, Mutex, RwLock, Weak as ArcWeak};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test<'a> {
+        #[serde(with = "DuperBox")]
+        boxed: Box<f64>,
+        #[serde(borrow, with = "DuperCow")]
+        cow: Cow<'a, f64>,
+        #[serde(with = "DuperCell")]
+        cell: Cell<f64>,
+        #[serde(with = "DuperRefCell")]
+        ref_cell: RefCell<f64>,
+        #[serde(with = "DuperMutex")]
+        mutex: Mutex<f64>,
+        #[serde(with = "DuperRwLock")]
+        rw_lock: RwLock<f64>,
+    }
+
+    let value = Test {
+        boxed: Box::new(1.0),
+        cow: Cow::Owned(2.0),
+        cell: Cell::new(3.0),
+        ref_cell: RefCell::new(4.0),
+        mutex: Mutex::new(5.0),
+        rw_lock: RwLock::new(6.0),
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({boxed: 1.0, cow: 2.0, cell: 3.0, ref_cell: 4.0, mutex: 5.0, rw_lock: 6.0})"#
+    );
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(value.boxed, deserialized.boxed);
+    assert_eq!(value.cow, deserialized.cow);
+    assert_eq!(value.cell, deserialized.cell);
+    assert_eq!(value.ref_cell, deserialized.ref_cell);
+    assert_eq!(
+        *value.mutex.lock().unwrap(),
+        *deserialized.mutex.lock().unwrap()
+    );
+    assert_eq!(
+        *value.rw_lock.read().unwrap(),
+        *deserialized.rw_lock.read().unwrap()
+    );
+
+    #[derive(Debug, Serialize)]
+    struct TestSerializeOnly {
+        #[serde(with = "DuperRc")]
+        rc_simple: Rc<i32>,
+        #[serde(with = "DuperRcWeak")]
+        rc_weak: RcWeak<i32>,
+        #[serde(with = "DuperArc")]
+        arc_simple: Arc<String>,
+        #[serde(with = "DuperArcWeak")]
+        arc_weak: ArcWeak<String>,
+    }
+
+    let rc_simple = Rc::new(42);
+    let arc_simple = Arc::new("12345".into());
+    let value = TestSerializeOnly {
+        rc_weak: Rc::<_>::downgrade(&rc_simple),
+        rc_simple: Rc::new(42),
+        arc_weak: Arc::<_>::downgrade(&arc_simple),
+        arc_simple,
+    };
+
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r#"TestSerializeOnly({rc_simple: 42, rc_weak: 42, arc_simple: "12345", arc_weak: "12345"})"#
     );
 }
 
@@ -546,8 +633,12 @@ fn uuid() {
     let value = Test {
         id: Uuid::parse_str("f5ea955b-85bf-4643-be05-0675b2c2b61e").unwrap(),
     };
+    let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
-        serde_duper::to_string(&value).unwrap(),
+        serialized,
         r#"Test({id: Uuid("f5ea955b-85bf-4643-be05-0675b2c2b61e")})"#
     );
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(value.id, deserialized.id);
 }
