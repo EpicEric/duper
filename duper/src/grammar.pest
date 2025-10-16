@@ -8,7 +8,7 @@ duper_value  = _{ SOI ~ described_value ~ EOI }
 stream = { duper_trunk? ~ ("---"+ ~ duper_trunk?)* }
 
 duper_trunk =  { identifier ~ "(" ~ (object | array) ~ ")" | object | array }
-identifier  = @{ UPPERCASE_LETTER ~ ("-"? ~ LETTER | NUMBER)* }
+identifier  = @{ UPPERCASE_LETTER ~ (("-" | "_")? ~ LETTER | NUMBER)* }
 
 described_value =  { identifier ~ "(" ~ value ~ ")" | value }
 value           = _{ object | array | tuple | string | raw_string | bytes | raw_bytes | float | integer | boolean | null }

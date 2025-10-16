@@ -16,6 +16,7 @@ __all__ = [
 ]
 
 DUPER_CONTENT_TYPE = "application/duper"
+DUPER_ALT_CONTENT_TYPE = "application/x-duper"
 
 
 T = TypeVar("T")
@@ -50,7 +51,10 @@ def DuperBody(model_type: type[T]) -> Any:
         )
 
     async def _get_duper_body(request: Request) -> T:
-        if request.headers.get("Content-Type") != DUPER_CONTENT_TYPE:
+        if request.headers.get("Content-Type") not in (
+            DUPER_CONTENT_TYPE,
+            DUPER_ALT_CONTENT_TYPE,
+        ):
             raise HTTPException(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                 detail=f"Content-Type header must be {DUPER_CONTENT_TYPE}",
