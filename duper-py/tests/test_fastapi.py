@@ -13,14 +13,14 @@ class PydanticModel(BaseModel):
     tup: tuple[str, bytes]
 
 
-@app.get("/response_dict")
+@app.get("/response_dict", response_class=DuperResponse)
 async def response_dict() -> DuperResponse:
     return DuperResponse(
         {"duper": (1, 2.0, None, ["FastAPI", True]), "bytes": b"12345"}
     )
 
 
-@app.get("/response_pydantic")
+@app.get("/response_pydantic", response_class=DuperResponse)
 async def response_pydantic() -> DuperResponse:
     return DuperResponse(PydanticModel(tup=("hello", b"world")))
 
