@@ -320,13 +320,14 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
 
     fn serialize_tuple_variant(
         self,
-        _name: &'static str,
+        name: &'static str,
         _variant_index: u32,
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
         Ok(Self::SerializeTupleVariant {
             serializer: self,
+            name,
             variant,
             elements: Vec::with_capacity(len),
         })
@@ -335,6 +336,7 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
         Ok(Self::SerializeMap {
             serializer: self,
+            identifier: None,
             entries: len.map(|len| Vec::with_capacity(len)).unwrap_or_default(),
             next_key: None,
         })
@@ -354,26 +356,27 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
 
     fn serialize_struct_variant(
         self,
-        _name: &'static str,
+        name: &'static str,
         _variant_index: u32,
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         Ok(Self::SerializeStructVariant {
             serializer: self,
+            name,
             variant,
             fields: Vec::with_capacity(len),
         })
     }
 }
 
-pub struct SerializeSeq<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
-    elements: Vec<DuperValue<'b>>,
+pub struct SerializeSeq<'ser, 'a> {
+    serializer: &'ser mut Serializer<'a>,
+    elements: Vec<DuperValue<'a>>,
 }
 
-impl<'a, 'b> ser::SerializeSeq for SerializeSeq<'a, 'b> {
-    type Ok = DuperValue<'b>;
+impl<'ser, 'a> ser::SerializeSeq for SerializeSeq<'ser, 'a> {
+    type Ok = DuperValue<'a>;
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
@@ -393,13 +396,13 @@ impl<'a, 'b> ser::SerializeSeq for SerializeSeq<'a, 'b> {
     }
 }
 
-pub struct SerializeTuple<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
-    elements: Vec<DuperValue<'b>>,
+pub struct SerializeTuple<'ser, 'a> {
+    serializer: &'ser mut Serializer<'a>,
+    elements: Vec<DuperValue<'a>>,
 }
 
-impl<'a, 'b> ser::SerializeTuple for SerializeTuple<'a, 'b> {
-    type Ok = DuperValue<'b>;
+impl<'ser, 'a> ser::SerializeTuple for SerializeTuple<'ser, 'a> {
+    type Ok = DuperValue<'a>;
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
@@ -419,15 +422,15 @@ impl<'a, 'b> ser::SerializeTuple for SerializeTuple<'a, 'b> {
     }
 }
 
-pub struct SerializeTupleStruct<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
+pub struct SerializeTupleStruct<'ser, 'a> {
+    serializer: &'ser mut Serializer<'a>,
     name: &'static str,
-    elements: Vec<DuperValue<'b>>,
+    elements: Vec<DuperValue<'a>>,
 }
 
 // Serialize struct Rgb(u8, u8, u8) as Rgb((..., ..., ...))
-impl<'a, 'b> ser::SerializeTupleStruct for SerializeTupleStruct<'a, 'b> {
-    type Ok = DuperValue<'b>;
+impl<'ser, 'a> ser::SerializeTupleStruct for SerializeTupleStruct<'ser, 'a> {
+    type Ok = DuperValue<'a>;
     type Error = Error;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<(), Self::Error>
@@ -447,14 +450,15 @@ impl<'a, 'b> ser::SerializeTupleStruct for SerializeTupleStruct<'a, 'b> {
     }
 }
 
-pub struct SerializeTupleVariant<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
+pub struct SerializeTupleVariant<'ser, 'b> {
+    serializer: &'ser mut Serializer<'b>,
+    name: &'static str,
     variant: &'static str,
     elements: Vec<DuperValue<'b>>,
 }
 
-// Serialize enum E { T(u8, u8) } as T((..., ...))
-impl<'a, 'b> ser::SerializeTupleVariant for SerializeTupleVariant<'a, 'b> {
+// Serialize enum E { T(u8, u8) } as E({T: (..., ...)})
+impl<'ser, 'b> ser::SerializeTupleVariant for SerializeTupleVariant<'ser, 'b> {
     type Ok = DuperValue<'b>;
     type Error = Error;
 
@@ -468,27 +472,28 @@ impl<'a, 'b> ser::SerializeTupleVariant for SerializeTupleVariant<'a, 'b> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        let mut fields = Vec::new();
-        fields.push(DuperValue {
-            identifier: None,
-            inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
-        });
-
         Ok(DuperValue {
-            identifier: Some(DuperIdentifier::from(Cow::Borrowed(self.variant))),
-            inner: DuperInner::Tuple(DuperTuple::from(fields)),
+            identifier: Some(DuperIdentifier::from(Cow::Borrowed(self.name))),
+            inner: DuperInner::Object(DuperObject::from(vec![(
+                DuperKey::from(Cow::Borrowed(self.variant)),
+                DuperValue {
+                    identifier: None,
+                    inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
+                },
+            )])),
         })
     }
 }
 
-pub struct SerializeMap<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
-    entries: Vec<(DuperKey<'b>, DuperValue<'b>)>,
-    next_key: Option<DuperKey<'b>>,
+pub struct SerializeMap<'ser, 'a> {
+    serializer: &'ser mut Serializer<'a>,
+    identifier: Option<DuperIdentifier<'a>>,
+    entries: Vec<(DuperKey<'a>, DuperValue<'a>)>,
+    next_key: Option<DuperKey<'a>>,
 }
 
-impl<'a, 'b> ser::SerializeMap for SerializeMap<'a, 'b> {
-    type Ok = DuperValue<'b>;
+impl<'ser, 'a> ser::SerializeMap for SerializeMap<'ser, 'a> {
+    type Ok = DuperValue<'a>;
     type Error = Error;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
@@ -496,8 +501,12 @@ impl<'a, 'b> ser::SerializeMap for SerializeMap<'a, 'b> {
         T: ?Sized + Serialize,
     {
         let key_value = key.serialize(&mut *self.serializer)?;
-        match key_value.inner {
-            DuperInner::String(s) => {
+        match key_value {
+            DuperValue {
+                identifier,
+                inner: DuperInner::String(s),
+            } => {
+                self.identifier = self.identifier.take().or(identifier);
                 self.next_key = Some(DuperKey::from(s.into_inner()));
                 Ok(())
             }
@@ -520,23 +529,23 @@ impl<'a, 'b> ser::SerializeMap for SerializeMap<'a, 'b> {
         }
     }
 
-    fn end(self) -> Result<Self::Ok, Self::Error> {
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            identifier: None,
+            identifier: self.identifier.take(),
             inner: DuperInner::Object(DuperObject::from(self.entries)),
         })
     }
 }
 
-pub struct SerializeStruct<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
+pub struct SerializeStruct<'ser, 'a> {
+    serializer: &'ser mut Serializer<'a>,
     name: &'static str,
-    fields: Vec<(DuperKey<'b>, DuperValue<'b>)>,
+    fields: Vec<(DuperKey<'a>, DuperValue<'a>)>,
 }
 
 // Serialize struct Rgb { r: u8, g: u8, b: u8 } as Rgb({r: ..., g: ..., b: ...})
-impl<'a, 'b> ser::SerializeStruct for SerializeStruct<'a, 'b> {
-    type Ok = DuperValue<'b>;
+impl<'ser, 'a> ser::SerializeStruct for SerializeStruct<'ser, 'a> {
+    type Ok = DuperValue<'a>;
     type Error = Error;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
@@ -557,15 +566,16 @@ impl<'a, 'b> ser::SerializeStruct for SerializeStruct<'a, 'b> {
     }
 }
 
-pub struct SerializeStructVariant<'a, 'b> {
-    serializer: &'a mut Serializer<'b>,
+pub struct SerializeStructVariant<'ser, 'a> {
+    serializer: &'ser mut Serializer<'a>,
+    name: &'static str,
     variant: &'static str,
-    fields: Vec<(DuperKey<'b>, DuperValue<'b>)>,
+    fields: Vec<(DuperKey<'a>, DuperValue<'a>)>,
 }
 
-// Serialize enum E { S { x: i32, y: String } } as S({x: ..., y: ...})
-impl<'a, 'b> ser::SerializeStructVariant for SerializeStructVariant<'a, 'b> {
-    type Ok = DuperValue<'b>;
+// Serialize enum E { S { x: i32, y: String } } as E({S: {x: ..., y: ...}})
+impl<'ser, 'a> ser::SerializeStructVariant for SerializeStructVariant<'ser, 'a> {
+    type Ok = DuperValue<'a>;
     type Error = Error;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
@@ -589,7 +599,7 @@ impl<'a, 'b> ser::SerializeStructVariant for SerializeStructVariant<'a, 'b> {
         ));
 
         Ok(DuperValue {
-            identifier: Some(DuperIdentifier::from(Cow::Borrowed(self.variant))),
+            identifier: Some(DuperIdentifier::from(Cow::Borrowed(self.name))),
             inner: DuperInner::Object(DuperObject::from(variant_obj)),
         })
     }

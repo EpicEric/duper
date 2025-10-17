@@ -107,14 +107,6 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
             identifier: None,
             inner: DuperInner::Object(DuperObject::from(object)),
         })
-    } else if obj.hasattr("__dict__")?
-        && let Ok(object) = serialize_pydict(obj.getattr("__dict__")?.downcast()?)
-    {
-        let identifier = serialize_pyclass_identifier(&obj)?;
-        Ok(DuperValue {
-            identifier,
-            inner: DuperInner::Object(DuperObject::from(object)),
-        })
     } else if obj.hasattr("__str__")?
         && let Ok(string) = obj.str().and_then(|string| string.extract())
     {
@@ -122,6 +114,14 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
         Ok(DuperValue {
             identifier,
             inner: DuperInner::String(DuperString::from(Cow::Owned(string))),
+        })
+    } else if obj.hasattr("__dict__")?
+        && let Ok(object) = serialize_pydict(obj.getattr("__dict__")?.downcast()?)
+    {
+        let identifier = serialize_pyclass_identifier(&obj)?;
+        Ok(DuperValue {
+            identifier,
+            inner: DuperInner::Object(DuperObject::from(object)),
         })
     } else {
         Err(PyErr::new::<PyValueError, String>(format!(

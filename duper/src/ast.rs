@@ -3,7 +3,7 @@ use std::{
     fmt::{Debug, Display},
 };
 
-use crate::visitor::DuperVisitor;
+use crate::{DuperParser, DuperRule, visitor::DuperVisitor};
 
 #[derive(Debug, Clone)]
 pub struct DuperIdentifier<'a>(pub(crate) Cow<'a, str>);
@@ -220,5 +220,13 @@ impl<'a> DuperValue<'a> {
             }
             DuperInner::Null => visitor.visit_null(self.identifier.as_ref()),
         }
+    }
+}
+
+impl<'a> TryFrom<&'a str> for DuperValue<'a> {
+    type Error = Box<pest::error::Error<DuperRule>>;
+
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        DuperParser::parse_duper_value(value)
     }
 }

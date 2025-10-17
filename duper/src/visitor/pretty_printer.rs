@@ -323,7 +323,7 @@ mod pretty_printer_tests {
         };
         let pp = PrettyPrinter::new(false, 2).pretty_print(value);
         assert_snapshot!(pp);
-        let _ = DuperParser::parse_duper(&pp).unwrap();
+        let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
 
     #[test]
@@ -334,7 +334,7 @@ mod pretty_printer_tests {
         };
         let pp = PrettyPrinter::new(false, 2).pretty_print(value);
         assert_snapshot!(pp);
-        let _ = DuperParser::parse_duper(&pp).unwrap();
+        let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
 
     #[test]
@@ -351,7 +351,7 @@ mod pretty_printer_tests {
         };
         let pp = PrettyPrinter::new(false, 2).pretty_print(value);
         assert_snapshot!(pp);
-        let _ = DuperParser::parse_duper(&pp).unwrap();
+        let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
 
     #[test]
@@ -365,7 +365,7 @@ mod pretty_printer_tests {
         };
         let pp = PrettyPrinter::new(false, 2).pretty_print(value);
         assert_snapshot!(pp);
-        let _ = DuperParser::parse_duper(&pp).unwrap();
+        let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
 
     #[test]
@@ -410,7 +410,7 @@ mod pretty_printer_tests {
         };
         let pp = PrettyPrinter::new(false, 2).pretty_print(value);
         assert_snapshot!(pp);
-        let _ = DuperParser::parse_duper(&pp).unwrap();
+        let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
 
     #[test]
@@ -434,7 +434,7 @@ mod pretty_printer_tests {
         };
         let pp = PrettyPrinter::new(false, 2).pretty_print(value);
         assert_snapshot!(pp);
-        let _ = DuperParser::parse_duper(&pp).unwrap();
+        let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
 
     #[test]
@@ -478,7 +478,7 @@ mod pretty_printer_tests {
         };
         let pp = PrettyPrinter::new(false, 2).pretty_print(value);
         assert_snapshot!(pp);
-        let _ = DuperParser::parse_duper(&pp).unwrap();
+        let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
 
     #[test]
@@ -508,6 +508,6 @@ mod pretty_printer_tests {
         };
         let pp = PrettyPrinter::new(false, 2).pretty_print(value);
         assert_snapshot!(pp);
-        let _ = DuperParser::parse_duper(&pp).unwrap();
+        let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
 }

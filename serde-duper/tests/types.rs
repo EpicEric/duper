@@ -430,7 +430,7 @@ fn ffi_windows() {
     let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
         serialized,
-        r#"TestSerializeOnly({c_str: CStr(b"goodbye"), os_str: OsStr([])})"#
+        r#"TestSerializeOnly({c_str: CStr(b"goodbye"), os_str: OsStr({Windows: [0]})})"#
     );
 }
 

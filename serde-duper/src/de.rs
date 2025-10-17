@@ -16,7 +16,7 @@ pub struct Deserializer<'de> {
 
 impl<'de> Deserializer<'de> {
     pub fn from_string(input: &'de str) -> Result<Self, Error> {
-        let value = DuperParser::parse_duper(input)?;
+        let value = DuperParser::parse_duper_value(input)?;
         Ok(Self { value: Some(value) })
     }
 
@@ -71,6 +71,10 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
                 let seq = SequenceDeserializer::new(array.into_inner());
                 visitor.visit_seq(seq)
             }
+            Some(DuperValue {
+                inner: DuperInner::Tuple(tuple),
+                ..
+            }) if tuple.is_empty() => visitor.visit_unit(),
             Some(DuperValue {
                 inner: DuperInner::Tuple(tuple),
                 ..
@@ -402,8 +406,11 @@ impl<'de> de::VariantAccess<'de> for VariantDeserializer<'de> {
 
     fn unit_variant(self) -> Result<(), Self::Error> {
         match self.value.map(|value| value.inner) {
+            Some(DuperInner::Tuple(vec)) if vec.is_empty() => Ok(()),
             Some(DuperInner::Null) => Ok(()),
-            Some(_) => Err(de::Error::custom("expected null for unit variant")),
+            Some(value) => Err(de::Error::custom(format!(
+                "expected null for unit variant, found {value:?}"
+            ))),
             None => Ok(()),
         }
     }
@@ -425,6 +432,10 @@ impl<'de> de::VariantAccess<'de> for VariantDeserializer<'de> {
         match self.value.map(|value| value.inner) {
             Some(DuperInner::Array(vec)) => {
                 let seq = SequenceDeserializer::new(vec.into_inner());
+                visitor.visit_seq(seq)
+            }
+            Some(DuperInner::Tuple(vec)) => {
+                let seq = TupleDeserializer::new(vec.into_inner());
                 visitor.visit_seq(seq)
             }
             Some(_) => Err(de::Error::custom("expected array for tuple variant")),

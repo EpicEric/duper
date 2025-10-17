@@ -214,27 +214,11 @@ pub mod ffi {
             {
                 use ::serde_core::de::VariantAccess;
 
-                let (variant, value) = data.variant::<String>()?;
+                let (variant, value) = data.variant::<::std::borrow::Cow<'de, str>>()?;
                 match variant.as_ref() {
                     "Unix" => Ok(OsString::Unix(value.newtype_variant()?)),
                     "Windows" => Err(::serde_core::de::Error::custom(
-                        "cannot deserialize Windows CString in Unix",
-                    )),
-                    variant => Err(::serde_core::de::Error::unknown_variant(variant, &["Unix"])),
-                }
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: ::serde_core::de::MapAccess<'de>,
-            {
-                let Some((key, value)): Option<(String, &[u8])> = map.next_entry()? else {
-                    return Err(::serde_core::de::Error::invalid_length(0, &self));
-                };
-                match key.as_ref() {
-                    "Unix" => self.visit_bytes(value),
-                    "Windows" => Err(::serde_core::de::Error::custom(
-                        "cannot deserialize Windows CString in Unix",
+                        "cannot deserialize Windows OsString in Unix",
                     )),
                     variant => Err(::serde_core::de::Error::unknown_variant(variant, &["Unix"])),
                 }
@@ -246,7 +230,7 @@ pub mod ffi {
             where
                 D: Deserializer<'de>,
             {
-                deserializer.deserialize_map(OsStringVisitor)
+                deserializer.deserialize_enum("OsString", &["Unix"], OsStringVisitor)
             }
         }
 
@@ -345,30 +329,11 @@ pub mod ffi {
             {
                 use ::serde_core::de::VariantAccess;
 
-                let (variant, value) = data.variant::<String>()?;
+                let (variant, value) = data.variant::<::std::borrow::Cow<'de, str>>()?;
                 match variant.as_ref() {
                     "Windows" => Ok(OsString::Windows(value.newtype_variant()?)),
                     "Unix" => Err(::serde_core::de::Error::custom(
-                        "cannot deserialize Unix CString in Windows",
-                    )),
-                    variant => Err(::serde_core::de::Error::unknown_variant(
-                        variant,
-                        &["Windows"],
-                    )),
-                }
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: ::serde_core::de::MapAccess<'de>,
-            {
-                let Some((key, value)): Option<(String, &[u16])> = map.next_entry()? else {
-                    return Err(::serde_core::de::Error::invalid_length(0, &self));
-                };
-                match key.as_ref() {
-                    "Windows" => self.visit_seq(value),
-                    "Unix" => Err(::serde_core::de::Error::custom(
-                        "cannot deserialize Unix CString in windows",
+                        "cannot deserialize Unix OsString in Windows",
                     )),
                     variant => Err(::serde_core::de::Error::unknown_variant(
                         variant,
@@ -383,7 +348,7 @@ pub mod ffi {
             where
                 D: Deserializer<'de>,
             {
-                deserializer.deserialize_map(OsStringVisitor)
+                deserializer.deserialize_enum("OsString", &["Windows"], OsStringVisitor)
             }
         }
 

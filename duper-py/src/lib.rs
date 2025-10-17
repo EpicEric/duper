@@ -48,7 +48,7 @@ fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     fn loads<'py>(py: Python<'py>, s: &str, parse_any: bool) -> PyResult<Bound<'py, PyAny>> {
         let value = match parse_any {
             true => DuperParser::parse_duper_value(&s),
-            false => DuperParser::parse_duper(&s),
+            false => DuperParser::parse_duper_trunk(&s),
         }
         .map_err(|err| PyErr::new::<PyValueError, String>(err.to_string()))?;
         value.accept(&mut Visitor { py })
@@ -65,7 +65,7 @@ fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
         let s: &str = read.extract()?;
         let value = match parse_any {
             true => DuperParser::parse_duper_value(s),
-            false => DuperParser::parse_duper(s),
+            false => DuperParser::parse_duper_trunk(s),
         }
         .map_err(|err| PyErr::new::<PyValueError, String>(err.to_string()))?;
         value.accept(&mut Visitor { py })

@@ -22,9 +22,9 @@ impl DuperParser {
         DuperBuilder::build_duper_stream(pairs.next().unwrap())
     }
 
-    pub fn parse_duper(input: &'_ str) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
+    pub fn parse_duper_trunk(input: &'_ str) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
         let mut pairs = Self::parse(Rule::duper, input)?;
-        DuperBuilder::build_duper(pairs.next().unwrap())
+        DuperBuilder::build_duper_trunk(pairs.next().unwrap())
     }
 
     pub fn parse_duper_value(input: &'_ str) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
@@ -52,11 +52,11 @@ mod duper_parser_tests {
     }
 
     #[test]
-    fn duper() {
+    fn duper_trunk() {
         let input = r#"
         {duper: 1337}
         "#;
-        let duper = DuperParser::parse_duper(input).unwrap();
+        let duper = DuperParser::parse_duper_trunk(input).unwrap();
         assert!(matches!(duper.inner, DuperInner::Object(_)));
     }
 
