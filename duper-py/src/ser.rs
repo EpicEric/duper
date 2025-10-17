@@ -97,7 +97,7 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
     {
         let identifier = serialize_pyclass_identifier(&obj)?;
         Ok(DuperValue {
-            identifier: identifier,
+            identifier,
             inner: DuperInner::Bytes(DuperBytes::from(Cow::Owned(bytes))),
         })
     } else if obj.hasattr("__slots__")?
@@ -473,7 +473,7 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
                 .iter()
                 .map(|(field_name, _field_info)| {
                     let field_name: &Bound<'py, PyString> = field_name.downcast()?;
-                    let value = obj.getattr(&field_name)?;
+                    let value = obj.getattr(field_name)?;
                     Ok((
                         DuperKey::from(Cow::Owned(field_name.to_string())),
                         serialize_pyany(value)?,

@@ -425,7 +425,7 @@ pub mod DuperBox {
 
     pub fn deserialize<'de, T, D>(deserializer: D) -> Result<::std::boxed::Box<T>, D::Error>
     where
-        T: ?Sized + Deserialize<'de>,
+        T: Deserialize<'de>,
         D: Deserializer<'de>,
     {
         T::deserialize(deserializer).map(::std::boxed::Box::new)
@@ -435,7 +435,7 @@ pub mod DuperCow {
     use super::*;
 
     pub fn serialize<'a, T, S>(
-        value: &::std::borrow::Cow<'a, T>,
+        #[expect(clippy::ptr_arg)] value: &::std::borrow::Cow<'a, T>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
@@ -537,7 +537,7 @@ pub mod DuperRefCell {
 
     pub fn deserialize<'de, T, D>(deserializer: D) -> Result<::std::cell::RefCell<T>, D::Error>
     where
-        T: ?Sized + Deserialize<'de>,
+        T: Deserialize<'de>,
         D: Deserializer<'de>,
     {
         T::deserialize(deserializer).map(::std::cell::RefCell::new)
@@ -560,7 +560,7 @@ pub mod DuperMutex {
 
     pub fn deserialize<'de, T, D>(deserializer: D) -> Result<::std::sync::Mutex<T>, D::Error>
     where
-        T: ?Sized + Deserialize<'de>,
+        T: Deserialize<'de>,
         D: Deserializer<'de>,
     {
         T::deserialize(deserializer).map(::std::sync::Mutex::new)
@@ -583,7 +583,7 @@ pub mod DuperRwLock {
 
     pub fn deserialize<'de, T, D>(deserializer: D) -> Result<::std::sync::RwLock<T>, D::Error>
     where
-        T: ?Sized + Deserialize<'de>,
+        T: Deserialize<'de>,
         D: Deserializer<'de>,
     {
         T::deserialize(deserializer).map(::std::sync::RwLock::new)

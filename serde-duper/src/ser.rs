@@ -589,18 +589,15 @@ impl<'ser, 'a> ser::SerializeStructVariant for SerializeStructVariant<'ser, 'a> 
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        let mut variant_obj = Vec::new();
-        variant_obj.push((
-            DuperKey::from(Cow::Borrowed(self.variant)),
-            DuperValue {
-                identifier: None,
-                inner: DuperInner::Object(DuperObject::from(self.fields)),
-            },
-        ));
-
         Ok(DuperValue {
             identifier: Some(DuperIdentifier::from(Cow::Borrowed(self.name))),
-            inner: DuperInner::Object(DuperObject::from(variant_obj)),
+            inner: DuperInner::Object(DuperObject::from(vec![(
+                DuperKey::from(Cow::Borrowed(self.variant)),
+                DuperValue {
+                    identifier: None,
+                    inner: DuperInner::Object(DuperObject::from(self.fields)),
+                },
+            )])),
         })
     }
 }

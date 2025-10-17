@@ -97,7 +97,7 @@ fn handle_enum() {
         r##"
         Test({
             Baz: (
-                3.14,
+                1.23,
                 b"bytes",
             ),
         })
@@ -107,11 +107,11 @@ fn handle_enum() {
     let Test::Baz(float, bytes) = value else {
         panic!("invalid value: {value:?}");
     };
-    assert_eq!(float, 3.14);
+    assert_eq!(float, 1.23);
     assert_eq!(bytes, b"bytes");
     assert_eq!(
         serde_duper::to_string(&Test::Baz(float, bytes)).unwrap(),
-        r#"Test({Baz: (3.14, b"bytes")})"#
+        r#"Test({Baz: (1.23, b"bytes")})"#
     );
 
     let value: Test = serde_duper::from_string(
@@ -276,7 +276,7 @@ fn handle_enum_adjacently_tagged() {
         Test({
             tag: "Baz",
             content: (
-                3.14,
+                1.23,
                 b"bytes",
             ),
         })
@@ -286,11 +286,11 @@ fn handle_enum_adjacently_tagged() {
     let Test::Baz(float, bytes) = value else {
         panic!("invalid value: {value:?}");
     };
-    assert_eq!(float, 3.14);
+    assert_eq!(float, 1.23);
     assert_eq!(bytes, b"bytes");
     assert_eq!(
         serde_duper::to_string(&Test::Baz(float, bytes)).unwrap(),
-        r#"Test({tag: Test("Baz"), content: (3.14, b"bytes")})"#
+        r#"Test({tag: Test("Baz"), content: (1.23, b"bytes")})"#
     );
 
     let value: Test = serde_duper::from_string(
@@ -396,7 +396,7 @@ fn handle_enum_untagged() {
     let value: Test = serde_duper::from_string(
         r##"
         Test((
-            3.14,
+            1.23,
             b"bytes",
         ))
     "##,
@@ -405,11 +405,11 @@ fn handle_enum_untagged() {
     let Test::Baz(float, bytes) = value else {
         panic!("invalid value: {value:?}");
     };
-    assert_eq!(float, 3.14);
+    assert_eq!(float, 1.23);
     assert_eq!(bytes, b"bytes");
     assert_eq!(
         serde_duper::to_string(&Test::Baz(float, bytes)).unwrap(),
-        r#"(3.14, b"bytes")"#
+        r#"(1.23, b"bytes")"#
     );
 
     let value: Test = serde_duper::from_string(

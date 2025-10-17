@@ -250,7 +250,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
                     inner: DuperInner::Array(DuperArray::from(
                         bytes
                             .into_inner()
-                            .into_iter()
+                            .iter()
                             .map(|v| DuperValue {
                                 identifier: None,
                                 inner: DuperInner::Integer(i64::from(*v)),

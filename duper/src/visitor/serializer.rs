@@ -9,17 +9,11 @@ use crate::{
     visitor::DuperVisitor,
 };
 
+#[derive(Default)]
 pub struct Serializer {
     strip_identifiers: bool,
 }
 
-impl Default for Serializer {
-    fn default() -> Self {
-        Self {
-            strip_identifiers: false,
-        }
-    }
-}
 
 impl Serializer {
     pub fn new(strip_identifiers: bool) -> Self {

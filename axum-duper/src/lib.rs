@@ -75,15 +75,15 @@ where
             .headers()
             .get(CONTENT_TYPE)
             .and_then(|content_type| content_type.to_str().ok())
+            && (content_type == DUPER_CONTENT_TYPE || content_type == DUPER_ALT_CONTENT_TYPE)
         {
-            if content_type == DUPER_CONTENT_TYPE || content_type == DUPER_ALT_CONTENT_TYPE {
-                let string = String::from_request(req, state)
-                    .await
-                    .map_err(|_| DuperRejection::DuperDataError)?;
-                return Self::from_string(&string);
-            }
-        };
-        Err(DuperRejection::MissingDuperContentType)
+            let string = String::from_request(req, state)
+                .await
+                .map_err(|_| DuperRejection::DuperDataError)?;
+            Self::from_string(&string)
+        } else {
+            Err(DuperRejection::MissingDuperContentType)
+        }
     }
 }
 
@@ -98,15 +98,16 @@ where
         let Some(content_type) = req.headers().get(CONTENT_TYPE) else {
             return Ok(None);
         };
-        if let Ok(content_type) = content_type.to_str() {
-            if content_type == DUPER_CONTENT_TYPE || content_type == DUPER_ALT_CONTENT_TYPE {
-                let string = String::from_request(req, state)
-                    .await
-                    .map_err(|_| DuperRejection::DuperDataError)?;
-                return Self::from_string(&string).map(Some);
-            }
-        };
-        Err(DuperRejection::MissingDuperContentType)
+        if let Ok(content_type) = content_type.to_str()
+            && (content_type == DUPER_CONTENT_TYPE || content_type == DUPER_ALT_CONTENT_TYPE)
+        {
+            let string = String::from_request(req, state)
+                .await
+                .map_err(|_| DuperRejection::DuperDataError)?;
+            Self::from_string(&string).map(Some)
+        } else {
+            Err(DuperRejection::MissingDuperContentType)
+        }
     }
 }
 
