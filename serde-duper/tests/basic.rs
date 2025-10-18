@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::{borrow::Cow, collections::HashMap, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 use serde_duper::bytes::{self, ByteBuf};
@@ -14,6 +14,7 @@ fn handle_struct() {
         #[serde(borrow, with = "bytes")]
         cow: Cow<'a, [u8]>,
         map: HashMap<String, (i32, (), ByteBuf)>,
+        phantom_data: PhantomData<String>,
     }
 
     let value: Test = serde_duper::from_string(
@@ -27,6 +28,7 @@ fn handle_struct() {
             map: {
                 r#"quantum"#: Measurement((-7, "whatever", b"crazy")),
             },
+            phantom_data: null,
         }
     "##,
     )
@@ -39,7 +41,79 @@ fn handle_struct() {
     assert_eq!(value.map["quantum"], (-7, (), b"crazy".to_vec().into()));
     assert_eq!(
         serde_duper::to_string(&value).unwrap(),
-        r#"Test({int: 42, string: "Hello   world!", str: "duper", bools: [true, true, false], cow: b"cool", map: {quantum: (-7, (,), b"crazy")}})"#
+        r#"Test({int: 42, string: "Hello   world!", str: "duper", bools: [true, true, false], cow: b"cool", map: {quantum: (-7, (,), b"crazy")}, phantom_data: PhantomData((,))})"#
+    );
+}
+
+#[test]
+fn handle_newtypes() {
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Usize(usize);
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct MyString(String);
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct MyBool(bool);
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct MyVecOfBools(Vec<MyBool>);
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Moo(ByteBuf);
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+    struct MyUnit;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename = "HashedMap")]
+    struct Map(HashMap<String, (i32, MyUnit)>);
+
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename(serialize = "PhantomData"))]
+    struct PhantomWrapper(PhantomData<String>);
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        int: Usize,
+        string: MyString,
+        bools: MyVecOfBools,
+        cow: Moo,
+        map: Map,
+        phantom_data: PhantomWrapper,
+    }
+
+    let value: Test = serde_duper::from_string(
+        r##"
+        {
+            int: 42,
+            "string": r#"Hello   world!"#,
+            bools: [true, true, false,],
+            cow: b"cool",
+            map: {
+                r#"quantum"#: Measurement((-7, "whatever")),
+            },
+            phantom_data: null,
+        }
+    "##,
+    )
+    .unwrap();
+    assert_eq!(value.int.0, 42);
+    assert_eq!(value.string.0, "Hello   world!");
+    assert_eq!(
+        value
+            .bools
+            .0
+            .iter()
+            .map(|my_bool| my_bool.0)
+            .collect::<Vec<_>>(),
+        vec![true, true, false]
+    );
+    assert_eq!(value.map.0.len(), 1);
+    assert_eq!(value.map.0["quantum"], (-7, MyUnit));
+    assert_eq!(
+        serde_duper::to_string(&value).unwrap(),
+        r#"Test({int: Usize(42), string: MyString("Hello   world!"), bools: MyVecOfBools([MyBool(true), MyBool(true), MyBool(false)]), cow: Moo(b"cool"), map: HashedMap({quantum: (-7, MyUnit((,)))}), phantom_data: PhantomData((,))})"#
     );
 }
 
