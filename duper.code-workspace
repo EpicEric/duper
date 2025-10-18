@@ -1,21 +1,24 @@
 {
   "folders": [
-	{
-		"path": "duper-py"
-	},
-	{
-		"path": "axum-duper"
-	},
-	{
-		"path": "duper"
-	},
-	{
-		"path": "duper-vs-code"
-	},
-	{
-		"path": "serde-duper"
-	}
-],
+    {
+      "path": "duper-py"
+    },
+    {
+      "path": "axum-duper"
+    },
+    {
+      "path": "duper"
+    },
+    {
+      "path": "duper-vs-code"
+    },
+    {
+      "path": "serde-duper"
+    },
+    {
+      "path": "serde-duper-macros"
+    }
+  ],
   "settings": {
     "rust-analyzer.cargo.features": "all"
   }

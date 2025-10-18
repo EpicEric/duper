@@ -8,6 +8,11 @@ authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 
 [features]
 default = []
+
+# Macros
+macros = ["dep:serde-duper-macros"]
+
+# Type dependencies
 uuid = ["dep:uuid"]
 bytes = ["dep:bytes"]
 chrono = ["dep:chrono"]
@@ -18,6 +23,9 @@ duper = { path = "../duper", features = ["serde"] }
 pest = "2.8.3"
 serde_bytes = "0.11.19"
 serde_core = { version = "1.0.228" }
+
+# Macros
+serde-duper-macros = { path = "../serde-duper-macros", optional = true }
 
 # Type dependencies
 bytes = { version = "1", features = ["serde"], optional = true }

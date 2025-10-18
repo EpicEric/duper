@@ -579,9 +579,20 @@ dependencies = [
  "duper",
  "pest",
  "serde",
+ "serde-duper-macros",
  "serde_bytes",
  "serde_core",
  "uuid",
+]
+
+[[package]]
+name = "serde-duper-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde",
+ "syn",
 ]
 
 [[package]]
