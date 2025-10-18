@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[test]
-fn some_net() {
+fn none_net() {
     use serde_duper::types::net::{
         DuperOptionIpAddr, DuperOptionIpv4Addr, DuperOptionIpv6Addr, DuperOptionSocketAddr,
         DuperOptionSocketAddrV4, DuperOptionSocketAddrV6,
@@ -49,7 +49,7 @@ fn some_net() {
 }
 
 #[test]
-fn some_num() {
+fn none_num() {
     use serde_duper::types::num::{
         DuperOptionNonZeroI8, DuperOptionNonZeroI16, DuperOptionNonZeroI32, DuperOptionNonZeroI64,
         DuperOptionNonZeroI128, DuperOptionNonZeroIsize, DuperOptionNonZeroU8,
@@ -135,7 +135,7 @@ fn some_num() {
 }
 
 #[test]
-fn some_atomic() {
+fn none_atomic() {
     use serde_duper::types::atomic::{
         DuperOptionAtomicBool, DuperOptionAtomicI8, DuperOptionAtomicI16, DuperOptionAtomicI32,
         DuperOptionAtomicI64, DuperOptionAtomicIsize, DuperOptionAtomicU8, DuperOptionAtomicU16,
@@ -207,7 +207,7 @@ fn some_atomic() {
 }
 
 #[test]
-fn some_time() {
+fn none_time() {
     use serde_duper::types::{DuperOptionDuration, DuperOptionSystemTime};
     use std::time::{Duration, SystemTime};
 
@@ -236,7 +236,7 @@ fn some_time() {
 }
 
 #[test]
-fn some_path() {
+fn none_path() {
     use serde_duper::types::{DuperOptionPath, DuperOptionPathBuf};
     use std::path::{Path, PathBuf};
 
@@ -268,7 +268,7 @@ fn some_path() {
 
 #[test]
 #[cfg(unix)]
-fn some_ffi_unix() {
+fn none_ffi_unix() {
     use serde_duper::types::ffi::{
         DuperOptionCStr, DuperOptionCString, DuperOptionOsStr, DuperOptionOsString,
     };
@@ -319,7 +319,7 @@ fn some_ffi_unix() {
 
 #[test]
 #[cfg(windows)]
-fn some_ffi_windows() {
+fn none_ffi_windows() {
     use serde_duper::types::ffi::{
         DuperOptionCStr, DuperOptionCString, DuperOptionOsStr, DuperOptionOsString,
     };
@@ -369,7 +369,7 @@ fn some_ffi_windows() {
 }
 
 #[test]
-fn some_collections() {
+fn none_collections() {
     use serde_duper::types::DuperOptionReverse;
     use serde_duper::types::collections::{
         DuperOptionBTreeMap, DuperOptionBTreeSet, DuperOptionBinaryHeap, DuperOptionHashMap,
@@ -429,7 +429,7 @@ fn some_collections() {
 
 #[test]
 #[cfg(feature = "bytes")]
-fn some_bytes() {
+fn none_bytes() {
     use bytes::Bytes;
     use serde_duper::types::DuperOptionBytes;
 
@@ -450,7 +450,7 @@ fn some_bytes() {
 
 #[test]
 #[cfg(feature = "chrono")]
-fn some_chrono() {
+fn none_chrono() {
     use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, TimeDelta, Utc};
     use serde_duper::types::chrono::{
         DuperOptionDateTime, DuperOptionNaiveDate, DuperOptionNaiveDateTime, DuperOptionNaiveTime,
@@ -499,7 +499,7 @@ fn some_chrono() {
 
 #[test]
 #[cfg(feature = "uuid")]
-fn some_uuid() {
+fn none_uuid() {
     use serde_duper::types::DuperOptionUuid;
     use uuid::Uuid;
 

@@ -17,13 +17,12 @@ chrono = ["dep:chrono"]
 duper = { path = "../duper", features = ["serde"] }
 pest = "2.8.3"
 serde_bytes = "0.11.19"
-serde_core = { version = "1.0.228", features = ["rc"] }
+serde_core = { version = "1.0.228" }
 
 # Type dependencies
-bytes = { version = "1.10.1", features = ["serde"], optional = true }
-chrono = { version = "0.4.42", features = ["serde"], optional = true }
-uuid = { version = "1.18.1", features = ["serde"], optional = true }
+bytes = { version = "1", features = ["serde"], optional = true }
+chrono = { version = "0.4", features = ["serde"], optional = true }
+uuid = { version = "1", features = ["serde"], optional = true }
 
 [dev-dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
-uuid = { version = "1.18.1", features = ["serde"] }
