@@ -125,7 +125,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
             ))
         } else {
             // Regular bytes with escaping
-            let escaped_bytes: String = escape_bytes(&bytes.0);
+            let escaped_bytes = escape_bytes(&bytes.0);
             Cow::Owned(format!(r#"b"{escaped_bytes}""#))
         }
     }
