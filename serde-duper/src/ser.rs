@@ -108,12 +108,16 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
             && float as i128 == v
         {
             Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("I128"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("I128")).expect("valid identifier"),
+                ),
                 inner: DuperInner::Float(float),
             })
         } else {
             Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("I128"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("I128")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
             })
         }
@@ -150,12 +154,16 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
             && float.round() as u64 == v
         {
             Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U64"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("U64")).expect("valid identifier"),
+                ),
                 inner: DuperInner::Float(float),
             })
         } else {
             Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U64"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("U64")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
             })
         }
@@ -171,12 +179,16 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
             && float as u128 == v
         {
             Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U128"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("U128")).expect("valid identifier"),
+                ),
                 inner: DuperInner::Float(float),
             })
         } else {
             Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U128"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("U128")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
             })
         }
@@ -198,7 +210,9 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            identifier: Some(DuperIdentifier::from(Cow::Borrowed("Char"))),
+            identifier: Some(
+                DuperIdentifier::try_from(Cow::Borrowed("Char")).expect("valid identifier"),
+            ),
             inner: DuperInner::String(DuperString::from(Cow::Owned(v.into()))),
         })
     }
@@ -240,7 +254,8 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            identifier: (!name.is_empty()).then_some(DuperIdentifier::from(Cow::Borrowed(name))),
+            identifier: (!name.is_empty())
+                .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(name))?),
             inner: DuperInner::Tuple(DuperTuple::from(Vec::new())),
         })
     }
@@ -252,7 +267,8 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
-            identifier: (!name.is_empty()).then_some(DuperIdentifier::from(Cow::Borrowed(name))),
+            identifier: (!name.is_empty())
+                .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(name))?),
             inner: DuperInner::String(DuperString::from(Cow::Borrowed(variant))),
         })
     }
@@ -268,7 +284,7 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
         let value = value.serialize(self)?;
         Ok(DuperValue {
             identifier: (!name.is_empty())
-                .then_some(DuperIdentifier::from(Cow::Borrowed(name)))
+                .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(name))?)
                 .or(value.identifier),
             inner: value.inner,
         })
@@ -286,7 +302,8 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     {
         let value = value.serialize(self)?;
         Ok(DuperValue {
-            identifier: (!name.is_empty()).then_some(DuperIdentifier::from(Cow::Borrowed(name))),
+            identifier: (!name.is_empty())
+                .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(name))?),
             inner: DuperInner::Object(DuperObject::from(vec![(
                 DuperKey::from(Cow::Borrowed(variant)),
                 value,
@@ -447,7 +464,7 @@ impl<'ser, 'a> ser::SerializeTupleStruct for SerializeTupleStruct<'ser, 'a> {
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: (!self.name.is_empty())
-                .then_some(DuperIdentifier::from(Cow::Borrowed(self.name))),
+                .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
             inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
         })
     }
@@ -477,7 +494,7 @@ impl<'ser, 'b> ser::SerializeTupleVariant for SerializeTupleVariant<'ser, 'b> {
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: (!self.name.is_empty())
-                .then_some(DuperIdentifier::from(Cow::Borrowed(self.name))),
+                .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
             inner: DuperInner::Object(DuperObject::from(vec![(
                 DuperKey::from(Cow::Borrowed(self.variant)),
                 DuperValue {
@@ -565,7 +582,7 @@ impl<'ser, 'a> ser::SerializeStruct for SerializeStruct<'ser, 'a> {
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: (!self.name.is_empty())
-                .then_some(DuperIdentifier::from(Cow::Borrowed(self.name))),
+                .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
             inner: DuperInner::Object(DuperObject::from(self.fields)),
         })
     }
@@ -596,7 +613,7 @@ impl<'ser, 'a> ser::SerializeStructVariant for SerializeStructVariant<'ser, 'a> 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: (!self.name.is_empty())
-                .then_some(DuperIdentifier::from(Cow::Borrowed(self.name))),
+                .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
             inner: DuperInner::Object(DuperObject::from(vec![(
                 DuperKey::from(Cow::Borrowed(self.variant)),
                 DuperValue {

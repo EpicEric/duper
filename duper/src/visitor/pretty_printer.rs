@@ -156,11 +156,11 @@ impl DuperVisitor for PrettyPrinter {
         {
             string.push_str(identifier.as_ref());
             if tuple.is_empty() {
-                string.push_str("((,))");
+                string.push_str("(())");
             } else if tuple.len() == 1 {
                 string.push_str("((");
                 string.push_str(&tuple.get(0).unwrap().accept(self));
-                string.push_str(",))");
+                string.push_str("))");
             } else {
                 string.push_str("((\n");
                 self.increase_indentation();
@@ -174,11 +174,11 @@ impl DuperVisitor for PrettyPrinter {
                 string.push_str("))");
             }
         } else if tuple.is_empty() {
-            string.push_str("(,)");
+            string.push_str("()");
         } else if tuple.len() == 1 {
             string.push('(');
             string.push_str(&tuple.get(0).unwrap().accept(self));
-            string.push_str(",)");
+            string.push_str(")");
         } else {
             string.push_str("(\n");
             self.increase_indentation();
@@ -440,7 +440,9 @@ mod pretty_printer_tests {
     #[test]
     fn complex_object() {
         let value = DuperValue {
-            identifier: Some(DuperIdentifier::from(Cow::Borrowed("Start"))),
+            identifier: Some(
+                DuperIdentifier::try_from(Cow::Borrowed("Start")).expect("valid identifier"),
+            ),
             inner: DuperInner::Object(DuperObject(vec![(
                 DuperKey::from(Cow::Borrowed("first object")),
                 DuperValue {
@@ -453,9 +455,10 @@ mod pretty_printer_tests {
                                 (
                                     DuperKey::from(Cow::Borrowed("third object")),
                                     DuperValue {
-                                        identifier: Some(DuperIdentifier::from(Cow::Borrowed(
-                                            "Msg",
-                                        ))),
+                                        identifier: Some(
+                                            DuperIdentifier::try_from(Cow::Borrowed("Msg"))
+                                                .expect("valid identifier"),
+                                        ),
                                         inner: DuperInner::String(DuperString::from(
                                             Cow::Borrowed(
                                                 "This is a very long string that will push itself into the next line.",

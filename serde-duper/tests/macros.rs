@@ -26,7 +26,7 @@ fn both_derives() {
     let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
         serialized,
-        r#"MyStruct({map: CustomMap({a: (1, b"abc")}), bytes: Bytes(b"duper"), plain: (1234,)})"#
+        r#"MyStruct({map: CustomMap({a: (1, b"abc")}), bytes: Bytes(b"duper"), plain: (1234)})"#
     );
 
     let deserialized: MyStruct = serde_duper::from_string(&serialized).unwrap();
@@ -60,7 +60,7 @@ fn serialize_only() {
     let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
         serialized,
-        r#"MyStruct({map: CustomMap({a: (1, b"abc")}), bytes: Bytes(b"duper"), plain: (1234,)})"#
+        r#"MyStruct({map: CustomMap({a: (1, b"abc")}), bytes: Bytes(b"duper"), plain: (1234)})"#
     );
 }
 
@@ -108,7 +108,7 @@ fn duper_macro_for_tuple_struct() {
     let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
         serialized,
-        r#"MyStruct({tup: AnotherName((1948, MyString("1984"), (,)))})"#
+        r#"MyStruct({tup: MyTuple((1948, BookName("1984"), ()))})"#
     );
 
     let deserialized: MyStruct = serde_duper::from_string(&serialized).unwrap();

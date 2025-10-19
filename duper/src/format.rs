@@ -4,7 +4,7 @@ use std::{ascii, borrow::Cow};
 use crate::ast::{DuperBytes, DuperKey, DuperString};
 
 pub(crate) fn format_key<'a>(key: &'a DuperKey<'a>) -> Cow<'a, str> {
-    if key.0.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+    if key.0.chars().all(|c| c.is_alphanumeric() || c == '_') {
         Cow::Borrowed(key.0.as_ref())
     } else {
         format_cow_str(&key.0)
@@ -22,6 +22,7 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
     } else {
         // Check if it's benefic to turn into a raw string
         let mut quotes = 0usize;
+        let mut was_quotes = false;
         let mut was_hashtag = false;
         let mut curr_hashtags = 0usize;
         let mut max_hashtags = 0usize;
@@ -30,27 +31,35 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
             match char {
                 '"' => {
                     was_hashtag = false;
-                    quotes += 1
+                    was_quotes = true;
+                    quotes += 1;
                 }
                 '#' if was_hashtag => {
                     curr_hashtags += 1;
                     max_hashtags = max_hashtags.max(curr_hashtags);
                 }
-                '#' => {
+                '#' if was_quotes => {
                     was_hashtag = true;
+                    was_quotes = false;
                     curr_hashtags = 1;
                     max_hashtags = max_hashtags.max(curr_hashtags);
                 }
-                ' ' => was_hashtag = false,
+                ' ' => {
+                    was_hashtag = false;
+                    was_quotes = false;
+                }
                 '\r' | '\n' | '\t' => {
                     has_char_that_should_be_escaped = true;
                     break;
                 }
-                char if char.is_control() || char.is_whitespace() => {
+                char if (char.is_control() || char.is_whitespace()) && !char.is_alphanumeric() => {
                     has_char_that_should_be_escaped = true;
                     break;
                 }
-                _ => was_hashtag = false,
+                _ => {
+                    was_hashtag = false;
+                    was_quotes = false;
+                }
             }
         }
         if quotes > max_hashtags && !has_char_that_should_be_escaped {
@@ -72,6 +81,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
     } else {
         // Check if it's benefic to turn into raw bytes
         let mut quotes = 0usize;
+        let mut was_quotes = false;
         let mut was_hashtag = false;
         let mut curr_hashtags = 0usize;
         let mut max_hashtags = 0usize;
@@ -80,27 +90,35 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
             match byte {
                 b'"' => {
                     was_hashtag = false;
-                    quotes += 1
+                    was_quotes = true;
+                    quotes += 1;
                 }
                 b'#' if was_hashtag => {
                     curr_hashtags += 1;
                     max_hashtags = max_hashtags.max(curr_hashtags);
                 }
-                b'#' => {
+                b'#' if was_quotes => {
                     was_hashtag = true;
+                    was_quotes = false;
                     curr_hashtags = 1;
                     max_hashtags = max_hashtags.max(curr_hashtags);
                 }
-                b' ' => was_hashtag = false,
+                b' ' => {
+                    was_hashtag = false;
+                    was_quotes = false;
+                }
                 b'\r' | b'\n' | b'\t' => {
                     has_char_that_should_be_escaped = true;
                     break;
                 }
-                byte if byte.is_ascii_control() || byte.is_ascii_whitespace() => {
+                byte if !byte.is_ascii_alphanumeric() && !byte.is_ascii_punctuation() => {
                     has_char_that_should_be_escaped = true;
                     break;
                 }
-                _ => was_hashtag = false,
+                _ => {
+                    was_hashtag = false;
+                    was_quotes = false;
+                }
             }
         }
         if quotes > max_hashtags && !has_char_that_should_be_escaped {

@@ -41,7 +41,7 @@ fn handle_struct() {
     assert_eq!(value.map["quantum"], (-7, (), b"crazy".to_vec().into()));
     assert_eq!(
         serde_duper::to_string(&value).unwrap(),
-        r#"Test({int: 42, string: "Hello   world!", str: "duper", bools: [true, true, false], cow: b"cool", map: {quantum: (-7, (,), b"crazy")}, phantom_data: PhantomData((,))})"#
+        r#"Test({int: 42, string: "Hello   world!", str: "duper", bools: [true, true, false], cow: b"cool", map: {quantum: (-7, (), b"crazy")}, phantom_data: PhantomData(())})"#
     );
 }
 
@@ -113,7 +113,7 @@ fn handle_newtypes() {
     assert_eq!(value.map.0["quantum"], (-7, MyUnit));
     assert_eq!(
         serde_duper::to_string(&value).unwrap(),
-        r#"Test({int: Usize(42), string: MyString("Hello   world!"), bools: MyVecOfBools([MyBool(true), MyBool(true), MyBool(false)]), cow: Moo(b"cool"), map: HashedMap({quantum: (-7, MyUnit((,)))}), phantom_data: PhantomData((,))})"#
+        r#"Test({int: Usize(42), string: MyString("Hello   world!"), bools: MyVecOfBools([MyBool(true), MyBool(true), MyBool(false)]), cow: Moo(b"cool"), map: HashedMap({quantum: (-7, MyUnit(()))}), phantom_data: PhantomData(())})"#
     );
 }
 
@@ -521,5 +521,5 @@ fn handle_enum_untagged() {
     let Test::Qux = value else {
         panic!("invalid value: {value:?}");
     };
-    assert_eq!(serde_duper::to_string(&Test::Qux).unwrap(), r#"(,)"#);
+    assert_eq!(serde_duper::to_string(&Test::Qux).unwrap(), r#"()"#);
 }

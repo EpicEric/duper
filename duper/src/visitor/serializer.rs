@@ -14,7 +14,6 @@ pub struct Serializer {
     strip_identifiers: bool,
 }
 
-
 impl Serializer {
     pub fn new(strip_identifiers: bool) -> Self {
         Self { strip_identifiers }
@@ -119,9 +118,6 @@ impl DuperVisitor for Serializer {
                     string.push_str(", ");
                 }
             }
-            if len <= 1 {
-                string.push(',');
-            }
             string.push_str("))");
         } else {
             string.push('(');
@@ -130,9 +126,6 @@ impl DuperVisitor for Serializer {
                 if i < len - 1 {
                     string.push_str(", ");
                 }
-            }
-            if len <= 1 {
-                string.push(',');
             }
             string.push(')');
         }

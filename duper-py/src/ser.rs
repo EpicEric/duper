@@ -20,7 +20,9 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
         })
     } else if obj.is_instance_of::<PySet>() {
         Ok(DuperValue {
-            identifier: Some(DuperIdentifier::from(Cow::Borrowed("Set"))),
+            identifier: Some(
+                DuperIdentifier::try_from(Cow::Borrowed("Set")).expect("valid identifier"),
+            ),
             inner: DuperInner::Array(DuperArray::from(serialize_pyiter(obj.try_iter()?)?)),
         })
     } else if obj.is_instance_of::<PyTuple>() {
@@ -62,7 +64,9 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
             })
         } else {
             Ok(DuperValue {
-                identifier: identifier.or(Some(DuperIdentifier::from(Cow::Borrowed("Integer")))),
+                identifier: identifier.or(Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("Int")).expect("valid identifier"),
+                )),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(obj.str()?.extract()?))),
             })
         }
@@ -308,7 +312,9 @@ impl<'py> WellKnownType<'py> {
         match self {
             // collections
             WellKnownType::Deque(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Deque"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("Deque")).expect("valid identifier"),
+                ),
                 inner: DuperInner::Array(DuperArray::from(
                     value
                         .try_iter()?
@@ -323,105 +329,159 @@ impl<'py> WellKnownType<'py> {
             }),
             // datetime
             WellKnownType::DateTime(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("DateTime"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("DateTime")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(
                     value.call_method0("isoformat")?.extract()?,
                 ))),
             }),
             WellKnownType::TimeDelta(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("TimeDelta"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("TimeDelta"))
+                        .expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             WellKnownType::Date(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Date"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("Date")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(
                     value.call_method0("isoformat")?.extract()?,
                 ))),
             }),
             WellKnownType::Time(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Time"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("Time")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(
                     value.call_method0("isoformat")?.extract()?,
                 ))),
             }),
             // decimal
             WellKnownType::Decimal(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Decimal"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("Decimal")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             // duper
             WellKnownType::DuperBaseModel(value) => serialize_pydantic_model(value),
             // enum
             WellKnownType::Enum(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv4Address"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("IPv4Address"))
+                        .expect("valid identifier"),
+                ),
                 inner: serialize_pyany(value.getattr("value")?)?.inner,
             }),
             // ipaddress
             WellKnownType::IPv4Address(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv4Address"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("IPv4Address"))
+                        .expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             WellKnownType::IPv4Interface(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv4Interface"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("IPv4Interface"))
+                        .expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             WellKnownType::IPv4Network(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv4Network"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("IPv4Network"))
+                        .expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             WellKnownType::IPv6Address(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv6Address"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("IPv6Address"))
+                        .expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             WellKnownType::IPv6Interface(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv6Interface"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("IPv6Interface"))
+                        .expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             WellKnownType::IPv6Network(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("IPv6Network"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("IPv6Network"))
+                        .expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             // pathlib
             WellKnownType::Path(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Path"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("Path")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             WellKnownType::PosixPath(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("PosixPath"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("PosixPath"))
+                        .expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             WellKnownType::WindowsPath(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("WindowsPath"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("WindowsPath"))
+                        .expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             WellKnownType::PurePath(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("PurePath"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("PurePath")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             WellKnownType::PurePosixPath(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("PurePosixPath"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("PurePosixPath"))
+                        .expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             WellKnownType::PureWindowsPath(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("PureWindowsPath"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("PureWindowsPath"))
+                        .expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
             // pydantic
             WellKnownType::BaseModel(value) => serialize_pydantic_model(value),
             WellKnownType::ByteSize(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("ByteSize"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("ByteSize")).expect("valid identifier"),
+                ),
                 inner: serialize_pyany(value.call_method0("__int__")?)?.inner,
             }),
             // re
             WellKnownType::Pattern(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Pattern"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("Pattern")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(
                     value.getattr("pattern")?.extract()?,
                 ))),
             }),
             // uuid
             WellKnownType::Uuid(value) => Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("Uuid"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("Uuid")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
         }
@@ -446,19 +506,35 @@ fn serialize_pyclass_identifier<'py>(
         && let class = obj.getattr("__class__")?
         && class.hasattr("__name__")?
         && let Ok(name) = class.getattr("__name__")
-        && let Ok(identifier) = name.extract::<String>()
+        && let Ok(identifier) = name.extract::<&str>()
     {
-        Ok(Some(DuperIdentifier::from(Cow::Owned(
-            standardize_pyclass_identifier(identifier)?,
-        ))))
+        Ok(Some(
+            DuperIdentifier::try_from_lossy(Cow::Owned(standardize_pyclass_identifier(
+                identifier.to_string(),
+            )?))
+            .map_err(|error| {
+                PyErr::new::<PyValueError, String>(format!(
+                    "Invalid identifier: {}\n{}",
+                    identifier, error
+                ))
+            })?,
+        ))
     } else if let typ = obj.get_type()
         && typ.hasattr("__name__")?
         && let Ok(name) = typ.getattr("__name__")
-        && let Ok(identifier) = name.extract::<String>()
+        && let Ok(identifier) = name.extract::<&str>()
     {
-        Ok(Some(DuperIdentifier::from(Cow::Owned(
-            standardize_pyclass_identifier(identifier)?,
-        ))))
+        Ok(Some(
+            DuperIdentifier::try_from_lossy(Cow::Owned(standardize_pyclass_identifier(
+                identifier.to_string(),
+            )?))
+            .map_err(|error| {
+                PyErr::new::<PyValueError, String>(format!(
+                    "Invalid identifier: {}\n{}",
+                    identifier, error
+                ))
+            })?,
+        ))
     } else {
         Ok(None)
     }

@@ -1,5 +1,7 @@
 use std::fmt::{self, Display};
 
+use duper::DuperIdentifierTryFromError;
+
 #[derive(Debug, Clone)]
 pub enum ErrorKind {
     ParseError(Box<pest::error::Error<duper::DuperRule>>),
@@ -82,6 +84,13 @@ impl From<Box<pest::error::Error<duper::DuperRule>>> for Error {
     fn from(value: Box<pest::error::Error<duper::DuperRule>>) -> Self {
         let message = value.variant.message().into_owned();
         Self::new(ErrorKind::ParseError(value), message)
+    }
+}
+
+impl From<DuperIdentifierTryFromError<'_>> for Error {
+    fn from(value: DuperIdentifierTryFromError) -> Self {
+        let message = value.to_string();
+        Self::new(ErrorKind::SerializationError, message)
     }
 }
 

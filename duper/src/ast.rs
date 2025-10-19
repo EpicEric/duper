@@ -12,6 +12,54 @@ impl<'a> DuperIdentifier<'a> {
     pub fn into_inner(self) -> Cow<'a, str> {
         self.0
     }
+
+    pub fn try_from_lossy(value: Cow<'a, str>) -> Result<Self, DuperIdentifierTryFromError<'a>> {
+        #[allow(unused_assignments)]
+        let mut new_value = None;
+        let mut chars = value.char_indices();
+        match chars.next() {
+            None => return Err(DuperIdentifierTryFromError::EmptyIdentifier),
+            Some((_, c)) if c.is_alphabetic() && !c.is_uppercase() => {
+                new_value = Some(c.to_uppercase().to_string());
+            }
+            Some((_, c)) if c.is_alphabetic() && c.is_uppercase() => (),
+            _ => return Err(DuperIdentifierTryFromError::InvalidChar(value, 0)),
+        }
+        let mut last_char_was_separator = false;
+        for (pos, char) in chars {
+            match char {
+                '-' | '_' => {
+                    match new_value.as_mut() {
+                        Some(new_value) if !last_char_was_separator => {
+                            new_value.push(char);
+                        }
+                        _ => (),
+                    }
+                    last_char_was_separator = true;
+                }
+                char if char.is_alphanumeric() => {
+                    match new_value.as_mut() {
+                        Some(new_value) => {
+                            new_value.push(char);
+                        }
+                        None => (),
+                    }
+                    last_char_was_separator = false;
+                }
+                _ => match new_value.as_mut() {
+                    Some(_) => (),
+                    None => new_value = Some(value.split_at(pos).0.to_owned()),
+                },
+            }
+        }
+        Ok(Self(match new_value {
+            Some(new_value) if new_value.is_empty() => {
+                return Err(DuperIdentifierTryFromError::EmptyIdentifier);
+            }
+            Some(new_value) => Cow::Owned(new_value),
+            None => value,
+        }))
+    }
 }
 
 impl<'a> Display for DuperIdentifier<'a> {
@@ -26,11 +74,56 @@ impl<'a> AsRef<str> for DuperIdentifier<'a> {
     }
 }
 
-impl<'a> From<Cow<'a, str>> for DuperIdentifier<'a> {
-    fn from(value: Cow<'a, str>) -> Self {
-        Self(value)
+impl<'a> TryFrom<Cow<'a, str>> for DuperIdentifier<'a> {
+    type Error = DuperIdentifierTryFromError<'a>;
+
+    fn try_from(value: Cow<'a, str>) -> Result<Self, Self::Error> {
+        let mut chars = value.char_indices();
+        match chars.next() {
+            None => return Err(DuperIdentifierTryFromError::EmptyIdentifier),
+            Some((_, c)) if !c.is_uppercase() => {
+                return Err(DuperIdentifierTryFromError::InvalidChar(value, 0));
+            }
+            _ => (),
+        }
+        let mut last_char_was_separator = false;
+        for (pos, char) in chars {
+            match char {
+                '-' | '_' => {
+                    if last_char_was_separator {
+                        return Err(DuperIdentifierTryFromError::InvalidChar(value, pos));
+                    } else {
+                        last_char_was_separator = true;
+                    }
+                }
+                char if char.is_alphanumeric() => {
+                    last_char_was_separator = false;
+                }
+                _ => return Err(DuperIdentifierTryFromError::InvalidChar(value, pos)),
+            }
+        }
+        Ok(Self(value))
     }
 }
+
+#[derive(Debug)]
+pub enum DuperIdentifierTryFromError<'a> {
+    EmptyIdentifier,
+    InvalidChar(Cow<'a, str>, usize),
+}
+
+impl Display for DuperIdentifierTryFromError<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DuperIdentifierTryFromError::EmptyIdentifier => f.write_str("empty identifier"),
+            DuperIdentifierTryFromError::InvalidChar(identifier, pos) => f.write_fmt(format_args!(
+                "invalid character in position {pos} of identifier {identifier}"
+            )),
+        }
+    }
+}
+
+impl std::error::Error for DuperIdentifierTryFromError<'_> {}
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct DuperKey<'a>(pub(crate) Cow<'a, str>);

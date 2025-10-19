@@ -3,8 +3,8 @@ source: duper/src/visitor/pretty_printer.rs
 expression: pp
 ---
 {
-  zero: (,),
-  one: ("Sandhole",),
+  zero: (),
+  one: ("Sandhole"),
   two: (
     "rust",
     "pest",

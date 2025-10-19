@@ -1,6 +1,6 @@
 # Duper
 
-The format that's super.
+The format that's super. Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
 
 ## A visual introduction in four parts
 
@@ -111,9 +111,9 @@ Product({
   weight: Kilograms(0.285),
   in_stock: true,
   specifications: {
-    "battery_life": Duration("30h"),
-    "noise_cancellation": true,
-    "connectivity": ["Bluetooth 5.0", "3.5mm Jack"],
+    battery_life: Duration("30h"),
+    noise_cancellation: true,
+    connectivity: ["Bluetooth 5.0", "3.5mm Jack"],
   },
   image_thumbnail: Png(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x64"),
   tags: ["electronics", "audio", "wireless"],

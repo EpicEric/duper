@@ -114,12 +114,16 @@ impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
             && float as i128 == v
         {
             Ok(DuperValue {
-                identifier: None,
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("I128")).expect("valid identifier"),
+                ),
                 inner: DuperInner::Float(float),
             })
         } else {
             Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("I128"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("I128")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
             })
         }
@@ -156,12 +160,16 @@ impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
             && float as u64 == v
         {
             Ok(DuperValue {
-                identifier: None,
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("U64")).expect("valid identifier"),
+                ),
                 inner: DuperInner::Float(float),
             })
         } else {
             Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U64"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("U64")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
             })
         }
@@ -177,12 +185,16 @@ impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
             && float as u128 == v
         {
             Ok(DuperValue {
-                identifier: None,
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("U128")).expect("valid identifier"),
+                ),
                 inner: DuperInner::Float(float),
             })
         } else {
             Ok(DuperValue {
-                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U128"))),
+                identifier: Some(
+                    DuperIdentifier::try_from(Cow::Borrowed("U128")).expect("valid identifier"),
+                ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
             })
         }
@@ -338,7 +350,10 @@ impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
     {
         let (identifier, value) = data.variant::<String>()?;
         Ok(DuperValue {
-            identifier: Some(DuperIdentifier::from(Cow::Owned(identifier))),
+            identifier: Some(
+                DuperIdentifier::try_from_lossy(Cow::Owned(identifier))
+                    .map_err(|error| serde_core::de::Error::custom(error.to_string()))?,
+            ),
             inner: value.newtype_variant()?,
         })
     }
