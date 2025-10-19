@@ -304,10 +304,10 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
         Ok(DuperValue {
             identifier: (!name.is_empty())
                 .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(name))?),
-            inner: DuperInner::Object(DuperObject::from(vec![(
-                DuperKey::from(Cow::Borrowed(variant)),
-                value,
-            )])),
+            inner: DuperInner::Object(
+                DuperObject::try_from(vec![(DuperKey::from(Cow::Borrowed(variant)), value)])
+                    .expect("single item object"),
+            ),
         })
     }
 
@@ -495,13 +495,16 @@ impl<'ser, 'b> ser::SerializeTupleVariant for SerializeTupleVariant<'ser, 'b> {
         Ok(DuperValue {
             identifier: (!self.name.is_empty())
                 .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
-            inner: DuperInner::Object(DuperObject::from(vec![(
-                DuperKey::from(Cow::Borrowed(self.variant)),
-                DuperValue {
-                    identifier: None,
-                    inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
-                },
-            )])),
+            inner: DuperInner::Object(
+                DuperObject::try_from(vec![(
+                    DuperKey::from(Cow::Borrowed(self.variant)),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
+                    },
+                )])
+                .expect("single item object"),
+            ),
         })
     }
 }
@@ -553,7 +556,7 @@ impl<'ser, 'a> ser::SerializeMap for SerializeMap<'ser, 'a> {
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {
             identifier: self.identifier.take(),
-            inner: DuperInner::Object(DuperObject::from(self.entries)),
+            inner: DuperInner::Object(DuperObject::try_from(self.entries)?),
         })
     }
 }
@@ -583,7 +586,7 @@ impl<'ser, 'a> ser::SerializeStruct for SerializeStruct<'ser, 'a> {
         Ok(DuperValue {
             identifier: (!self.name.is_empty())
                 .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
-            inner: DuperInner::Object(DuperObject::from(self.fields)),
+            inner: DuperInner::Object(DuperObject::try_from(self.fields)?),
         })
     }
 }
@@ -614,13 +617,16 @@ impl<'ser, 'a> ser::SerializeStructVariant for SerializeStructVariant<'ser, 'a> 
         Ok(DuperValue {
             identifier: (!self.name.is_empty())
                 .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
-            inner: DuperInner::Object(DuperObject::from(vec![(
-                DuperKey::from(Cow::Borrowed(self.variant)),
-                DuperValue {
-                    identifier: None,
-                    inner: DuperInner::Object(DuperObject::from(self.fields)),
-                },
-            )])),
+            inner: DuperInner::Object(
+                DuperObject::try_from(vec![(
+                    DuperKey::from(Cow::Borrowed(self.variant)),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Object(DuperObject::try_from(self.fields)?),
+                    },
+                )])
+                .expect("single item object"),
+            ),
         })
     }
 }

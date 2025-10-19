@@ -340,7 +340,9 @@ impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
 
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::Object(DuperObject::from(entries)),
+            inner: DuperInner::Object(
+                DuperObject::try_from(entries).expect("no duplicate entries in map"),
+            ),
         })
     }
 

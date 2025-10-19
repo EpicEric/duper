@@ -50,7 +50,12 @@ fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
             true => DuperParser::parse_duper_value(s),
             false => DuperParser::parse_duper_trunk(s),
         }
-        .map_err(|err| PyErr::new::<PyValueError, String>(err.to_string()))?;
+        .map_err(|err| {
+            PyErr::new::<PyValueError, String>(format!(
+                "{:?}",
+                miette::Error::new(err.into_miette())
+            ))
+        })?;
         value.accept(&mut Visitor { py })
     }
 
@@ -67,7 +72,12 @@ fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
             true => DuperParser::parse_duper_value(s),
             false => DuperParser::parse_duper_trunk(s),
         }
-        .map_err(|err| PyErr::new::<PyValueError, String>(err.to_string()))?;
+        .map_err(|err| {
+            PyErr::new::<PyValueError, String>(format!(
+                "{:?}",
+                miette::Error::new(err.into_miette())
+            ))
+        })?;
         value.accept(&mut Visitor { py })
     }
 

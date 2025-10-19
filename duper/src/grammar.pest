@@ -36,6 +36,7 @@ inner = @{ char* }
 char  =  {
     !("\"" | "\\") ~ ANY
   | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+  | "\\" ~ ("x" ~ ASCII_HEX_DIGIT{2})
   | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
 

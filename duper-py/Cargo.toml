@@ -12,4 +12,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 duper = { path = "../duper" }
+miette = "7.6.0"
 pyo3 = { version = "0.26.0", features = ["extension-module"] }

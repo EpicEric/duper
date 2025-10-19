@@ -1,12 +1,61 @@
 use std::{
     borrow::Cow,
+    collections::HashMap,
     fmt::{Debug, Display},
 };
 
 use crate::{DuperParser, DuperRule, visitor::DuperVisitor};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct DuperIdentifier<'a>(pub(crate) Cow<'a, str>);
+
+#[derive(Debug, Clone)]
+pub struct DuperValue<'a> {
+    pub identifier: Option<DuperIdentifier<'a>>,
+    pub inner: DuperInner<'a>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum DuperInner<'a> {
+    Object(DuperObject<'a>),
+    Array(DuperArray<'a>),
+    Tuple(DuperTuple<'a>),
+    String(DuperString<'a>),
+    Bytes(DuperBytes<'a>),
+    Integer(i64),
+    Float(f64),
+    Boolean(bool),
+    Null,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct DuperKey<'a>(pub(crate) Cow<'a, str>);
+
+#[derive(Debug, Clone)]
+pub struct DuperObject<'a>(pub(crate) Vec<(DuperKey<'a>, DuperValue<'a>)>);
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DuperArray<'a>(pub(crate) Vec<DuperValue<'a>>);
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DuperTuple<'a>(pub(crate) Vec<DuperValue<'a>>);
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct DuperString<'a>(pub(crate) Cow<'a, str>);
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct DuperBytes<'a>(pub(crate) Cow<'a, [u8]>);
+
+#[derive(Debug, Clone)]
+pub enum DuperIdentifierTryFromError<'a> {
+    EmptyIdentifier,
+    InvalidChar(Cow<'a, str>, usize),
+}
+
+#[derive(Debug, Clone)]
+pub enum DuperObjectTryFromError<'a> {
+    DuplicateKey(Cow<'a, str>),
+}
 
 impl<'a> DuperIdentifier<'a> {
     pub fn into_inner(self) -> Cow<'a, str> {
@@ -106,12 +155,6 @@ impl<'a> TryFrom<Cow<'a, str>> for DuperIdentifier<'a> {
     }
 }
 
-#[derive(Debug)]
-pub enum DuperIdentifierTryFromError<'a> {
-    EmptyIdentifier,
-    InvalidChar(Cow<'a, str>, usize),
-}
-
 impl Display for DuperIdentifierTryFromError<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -124,9 +167,6 @@ impl Display for DuperIdentifierTryFromError<'_> {
 }
 
 impl std::error::Error for DuperIdentifierTryFromError<'_> {}
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct DuperKey<'a>(pub(crate) Cow<'a, str>);
 
 impl<'a> DuperKey<'a> {
     pub fn into_inner(self) -> Cow<'a, str> {
@@ -146,14 +186,39 @@ impl<'a> From<Cow<'a, str>> for DuperKey<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct DuperValue<'a> {
-    pub identifier: Option<DuperIdentifier<'a>>,
-    pub inner: DuperInner<'a>,
+impl<'a> DuperValue<'a> {
+    pub fn accept<V: DuperVisitor>(&self, visitor: &mut V) -> V::Value {
+        match &self.inner {
+            DuperInner::Object(object) => visitor.visit_object(self.identifier.as_ref(), object),
+            DuperInner::Array(array) => visitor.visit_array(self.identifier.as_ref(), array),
+            DuperInner::Tuple(tuple) => visitor.visit_tuple(self.identifier.as_ref(), tuple),
+            DuperInner::String(string) => visitor.visit_string(self.identifier.as_ref(), string),
+            DuperInner::Bytes(bytes) => visitor.visit_bytes(self.identifier.as_ref(), bytes),
+            DuperInner::Integer(integer) => {
+                visitor.visit_integer(self.identifier.as_ref(), *integer)
+            }
+            DuperInner::Float(float) => visitor.visit_float(self.identifier.as_ref(), *float),
+            DuperInner::Boolean(boolean) => {
+                visitor.visit_boolean(self.identifier.as_ref(), *boolean)
+            }
+            DuperInner::Null => visitor.visit_null(self.identifier.as_ref()),
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
-pub struct DuperObject<'a>(pub(crate) Vec<(DuperKey<'a>, DuperValue<'a>)>);
+impl<'a> TryFrom<&'a str> for DuperValue<'a> {
+    type Error = Box<pest::error::Error<DuperRule>>;
+
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        DuperParser::parse_duper_value(value)
+    }
+}
+
+impl<'a> PartialEq for DuperValue<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
 
 impl<'a> DuperObject<'a> {
     pub fn into_inner(self) -> Vec<(DuperKey<'a>, DuperValue<'a>)> {
@@ -173,14 +238,52 @@ impl<'a> DuperObject<'a> {
     }
 }
 
-impl<'a> From<Vec<(DuperKey<'a>, DuperValue<'a>)>> for DuperObject<'a> {
-    fn from(value: Vec<(DuperKey<'a>, DuperValue<'a>)>) -> Self {
-        Self(value)
+impl<'a> TryFrom<Vec<(DuperKey<'a>, DuperValue<'a>)>> for DuperObject<'a> {
+    type Error = DuperObjectTryFromError<'a>;
+
+    fn try_from(value: Vec<(DuperKey<'a>, DuperValue<'a>)>) -> Result<Self, Self::Error> {
+        let mut keys = std::collections::HashSet::with_capacity(value.len());
+        for (key, _) in value.iter() {
+            if keys.contains(key) {
+                return Err(DuperObjectTryFromError::DuplicateKey(key.0.clone()));
+            }
+            keys.insert(key);
+        }
+        Ok(Self(value))
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct DuperArray<'a>(pub(crate) Vec<DuperValue<'a>>);
+impl<'a> PartialEq for DuperObject<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        if self.0.len() != other.0.len() {
+            return false;
+        }
+        let other_map: HashMap<_, _> = other.0.iter().map(|(k, v)| (k.clone(), v)).collect();
+        for (k, v) in self.0.iter() {
+            match other_map.get(k) {
+                Some(v2) => {
+                    if v != *v2 {
+                        return false;
+                    }
+                }
+                None => return false,
+            }
+        }
+        true
+    }
+}
+
+impl Display for DuperObjectTryFromError<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DuperObjectTryFromError::DuplicateKey(key) => {
+                f.write_fmt(format_args!("duplicate key {key} in object"))
+            }
+        }
+    }
+}
+
+impl std::error::Error for DuperObjectTryFromError<'_> {}
 
 impl<'a> DuperArray<'a> {
     pub fn into_inner(self) -> Vec<DuperValue<'a>> {
@@ -210,9 +313,6 @@ impl<'a> From<Vec<DuperValue<'a>>> for DuperArray<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct DuperTuple<'a>(pub(crate) Vec<DuperValue<'a>>);
-
 impl<'a> DuperTuple<'a> {
     pub fn into_inner(self) -> Vec<DuperValue<'a>> {
         self.0
@@ -241,9 +341,6 @@ impl<'a> From<Vec<DuperValue<'a>>> for DuperTuple<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct DuperString<'a>(pub(crate) Cow<'a, str>);
-
 impl<'a> DuperString<'a> {
     pub fn into_inner(self) -> Cow<'a, str> {
         self.0
@@ -262,9 +359,6 @@ impl<'a> AsRef<str> for DuperString<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct DuperBytes<'a>(pub(crate) Cow<'a, [u8]>);
-
 impl<'a> DuperBytes<'a> {
     pub fn into_inner(self) -> Cow<'a, [u8]> {
         self.0
@@ -280,46 +374,5 @@ impl<'a> From<Cow<'a, [u8]>> for DuperBytes<'a> {
 impl<'a> AsRef<[u8]> for DuperBytes<'a> {
     fn as_ref(&self) -> &[u8] {
         &self.0
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum DuperInner<'a> {
-    Object(DuperObject<'a>),
-    Array(DuperArray<'a>),
-    Tuple(DuperTuple<'a>),
-    String(DuperString<'a>),
-    Bytes(DuperBytes<'a>),
-    Integer(i64),
-    Float(f64),
-    Boolean(bool),
-    Null,
-}
-
-impl<'a> DuperValue<'a> {
-    pub fn accept<V: DuperVisitor>(&self, visitor: &mut V) -> V::Value {
-        match &self.inner {
-            DuperInner::Object(object) => visitor.visit_object(self.identifier.as_ref(), object),
-            DuperInner::Array(array) => visitor.visit_array(self.identifier.as_ref(), array),
-            DuperInner::Tuple(tuple) => visitor.visit_tuple(self.identifier.as_ref(), tuple),
-            DuperInner::String(string) => visitor.visit_string(self.identifier.as_ref(), string),
-            DuperInner::Bytes(bytes) => visitor.visit_bytes(self.identifier.as_ref(), bytes),
-            DuperInner::Integer(integer) => {
-                visitor.visit_integer(self.identifier.as_ref(), *integer)
-            }
-            DuperInner::Float(float) => visitor.visit_float(self.identifier.as_ref(), *float),
-            DuperInner::Boolean(boolean) => {
-                visitor.visit_boolean(self.identifier.as_ref(), *boolean)
-            }
-            DuperInner::Null => visitor.visit_null(self.identifier.as_ref()),
-        }
-    }
-}
-
-impl<'a> TryFrom<&'a str> for DuperValue<'a> {
-    type Error = Box<pest::error::Error<DuperRule>>;
-
-    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
-        DuperParser::parse_duper_value(value)
     }
 }

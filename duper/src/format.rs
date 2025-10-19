@@ -1,7 +1,9 @@
-use json_escape::explicit::escape_str;
-use std::{ascii, borrow::Cow};
+use std::borrow::Cow;
 
-use crate::ast::{DuperBytes, DuperKey, DuperString};
+use crate::{
+    ast::{DuperBytes, DuperKey, DuperString},
+    escape::{escape_bytes, escape_str, is_invisible_unicode},
+};
 
 pub(crate) fn format_key<'a>(key: &'a DuperKey<'a>) -> Cow<'a, str> {
     if key.0.chars().all(|c| c.is_alphanumeric() || c == '_') {
@@ -48,11 +50,7 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
                     was_hashtag = false;
                     was_quotes = false;
                 }
-                '\r' | '\n' | '\t' => {
-                    has_char_that_should_be_escaped = true;
-                    break;
-                }
-                char if (char.is_control() || char.is_whitespace()) && !char.is_alphanumeric() => {
+                char if char.is_control() || char.is_whitespace() || is_invisible_unicode(char) => {
                     has_char_that_should_be_escaped = true;
                     break;
                 }
@@ -68,7 +66,7 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
             Cow::Owned(format!(r#"r{}"{}"{}"#, hashtags, string, hashtags))
         } else {
             // Regular string with escaping
-            let escaped_key = Cow::from(escape_str(string));
+            let escaped_key = escape_str(string);
             Cow::Owned(format!(r#""{escaped_key}""#))
         }
     }
@@ -107,11 +105,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
                     was_hashtag = false;
                     was_quotes = false;
                 }
-                b'\r' | b'\n' | b'\t' => {
-                    has_char_that_should_be_escaped = true;
-                    break;
-                }
-                byte if !byte.is_ascii_alphanumeric() && !byte.is_ascii_punctuation() => {
+                byte if byte.is_ascii_control() || byte.is_ascii_whitespace() => {
                     has_char_that_should_be_escaped = true;
                     break;
                 }
@@ -131,13 +125,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
             ))
         } else {
             // Regular bytes with escaping
-            let escaped_bytes: String = bytes
-                .0
-                .iter()
-                .copied()
-                .flat_map(ascii::escape_default)
-                .map(|b| b as char)
-                .collect();
+            let escaped_bytes: String = escape_bytes(&bytes.0);
             Cow::Owned(format!(r#"b"{escaped_bytes}""#))
         }
     }

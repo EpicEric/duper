@@ -1,6 +1,5 @@
 use std::{borrow::Cow, collections::HashSet};
 
-use json_escape::explicit::unescape;
 use pest::{
     error::{Error, ErrorVariant},
     iterators::Pair,
@@ -11,6 +10,7 @@ use crate::{
         DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
         DuperTuple, DuperValue,
     },
+    escape::{unescape_bytes, unescape_str},
     parser::Rule,
 };
 
@@ -80,9 +80,8 @@ impl DuperBuilder {
                 let mut inner_pair = pair.into_inner();
                 let key_pair = inner_pair.next().unwrap();
                 let key = match key_pair.as_rule() {
-                    Rule::string => {
-                        Self::unescape_str(key_pair.into_inner().next().unwrap().as_str())
-                    }
+                    Rule::string => unescape_str(key_pair.into_inner().next().unwrap().as_str())
+                        .expect("parsed valid escape sequences"),
                     Rule::raw_string => {
                         Cow::Borrowed(key_pair.into_inner().next().unwrap().as_str())
                     }
@@ -150,17 +149,16 @@ impl DuperBuilder {
                 Rule::object => DuperInner::Object(Self::build_object(next)?),
                 Rule::array => DuperInner::Array(Self::build_array(next)?),
                 Rule::tuple => DuperInner::Tuple(Self::build_tuple(next)?),
-                Rule::string => DuperInner::String(DuperString(Self::unescape_str(
-                    next.into_inner().next().unwrap().as_str(),
-                ))),
+                Rule::string => DuperInner::String(DuperString(
+                    unescape_str(next.into_inner().next().unwrap().as_str())
+                        .expect("parsed valid escape sequences"),
+                )),
                 Rule::raw_string => DuperInner::String(DuperString(Cow::Borrowed(
                     next.into_inner().next().unwrap().as_str(),
                 ))),
                 Rule::bytes => DuperInner::Bytes(DuperBytes(
-                    match Self::unescape_str(next.into_inner().next().unwrap().as_str()) {
-                        Cow::Borrowed(str) => Cow::Borrowed(str.as_bytes()),
-                        Cow::Owned(str) => Cow::Owned(str.into_bytes()),
-                    },
+                    unescape_bytes(next.into_inner().next().unwrap().as_str())
+                        .expect("parsed valid escape sequences"),
                 )),
                 Rule::raw_bytes => DuperInner::Bytes(DuperBytes(Cow::Borrowed(
                     next.into_inner().next().unwrap().as_str().as_bytes(),
@@ -201,9 +199,5 @@ impl DuperBuilder {
                 }
             },
         })
-    }
-
-    fn unescape_str(input: &'_ str) -> Cow<'_, str> {
-        unescape(input).decode_utf8().unwrap()
     }
 }

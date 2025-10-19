@@ -11,7 +11,10 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
     if obj.is_instance_of::<PyDict>() {
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::Object(DuperObject::from(serialize_pydict(obj.downcast()?)?)),
+            inner: DuperInner::Object(
+                DuperObject::try_from(serialize_pydict(obj.downcast()?)?)
+                    .expect("no duplicate keys in dict"),
+            ),
         })
     } else if obj.is_instance_of::<PyList>() {
         Ok(DuperValue {
@@ -109,7 +112,9 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
     {
         Ok(DuperValue {
             identifier: None,
-            inner: DuperInner::Object(DuperObject::from(object)),
+            inner: DuperInner::Object(
+                DuperObject::try_from(object).expect("no duplicate keys in slots"),
+            ),
         })
     } else if obj.hasattr("__str__")?
         && let Ok(string) = obj.str().and_then(|string| string.extract())
@@ -125,7 +130,9 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
         let identifier = serialize_pyclass_identifier(&obj)?;
         Ok(DuperValue {
             identifier,
-            inner: DuperInner::Object(DuperObject::from(object)),
+            inner: DuperInner::Object(
+                DuperObject::try_from(object).expect("no duplicate keys in dict"),
+            ),
         })
     } else {
         Err(PyErr::new::<PyValueError, String>(format!(
@@ -558,7 +565,9 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
                 .collect();
             return Ok(DuperValue {
                 identifier: serialize_pyclass_identifier(&obj)?,
-                inner: DuperInner::Object(DuperObject::from(fields?)),
+                inner: DuperInner::Object(
+                    DuperObject::try_from(fields?).expect("no duplicate keys in pydantic model"),
+                ),
             });
         }
     }
