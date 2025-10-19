@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use serde_core::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_core::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 // -- Helper macro --
 
@@ -27,11 +27,11 @@ macro_rules! duper_serde_module {
             {
                 struct Visitor;
 
-                impl<'de> serde_core::de::Visitor<'de> for Visitor {
+                impl<'de> de::Visitor<'de> for Visitor {
                     type Value = $wrapped_type;
 
                     fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                        formatter.write_str("a newtype struct")
+                        formatter.write_str(concat!("a newtype struct ", $type_name))
                     }
 
                     fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -61,11 +61,11 @@ macro_rules! duper_serde_module {
             {
                 struct Visitor;
 
-                impl<'de> serde_core::de::Visitor<'de> for Visitor {
+                impl<'de> de::Visitor<'de> for Visitor {
                     type Value = Option<$wrapped_type>;
 
                     fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                        formatter.write_str("a newtype struct")
+                        formatter.write_str(concat!("a newtype struct ", $type_name))
                     }
 
                     fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -103,8 +103,29 @@ macro_rules! duper_serde_module {
                 D: Deserializer<'de>,
                 $wrapped_type: Deserialize<'de>,
             {
-                // TODO: Use newtype struct deserialization
-                <$wrapped_type>::deserialize(deserializer)
+                struct Visitor<$firsttyparam $(, $typaram)*> {
+                    _marker: ::std::marker::PhantomData<$wrapped_type>,
+                }
+
+                impl<'de, $firsttyparam $(, $typaram)*> de::Visitor<'de> for Visitor<$firsttyparam $(, $typaram)*>
+                where
+                    $wrapped_type: Deserialize<'de>,
+                {
+                    type Value = $wrapped_type;
+
+                    fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                        formatter.write_str(concat!("a newtype struct ", $type_name))
+                    }
+
+                    fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+                    where
+                        D: Deserializer<'de>,
+                    {
+                        <$wrapped_type>::deserialize(deserializer)
+                    }
+                }
+
+                deserializer.deserialize_newtype_struct($type_name, Visitor { _marker: ::std::marker::PhantomData })
             }
         }
         pub mod $option_mod_name {
@@ -121,10 +142,31 @@ macro_rules! duper_serde_module {
             pub fn deserialize<'de, D, $firsttyparam $(, $typaram)*>(deserializer: D) -> Result<Option<$wrapped_type>, D::Error>
             where
                 D: Deserializer<'de>,
-                Option<$wrapped_type>: Deserialize<'de>,
+                $wrapped_type: Deserialize<'de>,
             {
-                // TODO: Use newtype struct deserialization
-                <Option<$wrapped_type>>::deserialize(deserializer)
+                struct Visitor<$firsttyparam $(, $typaram)*> {
+                    _marker: ::std::marker::PhantomData<$wrapped_type>,
+                }
+
+                impl<'de, $firsttyparam $(, $typaram)*> de::Visitor<'de> for Visitor<$firsttyparam $(, $typaram)*>
+                where
+                    $wrapped_type: Deserialize<'de>,
+                {
+                    type Value = Option<$wrapped_type>;
+
+                    fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                        formatter.write_str(concat!("a newtype struct ", $type_name))
+                    }
+
+                    fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+                    where
+                        D: Deserializer<'de>,
+                    {
+                        <Option<$wrapped_type>>::deserialize(deserializer)
+                    }
+                }
+
+                deserializer.deserialize_newtype_struct($type_name, Visitor { _marker: ::std::marker::PhantomData })
             }
         }
     };
@@ -572,7 +614,7 @@ pub mod DuperRegex {
     {
         struct Visitor;
 
-        impl<'de> serde_core::de::Visitor<'de> for Visitor {
+        impl<'de> de::Visitor<'de> for Visitor {
             type Value = WrappedType;
 
             fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
@@ -581,7 +623,7 @@ pub mod DuperRegex {
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
             where
-                E: serde_core::de::Error,
+                E: de::Error,
             {
                 WrappedType::new(v).map_err(|error| E::custom(error))
             }
@@ -617,7 +659,7 @@ pub mod DuperOptionRegex {
     {
         struct Visitor;
 
-        impl<'de> serde_core::de::Visitor<'de> for Visitor {
+        impl<'de> de::Visitor<'de> for Visitor {
             type Value = Option<WrappedType>;
 
             fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
@@ -626,7 +668,7 @@ pub mod DuperOptionRegex {
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
             where
-                E: serde_core::de::Error,
+                E: de::Error,
             {
                 Some(WrappedType::new(v).map_err(|error| E::custom(error))).transpose()
             }
@@ -640,7 +682,7 @@ pub mod DuperOptionRegex {
 
             fn visit_none<E>(self) -> Result<Self::Value, E>
             where
-                E: serde_core::de::Error,
+                E: de::Error,
             {
                 Ok(None)
             }
