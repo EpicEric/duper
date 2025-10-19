@@ -301,6 +301,7 @@ version = "0.1.0"
 dependencies = [
  "insta",
  "miette",
+ "owo-colors",
  "pest",
  "pest_derive",
  "ryu",

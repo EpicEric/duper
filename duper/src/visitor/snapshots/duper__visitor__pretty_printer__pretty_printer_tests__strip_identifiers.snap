@@ -1,0 +1,14 @@
+---
+source: duper/src/visitor/pretty_printer.rs
+expression: pp
+---
+{
+  nested_object: {
+    integer_field: 42,
+    string_field: "test",
+  },
+  array_field: [
+    3.14,
+    true,
+  ],
+}

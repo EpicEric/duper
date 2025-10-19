@@ -13,4 +13,6 @@ pub use ast::{
     DuperObject, DuperObjectTryFromError, DuperString, DuperTuple, DuperValue,
 };
 pub use parser::{DuperParser, Rule as DuperRule};
+#[cfg(feature = "ansi")]
+pub use visitor::ansi::Ansi;
 pub use visitor::{pretty_printer::PrettyPrinter, serializer::Serializer};

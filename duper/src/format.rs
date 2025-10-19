@@ -139,6 +139,10 @@ pub(crate) fn format_float(float: f64) -> String {
     ryu::Buffer::new().format(float).into()
 }
 
-pub(crate) fn format_boolean(bool: bool) -> String {
-    bool.to_string()
+pub(crate) fn format_boolean(bool: bool) -> &'static str {
+    if bool { "true" } else { "false" }
+}
+
+pub(crate) fn format_null() -> &'static str {
+    "null"
 }

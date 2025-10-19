@@ -1,0 +1,661 @@
+use std::io::{Error, Write};
+
+use crate::{
+    ast::{
+        DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTuple, DuperValue,
+    },
+    format::{
+        format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
+        format_key, format_null,
+    },
+    visitor::DuperVisitor,
+};
+use owo_colors::{AnsiColors, DynColors, OwoColorize};
+
+pub struct Ansi<'ansi> {
+    strip_identifiers: bool,
+    theme: &'ansi AnsiTheme<'ansi>,
+    bracket_depth: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct AnsiTheme<'theme> {
+    identifier: DynColors,
+    key: DynColors,
+    string: DynColors,
+    bytes: DynColors,
+    integer: DynColors,
+    float: DynColors,
+    boolean: DynColors,
+    null: DynColors,
+    brackets: &'theme [DynColors],
+}
+
+pub static ANSI_THEME: &AnsiTheme = &AnsiTheme {
+    identifier: DynColors::Ansi(AnsiColors::BrightBlue),
+    key: DynColors::Ansi(AnsiColors::BrightCyan),
+    string: DynColors::Ansi(AnsiColors::BrightRed),
+    bytes: DynColors::Ansi(AnsiColors::BrightRed),
+    integer: DynColors::Ansi(AnsiColors::BrightGreen),
+    float: DynColors::Ansi(AnsiColors::BrightGreen),
+    boolean: DynColors::Ansi(AnsiColors::Blue),
+    null: DynColors::Ansi(AnsiColors::Blue),
+    brackets: &[
+        DynColors::Ansi(AnsiColors::Yellow),
+        DynColors::Ansi(AnsiColors::Magenta),
+        DynColors::Ansi(AnsiColors::Blue),
+    ],
+};
+
+pub static VSCODE_DARK_PLUS_THEME: &AnsiTheme = &AnsiTheme {
+    identifier: DynColors::Rgb(0x4E, 0xC9, 0xB0),
+    key: DynColors::Rgb(0x9C, 0xDC, 0xFE),
+    string: DynColors::Rgb(0xCE, 0x91, 0x78),
+    bytes: DynColors::Rgb(0xCE, 0x91, 0x78),
+    integer: DynColors::Rgb(0xB5, 0xCE, 0xA8),
+    float: DynColors::Rgb(0xB5, 0xCE, 0xA8),
+    boolean: DynColors::Rgb(0x56, 0x9C, 0xD6),
+    null: DynColors::Rgb(0x56, 0x9C, 0xD6),
+    brackets: &[
+        DynColors::Rgb(0xFF, 0xD7, 0x00),
+        DynColors::Rgb(0xDA, 0x70, 0xD6),
+        DynColors::Rgb(0x17, 0x9F, 0xFF),
+    ],
+};
+
+// TODO: More ANSI themes
+
+impl Default for Ansi<'static> {
+    fn default() -> Self {
+        Self {
+            strip_identifiers: false,
+            theme: ANSI_THEME,
+            bracket_depth: 0,
+        }
+    }
+}
+
+impl<'ansi> Ansi<'ansi> {
+    pub fn new(strip_identifiers: bool, theme: &'ansi AnsiTheme) -> Self {
+        Self {
+            strip_identifiers,
+            theme,
+            bracket_depth: 0,
+        }
+    }
+
+    pub fn to_ansi<'a>(&mut self, value: DuperValue<'a>) -> Result<Vec<u8>, Error> {
+        value.accept(self)
+    }
+
+    fn increase_bracket_depth(&mut self) {
+        self.bracket_depth += 1;
+    }
+
+    fn decrease_bracket_depth(&mut self) {
+        self.bracket_depth -= 1;
+    }
+
+    fn colorize_bracket(&self, buf: &mut Vec<u8>, bracket: &str) -> Result<(), Error> {
+        if self.theme.brackets.is_empty() {
+            buf.write(bracket.as_bytes())?;
+            Ok(())
+        } else {
+            buf.write_fmt(format_args!(
+                "{}",
+                bracket.color(self.theme.brackets[self.bracket_depth % self.theme.brackets.len()])
+            ))
+        }
+    }
+}
+
+impl<'ansi> DuperVisitor for Ansi<'ansi> {
+    type Value = Result<Vec<u8>, Error>;
+
+    fn visit_object<'a>(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'a>>,
+        object: &DuperObject<'a>,
+    ) -> Self::Value {
+        let mut buf = Vec::new();
+        let len = object.len();
+
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
+            buf.write_fmt(format_args!(
+                "{}",
+                identifier.as_ref().color(self.theme.identifier)
+            ))?;
+            self.colorize_bracket(&mut buf, "(")?;
+            self.increase_bracket_depth();
+            self.colorize_bracket(&mut buf, "{")?;
+            self.increase_bracket_depth();
+            for (i, (key, value)) in object.iter().enumerate() {
+                buf.write_fmt(format_args!("{}", format_key(key).color(self.theme.key)))?;
+                buf.write(b": ")?;
+                buf.write(&value.accept(self)?)?;
+                if i < len - 1 {
+                    buf.write(b", ")?;
+                }
+            }
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, "}")?;
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, ")")?;
+        } else {
+            self.colorize_bracket(&mut buf, "{")?;
+            self.increase_bracket_depth();
+            for (i, (key, value)) in object.iter().enumerate() {
+                buf.write_fmt(format_args!("{}", format_key(key).color(self.theme.key)))?;
+                buf.write(b": ")?;
+                buf.write(&value.accept(self)?)?;
+                if i < len - 1 {
+                    buf.write(b", ")?;
+                }
+            }
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, "}")?;
+        }
+
+        Ok(buf)
+    }
+
+    fn visit_array<'a>(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'a>>,
+        array: &DuperArray<'a>,
+    ) -> Self::Value {
+        let mut buf = Vec::new();
+        let len = array.len();
+
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
+            buf.write_fmt(format_args!(
+                "{}",
+                identifier.as_ref().color(self.theme.identifier)
+            ))?;
+            self.colorize_bracket(&mut buf, "(")?;
+            self.increase_bracket_depth();
+            self.colorize_bracket(&mut buf, "[")?;
+            self.increase_bracket_depth();
+            for (i, value) in array.iter().enumerate() {
+                buf.write(&value.accept(self)?)?;
+                if i < len - 1 {
+                    buf.write(b", ")?;
+                }
+            }
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, "]")?;
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, ")")?;
+        } else {
+            self.colorize_bracket(&mut buf, "[")?;
+            self.increase_bracket_depth();
+            for (i, value) in array.iter().enumerate() {
+                buf.write(&value.accept(self)?)?;
+                if i < len - 1 {
+                    buf.write(b", ")?;
+                }
+            }
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, "]")?;
+        }
+
+        Ok(buf)
+    }
+
+    fn visit_tuple<'a>(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'a>>,
+        tuple: &DuperTuple<'a>,
+    ) -> Self::Value {
+        let mut buf = Vec::new();
+        let len = tuple.len();
+
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
+            buf.write_fmt(format_args!(
+                "{}",
+                identifier.as_ref().color(self.theme.identifier)
+            ))?;
+            self.colorize_bracket(&mut buf, "(")?;
+            self.increase_bracket_depth();
+            self.colorize_bracket(&mut buf, "(")?;
+            self.increase_bracket_depth();
+            for (i, value) in tuple.iter().enumerate() {
+                buf.write(&value.accept(self)?)?;
+                if i < len - 1 {
+                    buf.write(b", ")?;
+                }
+            }
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, ")")?;
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, ")")?;
+        } else {
+            self.colorize_bracket(&mut buf, "(")?;
+            self.increase_bracket_depth();
+            for (i, value) in tuple.iter().enumerate() {
+                buf.write(&value.accept(self)?)?;
+                if i < len - 1 {
+                    buf.write(b", ")?;
+                }
+            }
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, ")")?;
+        }
+
+        Ok(buf)
+    }
+
+    fn visit_string<'a>(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'a>>,
+        value: &DuperString<'a>,
+    ) -> Self::Value {
+        let mut buf = Vec::new();
+
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
+            buf.write_fmt(format_args!(
+                "{}",
+                identifier.as_ref().color(self.theme.identifier)
+            ))?;
+            self.colorize_bracket(&mut buf, "(")?;
+            self.increase_bracket_depth();
+            buf.write_fmt(format_args!(
+                "{}",
+                format_duper_string(value).color(self.theme.string)
+            ))?;
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, ")")?;
+        } else {
+            buf.write_fmt(format_args!(
+                "{}",
+                format_duper_string(value).color(self.theme.string)
+            ))?;
+        }
+
+        Ok(buf)
+    }
+
+    fn visit_bytes<'a>(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'a>>,
+        bytes: &DuperBytes<'a>,
+    ) -> Self::Value {
+        let mut buf = Vec::new();
+
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
+            buf.write_fmt(format_args!(
+                "{}",
+                identifier.as_ref().color(self.theme.identifier)
+            ))?;
+            self.colorize_bracket(&mut buf, "(")?;
+            self.increase_bracket_depth();
+            buf.write_fmt(format_args!(
+                "{}",
+                format_duper_bytes(bytes).color(self.theme.bytes)
+            ))?;
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, ")")?;
+        } else {
+            buf.write_fmt(format_args!(
+                "{}",
+                format_duper_bytes(bytes).color(self.theme.bytes)
+            ))?;
+        }
+
+        Ok(buf)
+    }
+
+    fn visit_integer(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'_>>,
+        integer: i64,
+    ) -> Self::Value {
+        let mut buf = Vec::new();
+
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
+            buf.write_fmt(format_args!(
+                "{}",
+                identifier.as_ref().color(self.theme.identifier)
+            ))?;
+            self.colorize_bracket(&mut buf, "(")?;
+            self.increase_bracket_depth();
+            buf.write_fmt(format_args!(
+                "{}",
+                format_integer(integer).color(self.theme.integer)
+            ))?;
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, ")")?;
+        } else {
+            buf.write_fmt(format_args!(
+                "{}",
+                format_integer(integer).color(self.theme.integer)
+            ))?;
+        }
+
+        Ok(buf)
+    }
+
+    fn visit_float(&mut self, identifier: Option<&DuperIdentifier<'_>>, float: f64) -> Self::Value {
+        let mut buf = Vec::new();
+
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
+            buf.write_fmt(format_args!(
+                "{}",
+                identifier.as_ref().color(self.theme.identifier)
+            ))?;
+            self.colorize_bracket(&mut buf, "(")?;
+            self.increase_bracket_depth();
+            buf.write_fmt(format_args!(
+                "{}",
+                format_float(float).color(self.theme.float)
+            ))?;
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, ")")?;
+        } else {
+            buf.write_fmt(format_args!(
+                "{}",
+                format_float(float).color(self.theme.float)
+            ))?;
+        }
+
+        Ok(buf)
+    }
+
+    fn visit_boolean(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'_>>,
+        boolean: bool,
+    ) -> Self::Value {
+        let mut buf = Vec::new();
+
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
+            buf.write_fmt(format_args!(
+                "{}",
+                identifier.as_ref().color(self.theme.identifier)
+            ))?;
+            self.colorize_bracket(&mut buf, "(")?;
+            self.increase_bracket_depth();
+            buf.write_fmt(format_args!(
+                "{}",
+                format_boolean(boolean).color(self.theme.boolean)
+            ))?;
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, ")")?;
+        } else {
+            buf.write_fmt(format_args!(
+                "{}",
+                format_boolean(boolean).color(self.theme.boolean)
+            ))?;
+        }
+
+        Ok(buf)
+    }
+
+    fn visit_null(&mut self, identifier: Option<&DuperIdentifier<'_>>) -> Self::Value {
+        let mut buf = Vec::new();
+
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
+            buf.write_fmt(format_args!(
+                "{}",
+                identifier.as_ref().color(self.theme.identifier)
+            ))?;
+            self.colorize_bracket(&mut buf, "(")?;
+            self.increase_bracket_depth();
+            buf.write_fmt(format_args!("{}", format_null().color(self.theme.null)))?;
+            self.decrease_bracket_depth();
+            self.colorize_bracket(&mut buf, ")")?;
+        } else {
+            buf.write_fmt(format_args!("{}", format_null().color(self.theme.null)))?;
+        }
+
+        Ok(buf)
+    }
+}
+
+#[cfg(test)]
+mod ansi_tests {
+    use std::borrow::Cow;
+
+    use insta::assert_debug_snapshot;
+
+    use crate::{
+        Ansi, DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject,
+        DuperString, DuperTuple, DuperValue,
+        visitor::ansi::{ANSI_THEME, VSCODE_DARK_PLUS_THEME},
+    };
+
+    fn example_value() -> DuperValue<'static> {
+        DuperValue {
+            identifier: Some(DuperIdentifier(Cow::Borrowed("Product"))),
+            inner: DuperInner::Object(DuperObject(vec![
+                (
+                    DuperKey(Cow::Borrowed("product_id")),
+                    DuperValue {
+                        identifier: Some(DuperIdentifier(Cow::Borrowed("Uuid"))),
+                        inner: DuperInner::String(DuperString(Cow::Borrowed(
+                            "1dd7b7aa-515e-405f-85a9-8ac812242609",
+                        ))),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("name")),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::String(DuperString(Cow::Borrowed(
+                            "Wireless Bluetooth Headphones",
+                        ))),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("brand")),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::String(DuperString(Cow::Borrowed("AudioTech"))),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("price")),
+                    DuperValue {
+                        identifier: Some(DuperIdentifier(Cow::Borrowed("Decimal"))),
+                        inner: DuperInner::String(DuperString(Cow::Borrowed("129.99"))),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("dimensions")),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Tuple(DuperTuple(vec![
+                            DuperValue {
+                                identifier: None,
+                                inner: DuperInner::Float(18.5),
+                            },
+                            DuperValue {
+                                identifier: None,
+                                inner: DuperInner::Float(15.2),
+                            },
+                            DuperValue {
+                                identifier: None,
+                                inner: DuperInner::Float(7.8),
+                            },
+                        ])),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("weight")),
+                    DuperValue {
+                        identifier: Some(DuperIdentifier(Cow::Borrowed("Weight"))),
+                        inner: DuperInner::Float(0.285),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("in_stock")),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Boolean(true),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("specifications")),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Object(DuperObject(vec![
+                            (
+                                DuperKey(Cow::Borrowed("battery_life")),
+                                DuperValue {
+                                    identifier: Some(DuperIdentifier(Cow::Borrowed("Duration"))),
+                                    inner: DuperInner::String(DuperString(Cow::Borrowed("30h"))),
+                                },
+                            ),
+                            (
+                                DuperKey(Cow::Borrowed("noise_cancellation")),
+                                DuperValue {
+                                    identifier: None,
+                                    inner: DuperInner::Boolean(true),
+                                },
+                            ),
+                            (
+                                DuperKey(Cow::Borrowed("connectivity")),
+                                DuperValue {
+                                    identifier: None,
+                                    inner: DuperInner::Array(DuperArray(vec![
+                                        DuperValue {
+                                            identifier: None,
+                                            inner: DuperInner::String(DuperString(Cow::Borrowed(
+                                                "Bluetooth 5.0",
+                                            ))),
+                                        },
+                                        DuperValue {
+                                            identifier: None,
+                                            inner: DuperInner::String(DuperString(Cow::Borrowed(
+                                                "3.5mm Jack",
+                                            ))),
+                                        },
+                                    ])),
+                                },
+                            ),
+                        ])),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("image_thumbnail")),
+                    DuperValue {
+                        identifier: Some(DuperIdentifier(Cow::Borrowed("Png"))),
+                        inner: DuperInner::Bytes(DuperBytes(Cow::Borrowed(
+                            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x64",
+                        ))),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("tags")),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Array(DuperArray(vec![
+                            DuperValue {
+                                identifier: None,
+                                inner: DuperInner::String(DuperString(Cow::Borrowed(
+                                    "electronics",
+                                ))),
+                            },
+                            DuperValue {
+                                identifier: None,
+                                inner: DuperInner::String(DuperString(Cow::Borrowed("audio"))),
+                            },
+                            DuperValue {
+                                identifier: None,
+                                inner: DuperInner::String(DuperString(Cow::Borrowed("wireless"))),
+                            },
+                        ])),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("release_date")),
+                    DuperValue {
+                        identifier: Some(DuperIdentifier(Cow::Borrowed("Date"))),
+                        inner: DuperInner::String(DuperString(Cow::Borrowed("2023-11-15"))),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("warranty_period")),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Null,
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("customer_ratings")),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Object(DuperObject(vec![
+                            (
+                                DuperKey(Cow::Borrowed("latest_review")),
+                                DuperValue {
+                                    identifier: None,
+                                    inner: DuperInner::String(DuperString(Cow::Borrowed(
+                                        r#"Absolutely ""astounding""!! 😎"#,
+                                    ))),
+                                },
+                            ),
+                            (
+                                DuperKey(Cow::Borrowed("average")),
+                                DuperValue {
+                                    identifier: None,
+                                    inner: DuperInner::Float(4.5),
+                                },
+                            ),
+                            (
+                                DuperKey(Cow::Borrowed("count")),
+                                DuperValue {
+                                    identifier: None,
+                                    inner: DuperInner::Integer(127),
+                                },
+                            ),
+                        ])),
+                    },
+                ),
+                (
+                    DuperKey(Cow::Borrowed("created_at")),
+                    DuperValue {
+                        identifier: Some(DuperIdentifier(Cow::Borrowed("DateTime"))),
+                        inner: DuperInner::String(DuperString(Cow::Borrowed(
+                            "2023-11-17T21:50:43+00:00",
+                        ))),
+                    },
+                ),
+            ])),
+        }
+    }
+
+    #[test]
+    fn ansi() {
+        let mut ansi = Ansi::new(false, ANSI_THEME);
+        let printed = ansi.to_ansi(example_value()).unwrap();
+        println!("{}", str::from_utf8(&printed).unwrap());
+        assert_debug_snapshot!(printed);
+    }
+
+    #[test]
+    fn vscode_dark_plus() {
+        let mut ansi = Ansi::new(false, VSCODE_DARK_PLUS_THEME);
+        let printed = ansi.to_ansi(example_value()).unwrap();
+        println!("{}", str::from_utf8(&printed).unwrap());
+        assert_debug_snapshot!(printed);
+    }
+}

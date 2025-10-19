@@ -43,11 +43,13 @@ where
     Ok(DuperSerializer::new(true).serialize(to_duper(value)?))
 }
 
-pub fn to_string_pretty<T>(value: &T, indent: usize) -> Result<String, Error>
+pub fn to_string_pretty<T>(value: &T, indent: &str) -> Result<String, Error>
 where
     T: Serialize,
 {
-    Ok(DuperPrettyPrinter::new(false, indent).pretty_print(to_duper(value)?))
+    Ok(DuperPrettyPrinter::new(false, indent)
+        .map_err(|error| Error::invalid_value(error))?
+        .pretty_print(to_duper(value)?))
 }
 
 impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {

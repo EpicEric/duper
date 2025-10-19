@@ -1,0 +1,17 @@
+---
+source: duper/src/visitor/pretty_printer.rs
+expression: pp
+---
+{
+	first_level: {
+		second_level: [
+			"deep",
+			123,
+		],
+		another_second_level: (
+			false,
+			null,
+		),
+	},
+	simple_field: "value",
+}

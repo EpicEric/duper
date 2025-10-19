@@ -4,7 +4,7 @@ use crate::{
     },
     format::{
         format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
-        format_key,
+        format_key, format_null,
     },
     visitor::DuperVisitor,
 };
@@ -200,7 +200,7 @@ impl DuperVisitor for Serializer {
             let value = format_boolean(boolean);
             format!("{identifier}({value})")
         } else {
-            format_boolean(boolean)
+            format_boolean(boolean).into()
         }
     }
 
@@ -208,9 +208,10 @@ impl DuperVisitor for Serializer {
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            format!("{identifier}(null)")
+            let value = format_null();
+            format!("{identifier}({value})")
         } else {
-            "null".into()
+            format_null().into()
         }
     }
 }

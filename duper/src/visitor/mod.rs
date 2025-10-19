@@ -1,3 +1,5 @@
+#[cfg(feature = "ansi")]
+pub mod ansi;
 pub mod pretty_printer;
 pub mod serializer;
 

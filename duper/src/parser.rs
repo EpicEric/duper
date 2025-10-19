@@ -7,11 +7,6 @@ use crate::{ast::DuperValue, builder::DuperBuilder};
 pub struct DuperParser;
 
 impl DuperParser {
-    pub fn parse_duper_stream(input: &'_ str) -> Result<Vec<DuperValue<'_>>, Box<Error<Rule>>> {
-        let mut pairs = Self::parse(Rule::duper_stream, input)?;
-        DuperBuilder::build_duper_stream(pairs.next().unwrap())
-    }
-
     pub fn parse_duper_trunk(input: &'_ str) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
         let mut pairs = Self::parse(Rule::duper, input)?;
         DuperBuilder::build_duper_trunk(pairs.next().unwrap())
@@ -29,21 +24,6 @@ mod duper_parser_tests {
         DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperParser,
         DuperString, DuperTuple, DuperValue,
     };
-
-    #[test]
-    fn duper_stream() {
-        let input = r#"---
-            ["foobar", true]
-            ---
-            {duper: 1337}
-            ---
-            ---
-        "#;
-        let duper_stream = DuperParser::parse_duper_stream(input).unwrap();
-        assert_eq!(duper_stream.len(), 2);
-        assert!(matches!(duper_stream[0].inner, DuperInner::Array(_)));
-        assert!(matches!(duper_stream[1].inner, DuperInner::Object(_)));
-    }
 
     #[test]
     fn duper_trunk() {

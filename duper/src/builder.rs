@@ -17,14 +17,6 @@ use crate::{
 pub(crate) struct DuperBuilder;
 
 impl DuperBuilder {
-    pub(crate) fn build_duper_stream(
-        pair: Pair<'_, Rule>,
-    ) -> Result<Vec<DuperValue<'_>>, Box<Error<Rule>>> {
-        pair.into_inner()
-            .map(|inner_pair| Self::build_duper_trunk(inner_pair))
-            .collect()
-    }
-
     pub(crate) fn build_duper_trunk(
         pair: Pair<'_, Rule>,
     ) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
