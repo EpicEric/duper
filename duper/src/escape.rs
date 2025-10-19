@@ -60,7 +60,7 @@ pub(crate) fn unescape_str<'a>(input: &'a str) -> Result<Cow<'a, str>, UnescapeE
                             _ => return Err(UnescapeError::InvalidByteSequence(orig_str)),
                         };
 
-                        for i in 1..expected_len {
+                        for buf_item in buf.iter_mut().take(expected_len).skip(1) {
                             let (Some('\\'), Some('x')) = (chars.next(), chars.next()) else {
                                 return Err(UnescapeError::InvalidByteSequence(orig_str));
                             };
@@ -69,7 +69,7 @@ pub(crate) fn unescape_str<'a>(input: &'a str) -> Result<Cow<'a, str>, UnescapeE
                             if hex_str.len() == 2
                                 && let Ok(byte) = u8::from_str_radix(&hex_str, 16)
                             {
-                                buf[i] = byte;
+                                *buf_item = byte;
                             } else {
                                 return Err(UnescapeError::InvalidByteSequence(orig_str));
                             }
@@ -194,7 +194,7 @@ pub(crate) fn escape_str<'a>(input: &'a Cow<'a, str>) -> Cow<'a, str> {
 
     match result {
         Some(result) => Cow::Owned(result),
-        None => Cow::Borrowed(&input),
+        None => Cow::Borrowed(input),
     }
 }
 

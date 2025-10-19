@@ -87,11 +87,8 @@ impl<'a> DuperIdentifier<'a> {
                     last_char_was_separator = true;
                 }
                 char if char.is_alphanumeric() => {
-                    match new_value.as_mut() {
-                        Some(new_value) => {
-                            new_value.push(char);
-                        }
-                        None => (),
+                    if let Some(new_value) = new_value.as_mut() {
+                        new_value.push(char);
                     }
                     last_char_was_separator = false;
                 }

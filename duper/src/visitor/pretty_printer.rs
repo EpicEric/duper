@@ -186,7 +186,7 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
         } else if tuple.len() == 1 {
             string.push('(');
             string.push_str(&tuple.get(0).unwrap().accept(self));
-            string.push_str(")");
+            string.push(')');
         } else {
             string.push_str("(\n");
             self.increase_indentation();
