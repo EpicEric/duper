@@ -510,10 +510,39 @@ pub mod chrono {
             T: TimeZone,
             WrappedType<T>: Deserialize<'de>,
         {
-            WrappedType::<T>::deserialize(deserializer)
+            struct Visitor<T: TimeZone> {
+                _marker: ::std::marker::PhantomData<T>,
+            }
+
+            impl<'de, T> de::Visitor<'de> for Visitor<T>
+            where
+                T: TimeZone,
+                WrappedType<T>: Deserialize<'de>,
+            {
+                type Value = WrappedType<T>;
+
+                fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> std::fmt::Result {
+                    formatter.write_str("a newtype struct DateTime")
+                }
+
+                fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+                where
+                    D: Deserializer<'de>,
+                {
+                    <WrappedType<T>>::deserialize(deserializer)
+                }
+            }
+
+            deserializer.deserialize_newtype_struct(
+                "DateTime",
+                Visitor {
+                    _marker: ::std::marker::PhantomData,
+                },
+            )
         }
     }
     pub mod DuperOptionDateTime {
+
         use super::*;
         use ::chrono::{DateTime as WrappedType, TimeZone};
 
@@ -533,9 +562,37 @@ pub mod chrono {
         where
             D: Deserializer<'de>,
             T: TimeZone,
-            Option<WrappedType<T>>: Deserialize<'de>,
+            WrappedType<T>: Deserialize<'de>,
         {
-            <Option<WrappedType<T>>>::deserialize(deserializer)
+            struct Visitor<T: TimeZone> {
+                _marker: ::std::marker::PhantomData<T>,
+            }
+
+            impl<'de, T> de::Visitor<'de> for Visitor<T>
+            where
+                T: TimeZone,
+                WrappedType<T>: Deserialize<'de>,
+            {
+                type Value = Option<WrappedType<T>>;
+
+                fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> std::fmt::Result {
+                    formatter.write_str("a newtype struct DateTime")
+                }
+
+                fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+                where
+                    D: Deserializer<'de>,
+                {
+                    <Option<WrappedType<T>>>::deserialize(deserializer)
+                }
+            }
+
+            deserializer.deserialize_newtype_struct(
+                "DateTime",
+                Visitor {
+                    _marker: ::std::marker::PhantomData,
+                },
+            )
         }
     }
 }
@@ -556,7 +613,24 @@ pub mod DuperDecimal {
     where
         D: Deserializer<'de>,
     {
-        rust_decimal::serde::str::deserialize(deserializer)
+        struct Visitor;
+
+        impl<'de> de::Visitor<'de> for Visitor {
+            type Value = WrappedType;
+
+            fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a newtype struct Decimal")
+            }
+
+            fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                ::rust_decimal::serde::str::deserialize(deserializer)
+            }
+        }
+
+        deserializer.deserialize_newtype_struct("Decimal", Visitor)
     }
 }
 #[cfg(feature = "decimal")]
@@ -575,7 +649,24 @@ pub mod DuperOptionDecimal {
     where
         D: Deserializer<'de>,
     {
-        rust_decimal::serde::str_option::deserialize(deserializer)
+        struct Visitor;
+
+        impl<'de> de::Visitor<'de> for Visitor {
+            type Value = Option<WrappedType>;
+
+            fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a newtype struct Decimal")
+            }
+
+            fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                ::rust_decimal::serde::str_option::deserialize(deserializer)
+            }
+        }
+
+        deserializer.deserialize_newtype_struct("Decimal", Visitor)
     }
 }
 
