@@ -108,7 +108,7 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
             && float as i128 == v
         {
             Ok(DuperValue {
-                identifier: None,
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("I128"))),
                 inner: DuperInner::Float(float),
             })
         } else {
@@ -147,10 +147,10 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
                 inner: DuperInner::Integer(integer),
             })
         } else if let float = v as f64
-            && float as u64 == v
+            && float.round() as u64 == v
         {
             Ok(DuperValue {
-                identifier: None,
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U64"))),
                 inner: DuperInner::Float(float),
             })
         } else {
@@ -171,7 +171,7 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
             && float as u128 == v
         {
             Ok(DuperValue {
-                identifier: None,
+                identifier: Some(DuperIdentifier::from(Cow::Borrowed("U128"))),
                 inner: DuperInner::Float(float),
             })
         } else {
@@ -267,7 +267,9 @@ impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
     {
         let value = value.serialize(self)?;
         Ok(DuperValue {
-            identifier: (!name.is_empty()).then_some(DuperIdentifier::from(Cow::Borrowed(name))),
+            identifier: (!name.is_empty())
+                .then_some(DuperIdentifier::from(Cow::Borrowed(name)))
+                .or(value.identifier),
             inner: value.inner,
         })
     }

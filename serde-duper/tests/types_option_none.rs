@@ -498,6 +498,26 @@ fn none_chrono() {
 }
 
 #[test]
+#[cfg(feature = "decimal")]
+fn none_decimal() {
+    use rust_decimal::Decimal;
+    use serde_duper::types::DuperOptionDecimal;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperOptionDecimal")]
+        cost: Option<Decimal>,
+    }
+
+    let value = Test { cost: None };
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(serialized, r#"Test({cost: Decimal(null)})"#);
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert!(deserialized.cost.is_none());
+}
+
+#[test]
 #[cfg(feature = "uuid")]
 fn none_uuid() {
     use serde_duper::types::DuperOptionUuid;

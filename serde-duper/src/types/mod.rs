@@ -462,5 +462,44 @@ pub mod chrono {
     }
 }
 
+#[cfg(feature = "decimal")]
+pub mod DuperDecimal {
+    use super::*;
+    use ::rust_decimal::Decimal as WrappedType;
+
+    pub fn serialize<S>(value: &WrappedType, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_newtype_struct("Decimal", value)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<WrappedType, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        rust_decimal::serde::str::deserialize(deserializer)
+    }
+}
+#[cfg(feature = "decimal")]
+pub mod DuperOptionDecimal {
+    use super::*;
+    use ::rust_decimal::Decimal as WrappedType;
+
+    pub fn serialize<S>(value: &Option<WrappedType>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_newtype_struct("Decimal", value)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<WrappedType>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        rust_decimal::serde::str_option::deserialize(deserializer)
+    }
+}
+
 #[cfg(feature = "uuid")]
 duper_serde_module!(DuperUuid, DuperOptionUuid, ::uuid::Uuid, "Uuid");

@@ -13,9 +13,10 @@ default = []
 macros = ["dep:serde-duper-macros"]
 
 # Type dependencies
-uuid = ["dep:uuid"]
 bytes = ["dep:bytes"]
 chrono = ["dep:chrono"]
+decimal = ["dep:rust_decimal"]
+uuid = ["dep:uuid"]
 
 [dependencies]
 # Core dependencies
@@ -30,7 +31,9 @@ serde-duper-macros = { path = "../serde-duper-macros", optional = true }
 # Type dependencies
 bytes = { version = "1", features = ["serde"], optional = true }
 chrono = { version = "0.4", features = ["serde"], optional = true }
+rust_decimal = { version = "1", features = ["serde-str"], optional = true }
 uuid = { version = "1", features = ["serde"], optional = true }
 
 [dev-dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
+rust_decimal = { version = "1", features = ["serde-str", "macros"] }

@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{Attribute, Item, ItemStruct, Meta, parse_macro_input};
+use syn::{Attribute, Fields, Ident, Item, ItemStruct, Meta, parse_macro_input};
 
 #[proc_macro]
 pub fn duper(input: TokenStream) -> TokenStream {
@@ -22,53 +22,86 @@ fn expand_struct(mut s: ItemStruct) -> proc_macro2::TokenStream {
 
     let (has_serialize, has_deserialize) = has_serde_derive_attributes(&s.attrs);
 
-    if let syn::Fields::Named(ref mut fields_named) = s.fields {
-        for field in fields_named.named.iter_mut() {
-            // Remove the #[duper(...)] attribute and capture it
-            let mut maybe_duper: Option<Attribute> = None;
-            field.attrs.retain(|attr| {
-                if attr.path().is_ident("duper") {
-                    maybe_duper = Some(attr.clone());
-                    false
-                } else {
-                    true
-                }
-            });
+    if !&s.generics.params.is_empty() {
+        return syn::Error::new_spanned(s.generics, "duper! doesn't support generic parameters")
+            .into_compile_error();
+    }
 
-            if let Some(duper_attr) = maybe_duper {
-                let duper_name = match parse_duper_name(&duper_attr) {
-                    Some(n) => n,
-                    None => {
-                        let err = syn::Error::new_spanned(
-                            duper_attr,
-                            "expected #[duper(Name<...>)] or #[duper(Name)]",
-                        );
-                        modules.push(err.to_compile_error());
-                        continue;
-                    }
-                };
-
-                let field_ident = field.ident.as_ref().unwrap();
-                let mod_ident = format_ident!("__serde_duper_{}_{}", struct_ident, field_ident);
-                let path_string = format!("{}", mod_ident);
-
-                let serde_with_attr: Attribute = syn::parse_quote! {
-                    #[serde(with = #path_string)]
-                };
-                field.attrs.push(serde_with_attr);
-
-                let ty = &field.ty;
-                let module =
-                    generate_module(&mod_ident, ty, &duper_name, has_serialize, has_deserialize);
-                modules.push(module);
+    match &mut s.fields {
+        Fields::Named(fields_named) => {
+            for field in fields_named.named.iter_mut() {
+                process_field(
+                    field,
+                    format_ident!(
+                        "__serde_duper_{}_{}",
+                        struct_ident,
+                        field.ident.as_ref().unwrap()
+                    ),
+                    &mut modules,
+                    has_serialize,
+                    has_deserialize,
+                );
             }
         }
+        Fields::Unnamed(fields_named) => {
+            for (i, field) in fields_named.unnamed.iter_mut().enumerate() {
+                process_field(
+                    field,
+                    format_ident!("__serde_duper_{}_{}", struct_ident, i),
+                    &mut modules,
+                    has_serialize,
+                    has_deserialize,
+                );
+            }
+        }
+        Fields::Unit => (),
     }
 
     quote! {
         #s
 
         #(#modules)*
+    }
+}
+
+fn process_field(
+    field: &mut syn::Field,
+    mod_ident: Ident,
+    modules: &mut Vec<proc_macro2::TokenStream>,
+    has_serialize: bool,
+    has_deserialize: bool,
+) {
+    // Remove the #[duper(...)] attribute and capture it
+    let maybe_duper_i = field
+        .attrs
+        .iter()
+        .enumerate()
+        .find(|(_, attr)| attr.path().is_ident("duper"))
+        .map(|(i, _)| i);
+
+    if let Some(duper_attr) = maybe_duper_i.map(|i| field.attrs.swap_remove(i)) {
+        let duper_name = match parse_duper_name(&duper_attr) {
+            Some(n) => n,
+            None => {
+                let err = syn::Error::new_spanned(
+                    duper_attr,
+                    "expected #[duper(Name<...>)] or #[duper(Name)]",
+                );
+                modules.push(err.to_compile_error());
+                return;
+            }
+        };
+
+        let path_string = format!("{}", mod_ident);
+
+        let serde_with_attr: Attribute = syn::parse_quote! {
+            #[serde(with = #path_string)]
+        };
+        field.attrs.push(serde_with_attr);
+
+        let ty = &field.ty;
+        let module = generate_module(&mod_ident, ty, &duper_name, has_serialize, has_deserialize);
+        modules.push(module);
     }
 }
 
@@ -79,10 +112,11 @@ fn has_serde_derive_attributes(attrs: &[Attribute]) -> (bool, bool) {
         if attr.path().is_ident("derive") {
             if let Meta::List(list) = &attr.meta {
                 let _ = list.parse_nested_meta(|nested| {
-                    if let Some(ident) = nested.path.get_ident().map(ToString::to_string) {
-                        if ident.ends_with("Serialize") {
+                    if let Some(segment) = nested.path.segments.last() {
+                        let ident = &segment.ident;
+                        if ident == "Serialize" {
                             has_serialize = true;
-                        } else if ident.ends_with("Deserialize") {
+                        } else if ident == "Deserialize" {
                             has_deserialize = true;
                         }
                     }
@@ -94,8 +128,6 @@ fn has_serde_derive_attributes(attrs: &[Attribute]) -> (bool, bool) {
     (has_serialize, has_deserialize)
 }
 
-/// Parse an attribute like `#[duper(CustomMap<_, (_, CoolVec<_>)>)]`
-/// and return the top identifier name "CustomMap".
 fn parse_duper_name(attr: &Attribute) -> Option<String> {
     if let Meta::List(list) = &attr.meta {
         let mut result: Option<String> = None;
@@ -123,8 +155,7 @@ fn generate_module(
     if has_serialize {
         let serialize_fn = quote! {
             pub fn serialize<S>(value: &#ty, serializer: S) -> Result<S::Ok, S::Error>
-            where
-                S: serde::Serializer,
+                where S: ::serde::Serializer,
             {
                 serializer.serialize_newtype_struct(#duper_name, &value)
             }
@@ -135,23 +166,25 @@ fn generate_module(
     if has_deserialize {
         let deserialize_fn = quote! {
             pub fn deserialize<'de, D>(deserializer: D) -> Result<#ty, D::Error>
-            where
-                D: serde::Deserializer<'de>,
+                where D: ::serde::Deserializer<'de>,
             {
                 struct Visitor;
 
-                impl<'de> serde::de::Visitor<'de> for Visitor {
+                impl<'de> ::serde::de::Visitor<'de> for Visitor
+                {
                     type Value = #ty;
 
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                        formatter.write_str("a newtype struct")
+                    fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                        formatter.write_str("a newtype struct ")?;
+                        formatter.write_str(#duper_name)?;
+                        Ok(())
                     }
 
                     fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
                     where
-                        D: serde::Deserializer<'de>,
+                        D: ::serde::Deserializer<'de>,
                     {
-                        Ok(serde::Deserialize::deserialize(deserializer)?)
+                        ::serde::Deserialize::deserialize(deserializer)
                     }
                 }
 
@@ -161,7 +194,13 @@ fn generate_module(
         module_tokens.push(deserialize_fn);
     }
 
-    if !module_tokens.is_empty() {
+    if module_tokens.is_empty() {
+        // Generate empty module
+        quote! {
+            #[allow(non_snake_case)]
+            mod #mod_ident {}
+        }
+    } else {
         quote! {
             #[allow(non_snake_case)]
             mod #mod_ident {
@@ -169,12 +208,6 @@ fn generate_module(
 
                 #(#module_tokens)*
             }
-        }
-    } else {
-        // Generate empty module
-        quote! {
-            #[allow(non_snake_case)]
-            mod #mod_ident {}
         }
     }
 }

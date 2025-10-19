@@ -585,6 +585,28 @@ fn chrono() {
 }
 
 #[test]
+#[cfg(feature = "decimal")]
+fn decimal() {
+    use rust_decimal::{Decimal, dec};
+    use serde_duper::types::DuperDecimal;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperDecimal")]
+        cost: Decimal,
+    }
+
+    let value = Test {
+        cost: dec!(12345678.90),
+    };
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(serialized, r#"Test({cost: Decimal("12345678.90")})"#);
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(value.cost, deserialized.cost);
+}
+
+#[test]
 #[cfg(feature = "uuid")]
 fn uuid() {
     use serde_duper::types::DuperUuid;
