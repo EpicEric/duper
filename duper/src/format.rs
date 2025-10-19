@@ -23,7 +23,7 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
         Cow::Borrowed(r#""""#)
     } else {
         // Check if it's benefic to turn into a raw string
-        let mut quotes = 0usize;
+        let mut chars_to_escape = 0usize;
         let mut was_quotes = false;
         let mut was_hashtag = false;
         let mut curr_hashtags = 0usize;
@@ -34,7 +34,7 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
                 '"' => {
                     was_hashtag = false;
                     was_quotes = true;
-                    quotes += 1;
+                    chars_to_escape += 1;
                 }
                 '#' if was_hashtag => {
                     curr_hashtags += 1;
@@ -50,6 +50,11 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
                     was_hashtag = false;
                     was_quotes = false;
                 }
+                '\\' => {
+                    was_hashtag = false;
+                    was_quotes = false;
+                    chars_to_escape += 1;
+                }
                 char if char.is_control() || char.is_whitespace() || is_invisible_unicode(char) => {
                     has_char_that_should_be_escaped = true;
                     break;
@@ -60,9 +65,9 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
                 }
             }
         }
-        if quotes > max_hashtags && !has_char_that_should_be_escaped {
+        if chars_to_escape > max_hashtags && !has_char_that_should_be_escaped {
             // Raw string
-            let hashtags: String = (0..=max_hashtags).map(|_| '#').collect();
+            let hashtags: String = (0..max_hashtags).map(|_| '#').collect();
             Cow::Owned(format!(r#"r{}"{}"{}"#, hashtags, string, hashtags))
         } else {
             // Regular string with escaping
@@ -78,7 +83,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
         Cow::Borrowed(r#"b"""#)
     } else {
         // Check if it's benefic to turn into raw bytes
-        let mut quotes = 0usize;
+        let mut bytes_to_escape = 0usize;
         let mut was_quotes = false;
         let mut was_hashtag = false;
         let mut curr_hashtags = 0usize;
@@ -89,7 +94,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
                 b'"' => {
                     was_hashtag = false;
                     was_quotes = true;
-                    quotes += 1;
+                    bytes_to_escape += 1;
                 }
                 b'#' if was_hashtag => {
                     curr_hashtags += 1;
@@ -105,6 +110,11 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
                     was_hashtag = false;
                     was_quotes = false;
                 }
+                b'\\' => {
+                    was_hashtag = false;
+                    was_quotes = false;
+                    bytes_to_escape += 1;
+                }
                 byte if byte.is_ascii_control() || byte.is_ascii_whitespace() => {
                     has_char_that_should_be_escaped = true;
                     break;
@@ -115,9 +125,9 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
                 }
             }
         }
-        if quotes > max_hashtags && !has_char_that_should_be_escaped {
+        if bytes_to_escape > max_hashtags && !has_char_that_should_be_escaped {
             // Raw bytes
-            let hashtags: String = (0..=max_hashtags).map(|_| '#').collect();
+            let hashtags: String = (0..max_hashtags).map(|_| '#').collect();
             let unesecaped_bytes: String = bytes.0.iter().copied().map(|b| b as char).collect();
             Cow::Owned(format!(
                 r#"br{}"{}"{}"#,

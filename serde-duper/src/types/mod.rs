@@ -25,7 +25,24 @@ macro_rules! duper_serde_module {
             where
                 D: Deserializer<'de>,
             {
-                <$wrapped_type>::deserialize(deserializer)
+                struct Visitor;
+
+                impl<'de> serde_core::de::Visitor<'de> for Visitor {
+                    type Value = $wrapped_type;
+
+                    fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                        formatter.write_str("a newtype struct")
+                    }
+
+                    fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+                    where
+                        D: Deserializer<'de>,
+                    {
+                        <$wrapped_type>::deserialize(deserializer)
+                    }
+                }
+
+                deserializer.deserialize_newtype_struct($type_name, Visitor)
             }
         }
         pub mod $option_mod_name {
@@ -42,7 +59,24 @@ macro_rules! duper_serde_module {
             where
                 D: Deserializer<'de>,
             {
-                <Option<$wrapped_type>>::deserialize(deserializer)
+                struct Visitor;
+
+                impl<'de> serde_core::de::Visitor<'de> for Visitor {
+                    type Value = Option<$wrapped_type>;
+
+                    fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                        formatter.write_str("a newtype struct")
+                    }
+
+                    fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+                    where
+                        D: Deserializer<'de>,
+                    {
+                        <Option<$wrapped_type>>::deserialize(deserializer)
+                    }
+                }
+
+                deserializer.deserialize_newtype_struct($type_name, Visitor)
             }
         }
     };
@@ -69,6 +103,7 @@ macro_rules! duper_serde_module {
                 D: Deserializer<'de>,
                 $wrapped_type: Deserialize<'de>,
             {
+                // TODO: Use newtype struct deserialization
                 <$wrapped_type>::deserialize(deserializer)
             }
         }
@@ -88,6 +123,7 @@ macro_rules! duper_serde_module {
                 D: Deserializer<'de>,
                 Option<$wrapped_type>: Deserialize<'de>,
             {
+                // TODO: Use newtype struct deserialization
                 <Option<$wrapped_type>>::deserialize(deserializer)
             }
         }
@@ -498,6 +534,126 @@ pub mod DuperOptionDecimal {
         D: Deserializer<'de>,
     {
         rust_decimal::serde::str_option::deserialize(deserializer)
+    }
+}
+
+#[cfg(feature = "ipnet")]
+duper_serde_module!(DuperIpNet, DuperOptionIpNet, ::ipnet::IpNet, "IpNet");
+#[cfg(feature = "ipnet")]
+duper_serde_module!(
+    DuperIpv4Net,
+    DuperOptionIpv4Net,
+    ::ipnet::Ipv4Net,
+    "Ipv4Net"
+);
+#[cfg(feature = "ipnet")]
+duper_serde_module!(
+    DuperIpv6Net,
+    DuperOptionIpv6Net,
+    ::ipnet::Ipv6Net,
+    "Ipv6Net"
+);
+
+#[cfg(feature = "regex")]
+pub mod DuperRegex {
+    use super::*;
+    use ::regex::Regex as WrappedType;
+
+    pub fn serialize<S>(value: &WrappedType, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_newtype_struct("Regex", value.as_str())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<WrappedType, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct Visitor;
+
+        impl<'de> serde_core::de::Visitor<'de> for Visitor {
+            type Value = WrappedType;
+
+            fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                formatter.write_str("a Regex")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde_core::de::Error,
+            {
+                WrappedType::new(v).map_err(|error| E::custom(error))
+            }
+
+            fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                deserializer.deserialize_str(self)
+            }
+        }
+
+        deserializer.deserialize_newtype_struct("Regex", Visitor)
+    }
+}
+pub mod DuperOptionRegex {
+    use super::*;
+    use ::regex::Regex as WrappedType;
+
+    pub fn serialize<S>(value: &Option<WrappedType>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            Some(value) => serializer.serialize_newtype_struct("Regex", value.as_str()),
+            None => serializer.serialize_newtype_struct("Regex", &Option::<&str>::None),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<WrappedType>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct Visitor;
+
+        impl<'de> serde_core::de::Visitor<'de> for Visitor {
+            type Value = Option<WrappedType>;
+
+            fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                formatter.write_str("a Regex")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde_core::de::Error,
+            {
+                Some(WrappedType::new(v).map_err(|error| E::custom(error))).transpose()
+            }
+
+            fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                deserializer.deserialize_str(self)
+            }
+
+            fn visit_none<E>(self) -> Result<Self::Value, E>
+            where
+                E: serde_core::de::Error,
+            {
+                Ok(None)
+            }
+
+            fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                deserializer.deserialize_option(self)
+            }
+        }
+
+        deserializer.deserialize_newtype_struct("Regex", Visitor)
     }
 }
 

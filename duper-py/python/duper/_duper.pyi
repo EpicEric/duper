@@ -11,7 +11,7 @@ __all__ = [
 def dumps(
     obj: Any,
     *,
-    indent: int | None = None,
+    indent: str | int | None = None,
     strip_identifiers: bool = False,
 ) -> str:
     """Serialize obj as a Duper value formatted str."""
@@ -20,7 +20,7 @@ def dump(
     obj: Any,
     fp: TextIOBase,
     *,
-    indent: int | None = None,
+    indent: str | int | None = None,
     strip_identifiers: bool = False,
 ) -> None:
     """Serialize obj as a Duper value formatted stream to fp (a file-like object)."""

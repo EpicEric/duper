@@ -97,7 +97,7 @@ We can get rid of the quotes for simple keys, use trailing commas, and include c
 }
 ```
 
-Duper also adds supports for tuples (`(-23.561384, -46.655891)`), bytes (`b"\x1b[1mDuper\x1b[0m"`), raw strings (`r#"I can use "quotes" in here!"#`), and raw bytes (`br#"/\ Check this out! #wombo_combo"#`). Also, integers are a separate type from floats.
+Duper also adds supports for tuples (`(-23.561384, -46.655891)`), bytes (`b"\x1b[1mDuper\x1b[0m"`), raw strings (`r#"I can use "quotes" in here!"#`), and raw bytes (`br"/\ Check this out! #wombo_combo"`). Also, integers are a separate type from floats.
 
 ---
 

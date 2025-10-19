@@ -687,6 +687,67 @@ fn some_decimal() {
 }
 
 #[test]
+#[cfg(feature = "ipnet")]
+fn some_ipnet() {
+    use ipnet::{IpNet, Ipv4Net, Ipv6Net};
+    use serde_duper::types::{DuperOptionIpNet, DuperOptionIpv4Net, DuperOptionIpv6Net};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperOptionIpNet")]
+        generic: Option<IpNet>,
+        #[serde(with = "DuperOptionIpv4Net")]
+        v4: Option<Ipv4Net>,
+        #[serde(with = "DuperOptionIpv6Net")]
+        v6: Option<Ipv6Net>,
+    }
+
+    let value = Test {
+        generic: Some(IpNet::V4("192.168.0.0/24".parse().unwrap())),
+        v4: Some("10.15.0.0/16".parse().unwrap()),
+        v6: Some("2001:db8::/32".parse().unwrap()),
+    };
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({generic: IpNet("192.168.0.0/24"), v4: Ipv4Net("10.15.0.0/16"), v6: Ipv6Net("2001:db8::/32")})"#
+    );
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(value.generic, deserialized.generic);
+    assert_eq!(value.v4, deserialized.v4);
+    assert_eq!(value.v6, deserialized.v6);
+}
+
+#[test]
+#[cfg(feature = "regex")]
+fn some_regex() {
+    use regex::Regex;
+    use serde_duper::types::DuperOptionRegex;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperOptionRegex")]
+        pattern: Option<Regex>,
+    }
+
+    let value = Test {
+        pattern: Some(Regex::new(r"Hello (?<name>\w+)!").unwrap()),
+    };
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r##"Test({pattern: Regex(r"Hello (?<name>\w+)!")})"##
+    );
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(
+        value.pattern.unwrap().as_str(),
+        deserialized.pattern.unwrap().as_str()
+    );
+}
+
+#[test]
 #[cfg(feature = "uuid")]
 fn some_uuid() {
     use serde_duper::types::DuperOptionUuid;

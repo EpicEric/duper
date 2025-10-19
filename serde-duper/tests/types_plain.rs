@@ -607,6 +607,64 @@ fn decimal() {
 }
 
 #[test]
+#[cfg(feature = "ipnet")]
+fn ipnet() {
+    use ipnet::{IpNet, Ipv4Net, Ipv6Net};
+    use serde_duper::types::{DuperIpNet, DuperIpv4Net, DuperIpv6Net};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperIpNet")]
+        generic: IpNet,
+        #[serde(with = "DuperIpv4Net")]
+        v4: Ipv4Net,
+        #[serde(with = "DuperIpv6Net")]
+        v6: Ipv6Net,
+    }
+
+    let value = Test {
+        generic: IpNet::V4("192.168.0.0/24".parse().unwrap()),
+        v4: "10.15.0.0/16".parse().unwrap(),
+        v6: "2001:db8::/32".parse().unwrap(),
+    };
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({generic: IpNet("192.168.0.0/24"), v4: Ipv4Net("10.15.0.0/16"), v6: Ipv6Net("2001:db8::/32")})"#
+    );
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(value.generic, deserialized.generic);
+    assert_eq!(value.v4, deserialized.v4);
+    assert_eq!(value.v6, deserialized.v6);
+}
+
+#[test]
+#[cfg(feature = "regex")]
+fn regex() {
+    use regex::Regex;
+    use serde_duper::types::DuperRegex;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperRegex")]
+        pattern: Regex,
+    }
+
+    let value = Test {
+        pattern: Regex::new(r"Hello (?<name>\w+)!").unwrap(),
+    };
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({pattern: Regex(r"Hello (?<name>\w+)!")})"#
+    );
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(value.pattern.as_str(), deserialized.pattern.as_str());
+}
+
+#[test]
 #[cfg(feature = "uuid")]
 fn uuid() {
     use serde_duper::types::DuperUuid;

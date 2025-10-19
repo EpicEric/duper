@@ -518,6 +518,59 @@ fn none_decimal() {
 }
 
 #[test]
+#[cfg(feature = "ipnet")]
+fn none_ipnet() {
+    use ipnet::{IpNet, Ipv4Net, Ipv6Net};
+    use serde_duper::types::{DuperOptionIpNet, DuperOptionIpv4Net, DuperOptionIpv6Net};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperOptionIpNet")]
+        generic: Option<IpNet>,
+        #[serde(with = "DuperOptionIpv4Net")]
+        v4: Option<Ipv4Net>,
+        #[serde(with = "DuperOptionIpv6Net")]
+        v6: Option<Ipv6Net>,
+    }
+
+    let value = Test {
+        generic: None,
+        v4: None,
+        v6: None,
+    };
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({generic: IpNet(null), v4: Ipv4Net(null), v6: Ipv6Net(null)})"#
+    );
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert!(deserialized.generic.is_none());
+    assert!(deserialized.v4.is_none());
+    assert!(deserialized.v6.is_none());
+}
+
+#[test]
+#[cfg(feature = "regex")]
+fn none_regex() {
+    use regex::Regex;
+    use serde_duper::types::DuperOptionRegex;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperOptionRegex")]
+        pattern: Option<Regex>,
+    }
+
+    let value = Test { pattern: None };
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(serialized, r##"Test({pattern: Regex(null)})"##);
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert!(deserialized.pattern.is_none());
+}
+
+#[test]
 #[cfg(feature = "uuid")]
 fn none_uuid() {
     use serde_duper::types::DuperOptionUuid;

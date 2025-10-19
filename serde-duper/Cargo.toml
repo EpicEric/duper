@@ -16,6 +16,8 @@ macros = ["dep:serde-duper-macros"]
 bytes = ["dep:bytes"]
 chrono = ["dep:chrono"]
 decimal = ["dep:rust_decimal"]
+ipnet = ["dep:ipnet"]
+regex = ["dep:regex"]
 uuid = ["dep:uuid"]
 
 [dependencies]
@@ -31,6 +33,8 @@ serde-duper-macros = { path = "../serde-duper-macros", optional = true }
 # Type dependencies
 bytes = { version = "1", features = ["serde"], optional = true }
 chrono = { version = "0.4", features = ["serde"], optional = true }
+ipnet = { version = "2", features = ["serde"], optional = true }
+regex = { version = "1", optional = true }
 rust_decimal = { version = "1", features = ["serde-str"], optional = true }
 uuid = { version = "1", features = ["serde"], optional = true }
 
