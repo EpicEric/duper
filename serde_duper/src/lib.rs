@@ -32,7 +32,7 @@
 //! ```
 //!
 //! This crate allows you to convert between Duper's text representation and
-//! Rust's native data types, thanks to the [`serde`] framework.
+//! Rust's native data types, thanks to the `serde` framework.
 //!
 //! Serde provides a powerful way of mapping Duper data to and from Rust data
 //! structures largely automatically.
@@ -222,7 +222,7 @@
 //! //     })
 //! ```
 //!
-//! The [`serde_duper::types`] module provides a simple and quick plug-and-play
+//! The [`types`] module provides a simple and quick plug-and-play
 //! way of annotating types from [`std`] (as well as a few popular third-party
 //! crates behind feature flags) with Duper identifiers. It works by providing
 //! remote modules that will handle (de)serialization. This is less flexible,
@@ -235,6 +235,7 @@
 //! ```
 //! use serde::{Deserialize, Serialize};
 //! use serde_duper::duper;
+//! use uuid::Uuid;
 //!
 //! #[derive(Serialize, Deserialize)]
 //! #[serde(rename = "Status")]
@@ -248,13 +249,14 @@
 //!     #[derive(Serialize, Deserialize)]
 //!     struct User {
 //!         #[duper(MyUuid)]
-//!         id: uuid::Uuid,
+//!         id: Uuid,
 //!         status: UserStatus,
 //!         #[duper(IpList)]
 //!         last_known_ips: Vec<String>,
 //!     }
 //! }
 //!
+//! # fn main() {
 //! let u = User {
 //!     id: "314dfe6f-7a76-4c43-80b9-3b0ceb0960c0".parse().unwrap(),
 //!     status: UserStatus::Enabled,
@@ -268,13 +270,14 @@
 //! //       status: Status("Enabled"),
 //! //       last_known_ips: IpList(["2a02:ec80:700:ed1a::1"]),
 //! //     })
+//! # }
 //! ```
 //!
 //! This will automatically generate the modules for any type that implements
-//! [`serde::Serialize`] and/or [`serde::Deserialize`], not being restricted
-//! only to those with a remote (de)serializer module.
+//! [`serde_core::Serialize`] and/or [`serde_core::Deserialize`], not being
+//! restricted only to those with a remote (de)serializer module.
 //!
-//! This functionality requires the `macros` feature flag.
+//! This requires the `macros` feature flag.
 //!
 
 pub mod bytes;

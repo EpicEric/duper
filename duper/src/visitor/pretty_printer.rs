@@ -1,3 +1,5 @@
+//! Utilities for pretty-printing Duper values.
+
 use crate::{
     ast::{
         DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTuple, DuperValue,
@@ -9,6 +11,8 @@ use crate::{
     visitor::DuperVisitor,
 };
 
+/// A Duper visitor which pretty-prints the provided [`DuperValue`] with
+/// line breaks, indentation, and trailing commas.
 pub struct PrettyPrinter<'pp> {
     strip_identifiers: bool,
     curr_indent: usize,
@@ -26,12 +30,14 @@ impl Default for PrettyPrinter<'static> {
 }
 
 impl<'pp> PrettyPrinter<'pp> {
+    /// Create a new [`PrettyPrinter`] visitor with the provided option and
+    /// desired indentation.
     pub fn new(strip_identifiers: bool, indent: &'pp str) -> Result<Self, &'static str> {
         if indent.is_empty() {
             return Err("Indentation cannot be empty");
         }
         if indent.chars().any(|char| char != ' ' && char != '\t') {
-            return Err("Indentation may only consist of spaces or tabs");
+            return Err("Indentation may only consist of spaces and tabs");
         }
         Ok(Self {
             strip_identifiers,
@@ -40,6 +46,7 @@ impl<'pp> PrettyPrinter<'pp> {
         })
     }
 
+    /// Convert the [`DuperValue`] into a pretty-printed [`String`].
     pub fn pretty_print<'a>(&mut self, value: DuperValue<'a>) -> String {
         value.accept(self)
     }

@@ -10,6 +10,7 @@ use serde_core::{
 
 use crate::Error;
 
+/// Implementation of a deserializer from a [`DuperValue`].
 pub struct Deserializer<'de> {
     value: Option<DuperValue<'de>>,
 }

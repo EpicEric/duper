@@ -4,14 +4,41 @@ use crate::{ast::DuperValue, builder::DuperBuilder};
 
 #[derive(pest_derive::Parser)]
 #[grammar = "grammar.pest"]
+/// The [`pest`]-based parser for Duper.
 pub struct DuperParser;
 
 impl DuperParser {
+    /// Parse a Duper trunk, i.e. only an array or object at the top level.
+    ///
+    /// You can map the error into a formatted `miette::Error` as follows:
+    ///
+    /// ```
+    /// use duper::DuperParser;
+    ///
+    /// # let input = "{}";
+    /// let duper = match DuperParser::parse_duper_trunk(input) {
+    ///     Ok(duper) => duper,
+    ///     Err(error) => panic!("{:?}", miette::Error::new(error.into_miette())),
+    /// };
+    /// ```
     pub fn parse_duper_trunk(input: &'_ str) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
         let mut pairs = Self::parse(Rule::duper, input)?;
         DuperBuilder::build_duper_trunk(pairs.next().unwrap())
     }
 
+    /// Parse a Duper value.
+    ///
+    /// You can map the error into a formatted `miette::Error` as follows:
+    ///
+    /// ```
+    /// use duper::DuperParser;
+    ///
+    /// # let input = "{}";
+    /// let duper = match DuperParser::parse_duper_value(input) {
+    ///     Ok(duper) => duper,
+    ///     Err(error) => panic!("{:?}", miette::Error::new(error.into_miette())),
+    /// };
+    /// ```
     pub fn parse_duper_value(input: &'_ str) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
         let mut pairs = Self::parse(Rule::duper_value, input)?;
         DuperBuilder::build_duper_value(pairs.next().unwrap())

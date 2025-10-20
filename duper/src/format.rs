@@ -44,7 +44,7 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
                 '#' if was_quotes => {
                     was_hashtag = true;
                     was_quotes = false;
-                    curr_hashtags = 1;
+                    curr_hashtags = 2;
                     max_hashtags = max_hashtags.max(curr_hashtags);
                 }
                 ' ' => {
@@ -104,7 +104,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
                 b'#' if was_quotes => {
                     was_hashtag = true;
                     was_quotes = false;
-                    curr_hashtags = 1;
+                    curr_hashtags = 2;
                     max_hashtags = max_hashtags.max(curr_hashtags);
                 }
                 b' ' => {

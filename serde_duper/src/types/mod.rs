@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 use serde_core::{Deserialize, Deserializer, Serialize, Serializer, de};
 
-// -- Helper macro --
-
+/// A helper macro to generate boilerplate for most serializable/deserializable
+/// types.
 #[macro_export]
 macro_rules! duper_serde_module {
     (

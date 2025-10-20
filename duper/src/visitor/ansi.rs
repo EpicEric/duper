@@ -1,3 +1,5 @@
+//! Utilities for generating ANSI sequences from Duper values.
+
 use std::io::{Error, Write};
 
 use crate::{
@@ -12,25 +14,44 @@ use crate::{
 };
 use owo_colors::{AnsiColors, DynColors, OwoColorize};
 
+/// A Duper visitor which generates colored ANSI escaping.
 pub struct Ansi<'ansi> {
     strip_identifiers: bool,
     theme: &'ansi AnsiTheme<'ansi>,
     bracket_depth: usize,
 }
 
+/// A struct representing a theme from whose colors the [`Ansi`] visitor will
+/// use.
 #[derive(Debug, Clone)]
 pub struct AnsiTheme<'theme> {
-    identifier: DynColors,
-    key: DynColors,
-    string: DynColors,
-    bytes: DynColors,
-    integer: DynColors,
-    float: DynColors,
-    boolean: DynColors,
-    null: DynColors,
-    brackets: &'theme [DynColors],
+    /// Duper identifiers: `Identifier(...)`
+    pub identifier: DynColors,
+    /// Duper keys: `{foo: ..., "bar": ...}`
+    pub key: DynColors,
+    /// Duper strings: `("Hello", r"#world")`
+    pub string: DynColors,
+    /// Duper bytes: `(b"Hello", br"#world")`
+    pub bytes: DynColors,
+    /// Duper integers: `(42, 0xdeadbeef)`
+    pub integer: DynColors,
+    /// Duper floats: `(2.17, 3.5e50)`
+    pub float: DynColors,
+    /// Duper booleans: `(true, false)`
+    pub boolean: DynColors,
+    /// Duper null: `null`
+    pub null: DynColors,
+    /// Brackets (for identifiers, arrays, tuples, and objects): `Id([({...})])`
+    ///
+    /// By default, [`Ansi`] will iterate over brackets, matching their colors
+    /// and looping around when the slice is exhausted.
+    ///
+    /// An empty slice will disable coloring of brackets.
+    pub brackets: &'theme [DynColors],
 }
 
+/// A theme using standard ANSI colors. This is the theme used in
+/// [`Default::default()`].
 pub static ANSI_THEME: &AnsiTheme = &AnsiTheme {
     identifier: DynColors::Ansi(AnsiColors::BrightBlue),
     key: DynColors::Ansi(AnsiColors::BrightCyan),
@@ -47,6 +68,7 @@ pub static ANSI_THEME: &AnsiTheme = &AnsiTheme {
     ],
 };
 
+/// A theme using the colors for VSCode's Dark+ theme.
 pub static VSCODE_DARK_PLUS_THEME: &AnsiTheme = &AnsiTheme {
     identifier: DynColors::Rgb(0x4E, 0xC9, 0xB0),
     key: DynColors::Rgb(0x9C, 0xDC, 0xFE),
@@ -76,6 +98,8 @@ impl Default for Ansi<'static> {
 }
 
 impl<'ansi> Ansi<'ansi> {
+    /// Create a new [`Ansi`] visitor with the provided option and desired
+    /// theme.
     pub fn new(strip_identifiers: bool, theme: &'ansi AnsiTheme) -> Self {
         Self {
             strip_identifiers,
@@ -84,6 +108,7 @@ impl<'ansi> Ansi<'ansi> {
         }
     }
 
+    /// Convert the [`DuperValue`] into a [`Vec`] of bytes.
     pub fn to_ansi<'a>(&mut self, value: DuperValue<'a>) -> Result<Vec<u8>, Error> {
         value.accept(self)
     }

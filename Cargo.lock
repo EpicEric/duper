@@ -102,13 +102,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "axum-duper"
+name = "axum_duper"
 version = "0.1.0"
 dependencies = [
  "axum",
  "serde",
- "serde-duper",
  "serde_core",
+ "serde_duper",
  "uuid",
 ]
 
@@ -1036,34 +1036,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde-duper"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "chrono",
- "duper",
- "ipnet",
- "pest",
- "regex",
- "rust_decimal",
- "serde",
- "serde-duper-macros",
- "serde_bytes",
- "serde_core",
- "uuid",
-]
-
-[[package]]
-name = "serde-duper-macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "serde",
- "syn 2.0.106",
-]
-
-[[package]]
 name = "serde_bytes"
 version = "0.11.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1090,6 +1062,34 @@ checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
 dependencies = [
  "proc-macro2",
  "quote",
+ "syn 2.0.106",
+]
+
+[[package]]
+name = "serde_duper"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "chrono",
+ "duper",
+ "ipnet",
+ "pest",
+ "regex",
+ "rust_decimal",
+ "serde",
+ "serde_bytes",
+ "serde_core",
+ "serde_duper_macros",
+ "uuid",
+]
+
+[[package]]
+name = "serde_duper_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde",
  "syn 2.0.106",
 ]
 

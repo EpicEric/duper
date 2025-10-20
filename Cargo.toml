@@ -1,9 +1,9 @@
 [workspace]
 resolver = "3"
 members = [
-  "axum-duper",
+  "axum_duper",
   "duper",
   "duper-py",
-  "serde-duper",
-  "serde-duper-macros",
+  "serde_duper",
+  "serde_duper_macros",
 ]

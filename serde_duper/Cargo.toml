@@ -1,5 +1,5 @@
 [package]
-name = "serde-duper"
+name = "serde_duper"
 description = "Serde support for Duper."
 version = "0.1.0"
 edition = "2024"
@@ -10,7 +10,7 @@ authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 default = []
 
 # Macros
-macros = ["dep:serde-duper-macros"]
+macros = ["dep:serde_duper_macros"]
 
 # Type dependencies
 bytes = ["dep:bytes"]
@@ -24,11 +24,11 @@ uuid = ["dep:uuid"]
 # Core dependencies
 duper = { path = "../duper", features = ["serde"] }
 pest = "2.8.3"
-serde_bytes = "0.11.19"
-serde_core = { version = "1.0.228" }
+serde_bytes = "0.11"
+serde_core = "1"
 
 # Macros
-serde-duper-macros = { path = "../serde-duper-macros", optional = true }
+serde_duper_macros = { path = "../serde_duper_macros", optional = true }
 
 # Type dependencies
 bytes = { version = "1", features = ["serde"], optional = true }

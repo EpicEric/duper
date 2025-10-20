@@ -53,7 +53,7 @@ impl IntoResponse for DuperRejection {
 /// Duper extractor / response.
 ///
 /// When used as an extractor, it can deserialize request bodies into some type
-/// that implements [`serde::de::DeserializeOwned`]. The request will be
+/// that implements [`DeserializeOwned`]. The request will be
 /// rejected (and a [`DuperRejection`] will be returned) if:
 ///
 /// - The request doesn’t have a `Content-Type: application/duper` or
@@ -88,7 +88,7 @@ impl IntoResponse for DuperRejection {
 /// ```
 ///
 /// When used as a response, it can serialize any type that implements
-/// [`serde::Serialize`] to `Duper`, and will automatically set the
+/// [`Serialize`] to `Duper`, and will automatically set the
 /// `Content-Type: application/duper` header.
 ///
 /// If the [`Serialize`] implementation decides to fail, or if a map with

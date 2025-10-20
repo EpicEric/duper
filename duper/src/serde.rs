@@ -5,6 +5,8 @@ use crate::{
 use serde_core::de::{VariantAccess, Visitor};
 use std::borrow::Cow;
 
+struct DuperValueDeserializerVisitor;
+
 impl<'a> serde_core::Serialize for DuperValue<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -53,8 +55,6 @@ impl<'a> serde_core::Serialize for DuperInner<'a> {
         }
     }
 }
-
-struct DuperValueDeserializerVisitor;
 
 impl<'de> Visitor<'de> for DuperValueDeserializerVisitor {
     type Value = DuperValue<'de>;

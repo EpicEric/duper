@@ -1,3 +1,5 @@
+//! Utilities for serializing Duper values.
+
 use crate::{
     ast::{
         DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTuple, DuperValue,
@@ -9,16 +11,19 @@ use crate::{
     visitor::DuperVisitor,
 };
 
+/// A Duper visitor which serializes the provided [`DuperValue`].
 #[derive(Default)]
 pub struct Serializer {
     strip_identifiers: bool,
 }
 
 impl Serializer {
+    /// Create a new [`Serializer`] visitor with the provided option.
     pub fn new(strip_identifiers: bool) -> Self {
         Self { strip_identifiers }
     }
 
+    /// Convert the [`DuperValue`] into a serialized [`String`].
     pub fn serialize<'a>(&mut self, value: DuperValue<'a>) -> String {
         value.accept(self)
     }

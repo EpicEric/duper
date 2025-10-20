@@ -2,13 +2,13 @@ use std::fmt::{self, Display};
 
 use duper::{DuperIdentifierTryFromError, DuperObjectTryFromError};
 
-#[derive(Debug, Clone)]
 /// The kinds of errors that can happen during serialization and deserialization.
+#[derive(Debug, Clone)]
 pub enum ErrorKind {
     /// Parsing failed at the given [`pest`] rule.
     ///
-    /// This error implements `.to_miette()` in order to allow generation of a
-    /// [`miette`] `Report`.
+    /// This error implements `.to_miette()`, in order to allow generation of a
+    /// `miette` `Report`.
     ParseError(Box<pest::error::Error<duper::DuperRule>>),
     /// Serialization failed with an unspecified error.
     SerializationError,

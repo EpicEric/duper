@@ -1,4 +1,4 @@
-//! Macros for [`serde-duper`].
+//! Macros for `serde_duper`.
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -29,7 +29,7 @@ use syn::{Attribute, Fields, Ident, Item, ItemStruct, Meta, parse_macro_input};
 /// ```
 ///
 /// Upon serializing and deserializing, `id` and `aliases` will be treated as
-/// newtype structs. This is useful to add identifiers to Duper values.
+/// newtype structs. This is useful for adding identifiers to Duper values.
 ///
 pub fn duper(input: TokenStream) -> TokenStream {
     let item = parse_macro_input!(input as Item);

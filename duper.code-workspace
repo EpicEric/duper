@@ -1,22 +1,28 @@
 {
   "folders": [
     {
-      "path": "duper-py"
+      "name": "axum_duper",
+      "path": "axum_duper"
     },
     {
-      "path": "axum-duper"
-    },
-    {
+      "name": "duper",
       "path": "duper"
     },
     {
+      "name": "duper-py",
+      "path": "duper-py"
+    },
+    {
+      "name": "duper-vs-code",
       "path": "duper-vs-code"
     },
     {
-      "path": "serde-duper"
+      "name": "serde_duper",
+      "path": "serde_duper"
     },
     {
-      "path": "serde-duper-macros"
+      "name": "serde_duper_macros",
+      "path": "serde_duper_macros"
     }
   ],
   "settings": {
