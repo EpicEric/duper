@@ -48,7 +48,7 @@ where
     T: Serialize,
 {
     Ok(DuperPrettyPrinter::new(false, indent)
-        .map_err(|error| Error::invalid_value(error))?
+        .map_err(Error::invalid_value)?
         .pretty_print(to_duper(value)?))
 }
 

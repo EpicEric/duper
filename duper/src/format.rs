@@ -35,6 +35,7 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
                     was_hashtag = false;
                     was_quotes = true;
                     chars_to_escape += 1;
+                    max_hashtags = max_hashtags.max(1);
                 }
                 '#' if was_hashtag => {
                     curr_hashtags += 1;

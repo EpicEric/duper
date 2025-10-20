@@ -576,7 +576,7 @@ mod pretty_printer_tests {
                                     DuperIdentifier::try_from(Cow::Borrowed("Float"))
                                         .expect("valid identifier"),
                                 ),
-                                inner: DuperInner::Float(3.14),
+                                inner: DuperInner::Float(4.2),
                             },
                             DuperValue {
                                 identifier: Some(

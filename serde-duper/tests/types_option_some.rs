@@ -722,22 +722,25 @@ fn some_ipnet() {
 #[test]
 #[cfg(feature = "regex")]
 fn some_regex() {
-    use regex::Regex;
-    use serde_duper::types::DuperOptionRegex;
+    use regex::{Regex, bytes::Regex as BytesRegex};
+    use serde_duper::types::{DuperOptionBytesRegex, DuperOptionRegex};
 
     #[derive(Debug, Serialize, Deserialize)]
     struct Test {
         #[serde(with = "DuperOptionRegex")]
         pattern: Option<Regex>,
+        #[serde(with = "DuperOptionBytesRegex")]
+        bytes_pattern: Option<BytesRegex>,
     }
 
     let value = Test {
         pattern: Some(Regex::new(r"Hello (?<name>\w+)!").unwrap()),
+        bytes_pattern: Some(BytesRegex::new("\x1b\\[\\dm").unwrap()),
     };
     let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
         serialized,
-        r##"Test({pattern: Regex(r"Hello (?<name>\w+)!")})"##
+        r#"Test({pattern: Regex(r"Hello (?<name>\w+)!"), bytes_pattern: BytesRegex("\x1b\\[\\dm")})"#
     );
 
     let deserialized: Test = serde_duper::from_string(&serialized).unwrap();

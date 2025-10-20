@@ -730,6 +730,7 @@ pub mod DuperRegex {
         deserializer.deserialize_newtype_struct("Regex", Visitor)
     }
 }
+#[cfg(feature = "regex")]
 pub mod DuperOptionRegex {
     use super::*;
     use ::regex::Regex as WrappedType;
@@ -740,7 +741,7 @@ pub mod DuperOptionRegex {
     {
         match value {
             Some(value) => serializer.serialize_newtype_struct("Regex", value.as_str()),
-            None => serializer.serialize_newtype_struct("Regex", &Option::<&str>::None),
+            None => serializer.serialize_newtype_struct("Regex", &Option::<()>::None),
         }
     }
 
@@ -787,6 +788,109 @@ pub mod DuperOptionRegex {
         }
 
         deserializer.deserialize_newtype_struct("Regex", Visitor)
+    }
+}
+#[cfg(feature = "regex")]
+pub mod DuperBytesRegex {
+    use super::*;
+    use ::regex::bytes::Regex as WrappedType;
+
+    pub fn serialize<S>(value: &WrappedType, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_newtype_struct("BytesRegex", value.as_str())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<WrappedType, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct Visitor;
+
+        impl<'de> de::Visitor<'de> for Visitor {
+            type Value = WrappedType;
+
+            fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                formatter.write_str("a BytesRegex")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                WrappedType::new(v).map_err(|error| E::custom(error))
+            }
+
+            fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                deserializer.deserialize_str(self)
+            }
+        }
+
+        deserializer.deserialize_newtype_struct("BytesRegex", Visitor)
+    }
+}
+#[cfg(feature = "regex")]
+pub mod DuperOptionBytesRegex {
+    use super::*;
+    use ::regex::bytes::Regex as WrappedType;
+
+    pub fn serialize<S>(value: &Option<WrappedType>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            Some(value) => serializer.serialize_newtype_struct("BytesRegex", value.as_str()),
+            None => serializer.serialize_newtype_struct("BytesRegex", &Option::<()>::None),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<WrappedType>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct Visitor;
+
+        impl<'de> de::Visitor<'de> for Visitor {
+            type Value = Option<WrappedType>;
+
+            fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                formatter.write_str("a BytesRegex")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Some(WrappedType::new(v).map_err(|error| E::custom(error))).transpose()
+            }
+
+            fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                deserializer.deserialize_str(self)
+            }
+
+            fn visit_none<E>(self) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(None)
+            }
+
+            fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                deserializer.deserialize_option(self)
+            }
+        }
+
+        deserializer.deserialize_newtype_struct("BytesRegex", Visitor)
     }
 }
 

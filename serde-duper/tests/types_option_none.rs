@@ -553,18 +553,26 @@ fn none_ipnet() {
 #[test]
 #[cfg(feature = "regex")]
 fn none_regex() {
-    use regex::Regex;
-    use serde_duper::types::DuperOptionRegex;
+    use regex::{Regex, bytes::Regex as BytesRegex};
+    use serde_duper::types::{DuperOptionBytesRegex, DuperOptionRegex};
 
     #[derive(Debug, Serialize, Deserialize)]
     struct Test {
         #[serde(with = "DuperOptionRegex")]
         pattern: Option<Regex>,
+        #[serde(with = "DuperOptionBytesRegex")]
+        bytes_pattern: Option<BytesRegex>,
     }
 
-    let value = Test { pattern: None };
+    let value = Test {
+        pattern: None,
+        bytes_pattern: None,
+    };
     let serialized = serde_duper::to_string(&value).unwrap();
-    assert_eq!(serialized, r##"Test({pattern: Regex(null)})"##);
+    assert_eq!(
+        serialized,
+        r"Test({pattern: Regex(null), bytes_pattern: BytesRegex(null)})"
+    );
 
     let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
     assert!(deserialized.pattern.is_none());

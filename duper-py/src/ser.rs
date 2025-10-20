@@ -116,24 +116,6 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
                 DuperObject::try_from(object).expect("no duplicate keys in slots"),
             ),
         })
-    } else if obj.hasattr("__str__")?
-        && let Ok(string) = obj.str().and_then(|string| string.extract())
-    {
-        let identifier = serialize_pyclass_identifier(&obj)?;
-        Ok(DuperValue {
-            identifier,
-            inner: DuperInner::String(DuperString::from(Cow::Owned(string))),
-        })
-    } else if obj.hasattr("__dict__")?
-        && let Ok(object) = serialize_pydict(obj.getattr("__dict__")?.downcast()?)
-    {
-        let identifier = serialize_pyclass_identifier(&obj)?;
-        Ok(DuperValue {
-            identifier,
-            inner: DuperInner::Object(
-                DuperObject::try_from(object).expect("no duplicate keys in dict"),
-            ),
-        })
     } else {
         Err(PyErr::new::<PyValueError, String>(format!(
             "Unsupported type: {}",
@@ -521,7 +503,7 @@ fn serialize_pyclass_identifier<'py>(
             )?))
             .map_err(|error| {
                 PyErr::new::<PyValueError, String>(format!(
-                    "Invalid identifier: {}\n{}",
+                    "Invalid identifier: {} ({})",
                     identifier, error
                 ))
             })?,
@@ -537,7 +519,7 @@ fn serialize_pyclass_identifier<'py>(
             )?))
             .map_err(|error| {
                 PyErr::new::<PyValueError, String>(format!(
-                    "Invalid identifier: {}\n{}",
+                    "Invalid identifier: {} ({})",
                     identifier, error
                 ))
             })?,
@@ -548,31 +530,32 @@ fn serialize_pyclass_identifier<'py>(
 }
 
 fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<'py>> {
-    if let Ok(class) = obj.getattr("__class__") {
-        let model_fields = class.getattr("model_fields")?;
-        if model_fields.is_instance_of::<PyDict>() {
-            let field_dict = model_fields.downcast::<PyDict>()?;
-            let fields: PyResult<Vec<_>> = field_dict
-                .iter()
-                .map(|(field_name, _field_info)| {
-                    let field_name: &Bound<'py, PyString> = field_name.downcast()?;
-                    let value = obj.getattr(field_name)?;
-                    Ok((
-                        DuperKey::from(Cow::Owned(field_name.to_string())),
-                        serialize_pyany(value)?,
-                    ))
-                })
-                .collect();
-            return Ok(DuperValue {
-                identifier: serialize_pyclass_identifier(&obj)?,
-                inner: DuperInner::Object(
-                    DuperObject::try_from(fields?).expect("no duplicate keys in pydantic model"),
-                ),
-            });
-        }
+    if let Ok(class) = obj.getattr("__class__")
+        && let model_fields = class.getattr("model_fields")?
+        && model_fields.is_instance_of::<PyDict>()
+    {
+        let field_dict = model_fields.downcast::<PyDict>()?;
+        let fields: PyResult<Vec<_>> = field_dict
+            .iter()
+            .map(|(field_name, _field_info)| {
+                let field_name: &Bound<'py, PyString> = field_name.downcast()?;
+                let value = obj.getattr(field_name)?;
+                Ok((
+                    DuperKey::from(Cow::Owned(field_name.to_string())),
+                    serialize_pyany(value)?,
+                ))
+            })
+            .collect();
+        Ok(DuperValue {
+            identifier: serialize_pyclass_identifier(&obj)?,
+            inner: DuperInner::Object(
+                DuperObject::try_from(fields?).expect("no duplicate keys in pydantic model"),
+            ),
+        })
+    } else {
+        Err(PyErr::new::<PyValueError, String>(format!(
+            "Unsupported type: {}",
+            obj.get_type()
+        )))
     }
-    Err(PyErr::new::<PyValueError, String>(format!(
-        "Unsupported type: {}",
-        obj.get_type()
-    )))
 }

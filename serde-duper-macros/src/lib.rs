@@ -109,20 +109,20 @@ fn has_serde_derive_attributes(attrs: &[Attribute]) -> (bool, bool) {
     let mut has_serialize = false;
     let mut has_deserialize = false;
     for attr in attrs {
-        if attr.path().is_ident("derive") {
-            if let Meta::List(list) = &attr.meta {
-                let _ = list.parse_nested_meta(|nested| {
-                    if let Some(segment) = nested.path.segments.last() {
-                        let ident = &segment.ident;
-                        if ident == "Serialize" {
-                            has_serialize = true;
-                        } else if ident == "Deserialize" {
-                            has_deserialize = true;
-                        }
+        if attr.path().is_ident("derive")
+            && let Meta::List(list) = &attr.meta
+        {
+            let _ = list.parse_nested_meta(|nested| {
+                if let Some(segment) = nested.path.segments.last() {
+                    let ident = &segment.ident;
+                    if ident == "Serialize" {
+                        has_serialize = true;
+                    } else if ident == "Deserialize" {
+                        has_deserialize = true;
                     }
-                    Ok(())
-                });
-            }
+                }
+                Ok(())
+            });
         }
     }
     (has_serialize, has_deserialize)

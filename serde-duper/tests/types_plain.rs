@@ -642,26 +642,33 @@ fn ipnet() {
 #[test]
 #[cfg(feature = "regex")]
 fn regex() {
-    use regex::Regex;
-    use serde_duper::types::DuperRegex;
+    use regex::{Regex, bytes::Regex as BytesRegex};
+    use serde_duper::types::{DuperBytesRegex, DuperRegex};
 
     #[derive(Debug, Serialize, Deserialize)]
     struct Test {
         #[serde(with = "DuperRegex")]
         pattern: Regex,
+        #[serde(with = "DuperBytesRegex")]
+        bytes_pattern: BytesRegex,
     }
 
     let value = Test {
         pattern: Regex::new(r"Hello (?<name>\w+)!").unwrap(),
+        bytes_pattern: BytesRegex::new("\x1b\\[\\dm").unwrap(),
     };
     let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
         serialized,
-        r#"Test({pattern: Regex(r"Hello (?<name>\w+)!")})"#
+        r#"Test({pattern: Regex(r"Hello (?<name>\w+)!"), bytes_pattern: BytesRegex("\x1b\\[\\dm")})"#
     );
 
     let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
     assert_eq!(value.pattern.as_str(), deserialized.pattern.as_str());
+    assert_eq!(
+        value.bytes_pattern.as_str(),
+        deserialized.bytes_pattern.as_str()
+    );
 }
 
 #[test]
