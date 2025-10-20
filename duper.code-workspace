@@ -1,6 +1,10 @@
 {
   "folders": [
     {
+      "name": ".github",
+      "path": ".github"
+    },
+    {
       "name": "axum_duper",
       "path": "axum_duper"
     },
@@ -9,8 +13,8 @@
       "path": "duper"
     },
     {
-      "name": "duper-py",
-      "path": "duper-py"
+      "name": "duper-python",
+      "path": "duper-python"
     },
     {
       "name": "duper-vs-code",

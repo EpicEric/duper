@@ -37,6 +37,13 @@
 //! - `ansi`: Enables the [`Ansi`] module for printing Duper values to a console.
 //! - `serde`: Enables `serde` serialization/deserialization for [`DuperValue`].
 //!
+//! ## Other crates
+//!
+//! - [`serde_duper`](https://docs.rs/serde_duper): Provides full serialization/
+//!   deserialization support between Duper and native data types.
+//! - [`axum_duper`](https://docs.rs/axum_duper): Provides an extractor/response
+//!   for use with [`axum`](https://docs.rs/axum).
+//!
 
 pub mod ast;
 mod builder;

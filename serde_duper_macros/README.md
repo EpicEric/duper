@@ -1,5 +1,5 @@
-# duper-vs-code
+# Serde Duper Macros
 
-Duper support for VS Code.
+Adds a proc-macro for use with `serde_duper`.
 
 [See the main project on GitHub.](https://github.com/EpicEric/duper)

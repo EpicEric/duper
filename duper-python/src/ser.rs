@@ -12,7 +12,7 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
         Ok(DuperValue {
             identifier: None,
             inner: DuperInner::Object(
-                DuperObject::try_from(serialize_pydict(obj.downcast()?)?)
+                DuperObject::try_from(serialize_pydict(obj.cast()?)?)
                     .expect("no duplicate keys in dict"),
             ),
         })
@@ -129,7 +129,7 @@ fn serialize_pydict<'py>(
 ) -> PyResult<Vec<(DuperKey<'py>, DuperValue<'py>)>> {
     dict.iter()
         .map(|(key, value)| {
-            let key: &Bound<'py, PyString> = key.downcast()?;
+            let key: &Bound<'py, PyString> = key.cast()?;
             Ok((
                 DuperKey::from(Cow::Owned(key.to_string())),
                 serialize_pyany(value)?,
@@ -149,7 +149,7 @@ fn serialize_pyslots<'py>(
         .try_iter()?
         .map(|key: PyResult<Bound<'py, PyAny>>| {
             let key = key?;
-            let key: &Bound<'py, PyString> = key.downcast()?;
+            let key: &Bound<'py, PyString> = key.cast()?;
             let value = obj.getattr(key)?;
             Ok((
                 DuperKey::from(Cow::Owned(key.to_string())),
@@ -534,11 +534,11 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
         && let model_fields = class.getattr("model_fields")?
         && model_fields.is_instance_of::<PyDict>()
     {
-        let field_dict = model_fields.downcast::<PyDict>()?;
+        let field_dict = model_fields.cast::<PyDict>()?;
         let fields: PyResult<Vec<_>> = field_dict
             .iter()
             .map(|(field_name, _field_info)| {
-                let field_name: &Bound<'py, PyString> = field_name.downcast()?;
+                let field_name: &Bound<'py, PyString> = field_name.cast()?;
                 let value = obj.getattr(field_name)?;
                 Ok((
                     DuperKey::from(Cow::Owned(field_name.to_string())),

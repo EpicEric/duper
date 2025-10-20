@@ -1,18 +1,18 @@
-use duper::{DuperParser, DuperValue, PrettyPrinter, Serializer};
-use pyo3::{
-    exceptions::PyValueError,
-    prelude::*,
-    types::{PyInt, PyString},
-};
-
-use crate::{de::Visitor, ser::serialize_pyany};
-
 mod de;
 mod ser;
 
-#[pymodule(name = "_duper")]
-fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    #[pyfn(m)]
+#[pyo3::pymodule(name = "_duper")]
+mod duper_py {
+    use duper::{DuperParser, DuperValue, PrettyPrinter, Serializer};
+    use pyo3::{
+        exceptions::PyValueError,
+        prelude::*,
+        types::{PyInt, PyString},
+    };
+
+    use crate::{de::Visitor, ser::serialize_pyany};
+
+    #[pyfunction]
     #[pyo3(signature = (obj, *, indent=None, strip_identifiers=false))]
     fn dumps<'py>(
         obj: Bound<'py, PyAny>,
@@ -44,7 +44,7 @@ fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
         }
     }
 
-    #[pyfn(m)]
+    #[pyfunction]
     #[pyo3(signature = (obj, fp, *, indent=None, strip_identifiers=false))]
     fn dump<'py>(
         obj: Bound<'py, PyAny>,
@@ -81,7 +81,7 @@ fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
         Ok(())
     }
 
-    #[pyfn(m)]
+    #[pyfunction]
     #[pyo3(signature = (s, *, parse_any=false))]
     fn loads<'py>(py: Python<'py>, s: &str, parse_any: bool) -> PyResult<Bound<'py, PyAny>> {
         let value = match parse_any {
@@ -97,7 +97,7 @@ fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
         value.accept(&mut Visitor { py })
     }
 
-    #[pyfn(m)]
+    #[pyfunction]
     #[pyo3(signature = (fp, *, parse_any=false))]
     fn load<'py>(
         py: Python<'py>,
@@ -118,6 +118,4 @@ fn duper_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
         })?;
         value.accept(&mut Visitor { py })
     }
-
-    Ok(())
 }

@@ -5,11 +5,16 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+repository = "https://github.com/EpicEric/duper"
+homepage = "https://github.com/EpicEric/duper"
+readme = "README.md"
+categories = ["encoding", "parser-implementations"]
+keywords = ["duper", "serde", "axum"]
 
 [dependencies]
 axum = { version = "0.8", default-features = false }
 serde_core = "1"
-serde_duper = { path = "../serde_duper" }
+serde_duper = { path = "../serde_duper", version = "0.1.0" }
 
 [dev-dependencies]
 serde = { version = "1.0.228", features = ["derive"] }

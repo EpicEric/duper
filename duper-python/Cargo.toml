@@ -1,0 +1,25 @@
+[package]
+name = "duper-python"
+description = "The format that's super."
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+repository = "https://github.com/EpicEric/duper"
+homepage = "https://github.com/EpicEric/duper"
+readme = "README.md"
+categories = ["encoding", "parser-implementations"]
+keywords = ["duper", "serialization", "python"]
+publish = false
+
+[lib]
+name = "_duper"
+crate-type = ["cdylib"]
+
+[dependencies]
+duper = { path = "../duper", version = "0.1.0" }
+miette = "7.6.0"
+pyo3 = { version = "0.27.0", features = [
+  "extension-module",
+  "generate-import-lib",
+] }

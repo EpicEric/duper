@@ -1,16 +1,15 @@
 [project]
-name = "duper-py"
+name = "duper-python"
 description = "The format that's super."
+dynamic = ["version"]
+requires-python = ">=3.10"
 license = "MIT"
 authors = [{ name = "Eric Rodrigues Pires", email = "eric@eric.dev.br" }]
-requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dynamic = ["version"]
-dependencies = ["fastapi>=0.119.0"]
 
 [build-system]
 requires = ["maturin>=1.9,<2.0"]
@@ -26,7 +25,6 @@ bindings = "pyo3"
 dev = [
     "fastapi[standard]>=0.119.0",
     "httpx>=0.28.1",
-    "maturin>=1.9.6",
     "pytest>=8.4.2",
     "starlette>=0.48.0",
 ]

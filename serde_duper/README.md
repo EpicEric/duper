@@ -1,5 +1,5 @@
-# duper-vs-code
+# Serde Duper
 
-Duper support for VS Code.
+Adds `serde` support for Duper.
 
 [See the main project on GitHub.](https://github.com/EpicEric/duper)

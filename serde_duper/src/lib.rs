@@ -97,6 +97,16 @@
 //! library types like `Vec<T>` and `HashMap<K, V>`, as well as any structs or
 //! enums annotated with `#[derive(Serialize)]` in the Rust ecosystem.
 //!
+//! # Handling bytes
+//!
+//! This crate re-exports [`serde_bytes`] wrapper types via the [`bytes`]
+//! module. Prefer using those over the following types if you'd like better
+//! byte support:
+//!
+//! - [`serde_bytes::ByteBuf`] over [`Vec<u8>`]
+//! - [`serde_bytes::ByteArray`] over `[u8; N]`
+//! - [`serde_bytes::Bytes`] over `[u8]`
+//!
 //! # Support for identifiers
 //!
 //! By default, serialization will attempt to include identifiers for structs
