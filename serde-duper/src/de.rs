@@ -14,17 +14,55 @@ pub struct Deserializer<'de> {
     value: Option<DuperValue<'de>>,
 }
 
+/// A structure that deserializes Duper values into Rust values.
 impl<'de> Deserializer<'de> {
+    /// Creates a Duper deserializer from a `&str`.
     pub fn from_string(input: &'de str) -> Result<Self, Error> {
         let value = DuperParser::parse_duper_value(input)?;
         Ok(Self { value: Some(value) })
     }
 
+    /// Creates a Duper deserializer from a [`DuperValue`].
     pub fn from_value(value: DuperValue<'de>) -> Self {
         Self { value: Some(value) }
     }
 }
 
+/// Deserialize an instance of type `T` from a str slice of Duper text.
+///
+/// # Example
+///
+/// ```
+/// use serde::Deserialize;
+///
+/// #[derive(Deserialize, Debug)]
+/// struct User {
+///     fingerprint: Vec<u8>,
+///     location: String,
+/// }
+///
+/// fn main() {
+///     // The type of `j` is `&str`
+///     let j = r#"
+///         User({
+///             fingerprint: b"\xF9\xBA\x14\x3B\x95\xFF\x6D\x82",
+///             location: City("Menlo Park, CA"),
+///         })"#;
+///
+///     let u: User = serde_duper::from_string(j).unwrap();
+///     println!("{:#?}", u);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// This conversion can fail if the structure of the input does not match the
+/// structure expected by `T`, for example if `T` is a struct type but the input
+/// contains something other than a Duper object. It can also fail if the
+/// structure is correct but `T`'s implementation of [`Deserialize`] decides that
+/// something is wrong with the data, for example required struct fields are
+/// missing from the Duper object or some number is too big to fit in the
+/// expected primitive type.
 pub fn from_string<'a, T>(input: &'a str) -> Result<T, Error>
 where
     T: Deserialize<'a>,
@@ -34,6 +72,66 @@ where
     Ok(t)
 }
 
+/// Interpret a [`DuperValue`] as an instance of type `T`.
+///
+/// # Example
+///
+/// ```
+/// use std::borrow::Cow;
+/// use serde::Deserialize;
+/// use serde_duper::{
+///     DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject,
+///     DuperString, DuperValue,
+/// };
+///
+/// #[derive(Deserialize, Debug)]
+/// struct User {
+///     fingerprint: Vec<u8>,
+///     location: String,
+/// }
+///
+/// fn main() {
+///     // The type of `d` is `serde_duper::DuperValue`
+///     let d = DuperValue {
+///         identifier: Some(DuperIdentifier::try_from(Cow::Borrowed("User")).unwrap()),
+///         inner: DuperInner::Object(DuperObject::try_from(vec![
+///             (
+///                 DuperKey::from(Cow::Borrowed("fingerprint")),
+///                 DuperValue {
+///                     identifier: None,
+///                     inner: DuperInner::Bytes(DuperBytes::from(Cow::Borrowed(
+///                         &b"\xF9\xBA\x14\x3B\x95\xFF\x6D\x82"[..],
+///                     ))),
+///                 }
+///             ),
+///             (
+///                 DuperKey::from(Cow::Borrowed("location")),
+///                 DuperValue {
+///                     identifier: Some(
+///                         DuperIdentifier::try_from(Cow::Borrowed("City")).unwrap(),
+///                     ),
+///                     inner: DuperInner::String(DuperString::from(
+///                         Cow::Borrowed("Menlo Park, CA"),
+///                     )),
+///                 }
+///             ),
+///         ]).unwrap()),
+///     };
+///
+///     let u: User = serde_duper::from_value(d).unwrap();
+///     println!("{:#?}", u);
+/// }
+/// ```
+///
+/// # Errors
+///
+/// This conversion can fail if the structure of the input does not match the
+/// structure expected by `T`, for example if `T` is a struct type but the input
+/// contains something other than a Duper object. It can also fail if the
+/// structure is correct but `T`'s implementation of [`Deserialize`] decides that
+/// something is wrong with the data, for example required struct fields are
+/// missing from the Duper object or some number is too big to fit in the
+/// expected primitive type.
 pub fn from_value<'a, T>(value: DuperValue<'a>) -> Result<T, Error>
 where
     T: Deserialize<'a>,

@@ -1,12 +1,14 @@
 # Duper
 
-The format that's super. Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
+The format that's super.
+
+Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
 
 ## A visual introduction in four parts
 
 For example, let's assume the following format for some product data in a storefront.
 
-```
+```duper
 {
   "product_id": "1dd7b7aa-515e-405f-85a9-8ac812242609",
   "name": "Wireless Bluetooth Headphones",
@@ -37,7 +39,7 @@ Plain ol' JSON. This is a valid Duper object, as well.
 
 ---
 
-```
+```duper
 {
   product_id: "1dd7b7aa-515e-405f-85a9-8ac812242609",
   name: "Wireless Bluetooth Headphones",
@@ -69,7 +71,7 @@ We can get rid of the quotes for simple keys, use trailing commas, and include c
 
 ---
 
-```
+```duper
 {
   product_id: "1dd7b7aa-515e-405f-85a9-8ac812242609",
   name: "Wireless Bluetooth Headphones",
@@ -101,7 +103,7 @@ Duper also adds supports for tuples (`(-23.561384, -46.655891)`), bytes (`b"\x1b
 
 ---
 
-```
+```duper
 Product({
   product_id: Uuid("1dd7b7aa-515e-405f-85a9-8ac812242609"),
   name: "Wireless Bluetooth Headphones",

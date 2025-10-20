@@ -21,6 +21,19 @@ T = TypeVar("T")
 
 
 class DuperResponse(Response):
+    """
+    An HTTP response containing a Duper value.
+
+    >>> import FastAPI
+    >>> from duper.fastapi import DuperResponse
+    >>> app = FastAPI()
+    >>> @app.get("/")
+    ... async def duper_response() -> DuperResponse:
+    ...     return DuperResponse({
+    ...         "success": true,
+    ...     })
+    """
+
     media_type = DUPER_CONTENT_TYPE
     _indent: int | None
     _strip_identifiers: bool
@@ -47,6 +60,20 @@ class DuperResponse(Response):
 
 
 def DuperBody(model_type: type[T]) -> Any:
+    """
+    A dependency providing automatic parsing of an HTTP request containing a Duper value.
+
+    >>> from typing import Any
+    >>> import FastAPI
+    >>> from duper.fastapi import DuperBody
+    >>> app = FastAPI()
+    >>> @app.post("/")
+    ... async def duper_body(
+    ...     body: Annotated[dict[str, Any], DuperBody(dict[str, Any])],
+    ... ):
+    ...     print(body)
+    """
+
     async def _get_duper_body(request: Request) -> T:
         if request.headers.get("Content-Type") not in (
             DUPER_CONTENT_TYPE,

@@ -10,3 +10,7 @@ authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 axum = { version = "0.8.6", default-features = false }
 serde_core = "1.0.228"
 serde-duper = { path = "../serde-duper" }
+
+[dev-dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+uuid = { version = "1.18.1", features = ["serde"] }

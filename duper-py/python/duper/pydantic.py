@@ -15,7 +15,32 @@ __all__ = [
 
 
 class BaseModel(PydanticBaseModel):
-    __doc__ = PydanticBaseModel.__doc__
+    """
+    A wrapper around Pydantic's BaseModel with added functionality for
+    serializing/deserializing Duper values.
+
+    In order to serialize an instance of this model:
+
+    >>> from duper.pydantic import BaseModel
+    >>> class Foo(BaseModel):
+    ...     bar: str
+    ...
+    >>> obj = Foo(bar="duper")
+    >>> s = obj.model_dump(mode="duper")
+    >>> print(s)
+    Foo({bar: "duper"})
+
+    In order to deserialize a string containing a Duper value:
+
+    >>> from duper.pydantic import BaseModel
+    >>> class Foo(BaseModel):
+    ...     bar: str
+    ...
+    >>> s = "Foo({bar: \"duper\"})"
+    >>> obj = Foo.model_validate_duper(s)
+    >>> obj
+    Foo(bar='duper')
+    """
 
     @model_serializer(mode="wrap")
     def serialize_model(

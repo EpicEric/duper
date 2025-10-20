@@ -8,19 +8,27 @@ use serde_core::{Serialize, ser};
 
 use crate::Error;
 
+/// A structure for serializing Rust values into Duper values.
 #[derive(Clone)]
 pub struct Serializer<'a> {
-    _phantom: PhantomData<DuperValue<'a>>,
+    _marker: PhantomData<DuperValue<'a>>,
 }
 
 impl<'a> Serializer<'a> {
-    fn new() -> Self {
+    /// Creates a new Duper serializer.
+    pub fn new() -> Self {
         Self {
-            _phantom: Default::default(),
+            _marker: Default::default(),
         }
     }
 }
 
+/// Serialize the given data structure as a Duper value.
+///
+/// # Errors
+///
+/// Serialization can fail if `T`'s implementation of [`Serialize`] decides to
+/// fail, or if `T` contains a map with non-string keys.
 pub fn to_duper<'a, T>(value: &'a T) -> Result<DuperValue<'a>, Error>
 where
     T: Serialize,
@@ -29,6 +37,12 @@ where
     value.serialize(&mut serializer)
 }
 
+/// Serialize the given data structure as a [`String`] of a Duper value.
+///
+/// # Errors
+///
+/// Serialization can fail if `T`'s implementation of [`Serialize`] decides to
+/// fail, or if `T` contains a map with non-string keys.
 pub fn to_string<T>(value: &T) -> Result<String, Error>
 where
     T: Serialize,
@@ -36,6 +50,13 @@ where
     Ok(DuperSerializer::new(false).serialize(to_duper(value)?))
 }
 
+/// Serialize the given data structure as a [`String`] of a Duper value, stripping
+/// identifiers from the output.
+///
+/// # Errors
+///
+/// Serialization can fail if `T`'s implementation of [`Serialize`] decides to
+/// fail, or if `T` contains a map with non-string keys.
 pub fn to_string_minified<T>(value: &T) -> Result<String, Error>
 where
     T: Serialize,
@@ -43,6 +64,13 @@ where
     Ok(DuperSerializer::new(true).serialize(to_duper(value)?))
 }
 
+/// Serialize the given data structure as a [`String`] of a Duper value,
+/// pretty-printing the output.
+///
+/// # Errors
+///
+/// Serialization can fail if `T`'s implementation of [`Serialize`] decides to
+/// fail, or if `T` contains a map with non-string keys.
 pub fn to_string_pretty<T>(value: &T, indent: &str) -> Result<String, Error>
 where
     T: Serialize,
@@ -52,18 +80,18 @@ where
         .pretty_print(to_duper(value)?))
 }
 
-impl<'a, 'b> ser::Serializer for &'a mut Serializer<'b> {
-    type Ok = DuperValue<'b>;
+impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
+    type Ok = DuperValue<'a>;
 
     type Error = Error;
 
-    type SerializeSeq = SerializeSeq<'a, 'b>;
-    type SerializeTuple = SerializeTuple<'a, 'b>;
-    type SerializeTupleStruct = SerializeTupleStruct<'a, 'b>;
-    type SerializeTupleVariant = SerializeTupleVariant<'a, 'b>;
-    type SerializeMap = SerializeMap<'a, 'b>;
-    type SerializeStruct = SerializeStruct<'a, 'b>;
-    type SerializeStructVariant = SerializeStructVariant<'a, 'b>;
+    type SerializeSeq = SerializeSeq<'ser, 'a>;
+    type SerializeTuple = SerializeTuple<'ser, 'a>;
+    type SerializeTupleStruct = SerializeTupleStruct<'ser, 'a>;
+    type SerializeTupleVariant = SerializeTupleVariant<'ser, 'a>;
+    type SerializeMap = SerializeMap<'ser, 'a>;
+    type SerializeStruct = SerializeStruct<'ser, 'a>;
+    type SerializeStructVariant = SerializeStructVariant<'ser, 'a>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue {

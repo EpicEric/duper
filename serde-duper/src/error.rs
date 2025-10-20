@@ -3,27 +3,39 @@ use std::fmt::{self, Display};
 use duper::{DuperIdentifierTryFromError, DuperObjectTryFromError};
 
 #[derive(Debug, Clone)]
+/// The kinds of errors that can happen during serialization and deserialization.
 pub enum ErrorKind {
+    /// Parsing failed at the given [`pest`] rule.
+    ///
+    /// This error implements `.to_miette()` in order to allow generation of a
+    /// [`miette`] `Report`.
     ParseError(Box<pest::error::Error<duper::DuperRule>>),
+    /// Serialization failed with an unspecified error.
     SerializationError,
+    /// Deserialization failed with the given reason.
     DeserializationError(serde_core::de::value::Error),
+    /// An invalid value was provided.
     InvalidValue,
+    /// Unspecified conditions.
     Custom,
 }
 
+/// This type includes the error kind and message associated with the failure.
 #[derive(Debug, Clone)]
 pub struct ErrorImpl {
     pub kind: ErrorKind,
     pub message: String,
 }
 
+/// This type represents all possible errors that can occur when serializing or
+/// deserializing Duper data.
 #[derive(Debug, Clone)]
 pub struct Error {
     pub inner: Box<ErrorImpl>,
 }
 
 impl Error {
-    pub fn new(kind: ErrorKind, message: impl Into<String>) -> Self {
+    pub(crate) fn new(kind: ErrorKind, message: impl Into<String>) -> Self {
         Self {
             inner: Box::new(ErrorImpl {
                 kind,
@@ -32,15 +44,15 @@ impl Error {
         }
     }
 
-    pub fn custom(msg: impl Into<String> + Clone) -> Self {
+    pub(crate) fn custom(msg: impl Into<String> + Clone) -> Self {
         Self::new(ErrorKind::Custom, msg)
     }
 
-    pub fn serialization(msg: impl Into<String>) -> Self {
+    pub(crate) fn serialization(msg: impl Into<String>) -> Self {
         Self::new(ErrorKind::SerializationError, msg)
     }
 
-    pub fn invalid_value(msg: impl Into<String>) -> Self {
+    pub(crate) fn invalid_value(msg: impl Into<String>) -> Self {
         Self::new(ErrorKind::InvalidValue, msg)
     }
 }

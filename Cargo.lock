@@ -106,8 +106,10 @@ name = "axum-duper"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "serde",
  "serde-duper",
  "serde_core",
+ "uuid",
 ]
 
 [[package]]

@@ -1,10 +1,37 @@
+//! Macros for [`serde-duper`].
+
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Attribute, Fields, Ident, Item, ItemStruct, Meta, parse_macro_input};
 
 #[proc_macro]
+/// A proc-macro that automatically generates remote serializers and
+/// deserializers for struct fields annotated with `#[duper(...)]`.
+///
+/// ```
+/// use serde::{Deserialize, Serialize};
+/// use serde_duper_macros::duper;
+///
+/// duper! {
+///     #[derive(Serialize, Deserialize)]
+///     struct User {
+///         #[duper(MyId)]
+///         id: u64,
+///         #[duper(AliasList)]
+///         aliases: Vec<String>,
+///     }
+/// }
+///
+/// let u = User {
+///     id: 1234,
+///     aliases: vec!["duper".to_string()],
+/// };
+/// ```
+///
+/// Upon serializing and deserializing, `id` and `aliases` will be treated as
+/// newtype structs. This is useful to add identifiers to Duper values.
+///
 pub fn duper(input: TokenStream) -> TokenStream {
-    // We expect an Item (struct) inside the macro invocation
     let item = parse_macro_input!(input as Item);
 
     match item {
@@ -15,7 +42,6 @@ pub fn duper(input: TokenStream) -> TokenStream {
     }
 }
 
-/// Expand the struct: preserve it, but for fields with #[duper(Name)] generate modules and #[serde(with = "...")]
 fn expand_struct(mut s: ItemStruct) -> proc_macro2::TokenStream {
     let struct_ident = s.ident.clone();
     let mut modules = Vec::<proc_macro2::TokenStream>::new();

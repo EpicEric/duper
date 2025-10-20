@@ -1,3 +1,15 @@
+//! # Duper
+//!
+//! The format that's super.
+//!
+//! Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
+//!
+//! ## Feature flags
+//!
+//! - `ansi`: Enables the [`Ansi`] module for printing Duper values to a console.
+//! - `serde`: Enables [`serde`] serialization/deserialization for [`DuperValue`].
+//!
+
 mod ast;
 mod builder;
 mod escape;
