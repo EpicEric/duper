@@ -70,7 +70,7 @@
       "patterns": [
         {
           "name": "string.unquoted.duper",
-          "match": "[a-zA-Z](_?[A-Za-z0-9])*"
+          "match": "(_[A-Za-z0-9]|[A-Za-z])([_-]?[A-Za-z0-9])*"
         }
       ]
     },

@@ -16,7 +16,7 @@ object    =  {
 }
 pair      =  { key ~ ":" ~ described_value }
 key       = _{ string | raw_string | plain_key }
-plain_key = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+plain_key = @{ (ASCII_ALPHA | "_" ~ ASCII_ALPHANUMERIC) ~ (("_" | "-")? ~ ASCII_ALPHANUMERIC)* }
 
 tuple = {
     "()"
