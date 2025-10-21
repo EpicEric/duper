@@ -49,7 +49,7 @@
 //! }
 //!
 //! fn deserialize() -> Result<Person> {
-//!     // Some JSON input data as a &str. Maybe this comes from the user.
+//!     // Some Duper input data as a &str. Maybe this comes from the user.
 //!     let data = r#"
 //!         Person({
 //!             name: "John Doe",
@@ -60,9 +60,7 @@
 //!             ],
 //!         })"#;
 //!
-//!     // Parse the string of data into a Person object. This is exactly the
-//!     // same function as the one that produced serde_json::Value above, but
-//!     // now we are asking it for a Person as output.
+//!     // Parse the string of data into a Person object.
 //!     let p: Person = serde_duper::from_string(data)?;
 //!
 //!     // Do things just like with any other Rust data structure.

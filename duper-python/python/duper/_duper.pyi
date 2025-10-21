@@ -16,7 +16,7 @@ def dumps(
 ) -> str:
     """Serialize ``obj`` to a Duper value formatted ``str``.
 
-    If ``indent`` is a positive integer, then JSON array elements and
+    If ``indent`` is a positive integer, then Duper array elements and
     object members will be pretty-printed with that indent level. The
     indent may also be specified as a ``str`` containing spaces and/or
     tabs. ``None`` is the most compact representation.
@@ -34,7 +34,7 @@ def dump(
     """Serialize ``obj`` as a Duper value formatted stream to ``fp`` (a
     ``.write()``-supporting file-like object).
 
-    If ``indent`` is a positive integer, then JSON array elements and
+    If ``indent`` is a positive integer, then Duper array elements and
     object members will be pretty-printed with that indent level. The
     indent may also be specified as a ``str`` containing spaces and/or
     tabs. ``None`` is the most compact representation.

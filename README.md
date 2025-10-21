@@ -1,5 +1,7 @@
 # Duper
 
+[![Github license](https://img.shields.io/github/license/EpicEric/duper)](https://github.com/EpicEric/duper/blob/main/LICENSE)
+
 The format that's super.
 
 Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
