@@ -124,7 +124,7 @@
         },
         {
           "match": ",",
-          "name": "punctuation.separator.arrays.duper"
+          "name": "keyword.operator.separator.arrays.duper"
         },
         {
           "match": "[^\\s\\]]",
@@ -152,7 +152,7 @@
         },
         {
           "match": ",",
-          "name": "punctuation.separator.tuple.duper"
+          "name": "keyword.operator.separator.tuple.duper"
         },
         {
           "match": "[^\\s\\)]",
@@ -185,13 +185,13 @@
           "begin": ":",
           "beginCaptures": {
             "0": {
-              "name": "punctuation.separator.dictionary.key-s.duper"
+              "name": "keyword.operator.separator.dictionary.key-s.duper"
             }
           },
           "end": "(,)|(?=\\})",
           "endCaptures": {
             "1": {
-              "name": "punctuation.separator.dictionary.pair.duper"
+              "name": "keyword.operator.separator.dictionary.pair.duper"
             }
           },
           "name": "meta.structure.dictionary.value.duper",

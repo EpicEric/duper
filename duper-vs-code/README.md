@@ -1,5 +1,5 @@
 # duper-vs-code
 
-Duper support for VS Code.
+Duper highlight support for VS Code.
 
 [See the main project on GitHub.](https://github.com/EpicEric/duper)
