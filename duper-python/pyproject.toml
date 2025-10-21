@@ -5,11 +5,18 @@ dynamic = ["version"]
 requires-python = ">=3.10"
 license = "MIT"
 authors = [{ name = "Eric Rodrigues Pires", email = "eric@eric.dev.br" }]
+readme = "README.md"
+keywords = ["duper", "parser", "serialization", "pydantic", "fastapi"]
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: File Formats",
+    "Framework :: FastAPI",
+    "Framework :: Pydantic",
+    "Framework :: Pydantic :: 2",
 ]
+urls = { homepage = "https://github.com/EpicEric/duper", source = "https://github.com/EpicEric/duper" }
 
 [build-system]
 requires = ["maturin>=1.9,<2.0"]

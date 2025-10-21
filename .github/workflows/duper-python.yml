@@ -34,7 +34,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release -m duper-python/Cargo.toml --out dist --find-interpreter
+          args: --release --manifest-path duper-python/Cargo.toml --out dist --find-interpreter
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -64,7 +64,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release -m duper-python/Cargo.toml --out dist --find-interpreter
+          args: --release --manifest-path duper-python/Cargo.toml --out dist --find-interpreter
           manylinux: musllinux_1_2
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -91,7 +91,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release -m duper-python/Cargo.toml --out dist --find-interpreter
+          args: --release --manifest-path duper-python/Cargo.toml --out dist --find-interpreter
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -116,7 +116,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release -m duper-python/Cargo.toml --out dist --find-interpreter
+          args: --release --manifest-path duper-python/Cargo.toml --out dist --find-interpreter
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -131,7 +131,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           command: sdist
-          args: -m duper-python/Cargo.toml --out dist
+          args: --manifest-path duper-python/Cargo.toml --out dist
       - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:
