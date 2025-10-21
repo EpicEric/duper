@@ -16,6 +16,7 @@ use owo_colors::{AnsiColors, DynColors, OwoColorize};
 
 /// A Duper visitor which generates colored ANSI escaping.
 pub struct Ansi<'ansi> {
+    buf: Vec<u8>,
     strip_identifiers: bool,
     theme: &'ansi AnsiTheme<'ansi>,
     bracket_depth: usize,
@@ -90,6 +91,7 @@ pub static VSCODE_DARK_PLUS_THEME: &AnsiTheme = &AnsiTheme {
 impl Default for Ansi<'static> {
     fn default() -> Self {
         Self {
+            buf: Vec::new(),
             strip_identifiers: false,
             theme: ANSI_THEME,
             bracket_depth: 0,
@@ -102,6 +104,7 @@ impl<'ansi> Ansi<'ansi> {
     /// theme.
     pub fn new(strip_identifiers: bool, theme: &'ansi AnsiTheme) -> Self {
         Self {
+            buf: Vec::new(),
             strip_identifiers,
             theme,
             bracket_depth: 0,
@@ -110,7 +113,9 @@ impl<'ansi> Ansi<'ansi> {
 
     /// Convert the [`DuperValue`] into a [`Vec`] of bytes.
     pub fn to_ansi<'a>(&mut self, value: DuperValue<'a>) -> Result<Vec<u8>, Error> {
-        value.accept(self)
+        self.buf.clear();
+        value.accept(self)?;
+        Ok(std::mem::take(&mut self.buf))
     }
 
     fn increase_bracket_depth(&mut self) {
@@ -121,12 +126,12 @@ impl<'ansi> Ansi<'ansi> {
         self.bracket_depth -= 1;
     }
 
-    fn colorize_bracket(&self, buf: &mut Vec<u8>, bracket: &str) -> Result<(), Error> {
+    fn colorize_bracket(&mut self, bracket: &str) -> Result<(), Error> {
         if self.theme.brackets.is_empty() {
-            buf.write(bracket.as_bytes())?;
+            self.buf.write(bracket.as_bytes())?;
             Ok(())
         } else {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 bracket.color(self.theme.brackets[self.bracket_depth % self.theme.brackets.len()])
             ))
@@ -135,55 +140,56 @@ impl<'ansi> Ansi<'ansi> {
 }
 
 impl<'ansi> DuperVisitor for Ansi<'ansi> {
-    type Value = Result<Vec<u8>, Error>;
+    type Value = Result<(), Error>;
 
     fn visit_object<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
         object: &DuperObject<'a>,
     ) -> Self::Value {
-        let mut buf = Vec::new();
         let len = object.len();
 
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 identifier.as_ref().color(self.theme.identifier)
             ))?;
-            self.colorize_bracket(&mut buf, "(")?;
+            self.colorize_bracket("(")?;
             self.increase_bracket_depth();
-            self.colorize_bracket(&mut buf, "{")?;
+            self.colorize_bracket("{")?;
             self.increase_bracket_depth();
             for (i, (key, value)) in object.iter().enumerate() {
-                buf.write_fmt(format_args!("{}", format_key(key).color(self.theme.key)))?;
-                buf.write(b": ")?;
-                buf.write(&value.accept(self)?)?;
+                self.buf
+                    .write_fmt(format_args!("{}", format_key(key).color(self.theme.key)))?;
+                self.buf.write(b": ")?;
+                value.accept(self)?;
                 if i < len - 1 {
-                    buf.write(b", ")?;
+                    self.buf.write(b", ")?;
                 }
             }
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, "}")?;
+            self.colorize_bracket("}")?;
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, ")")?;
+            self.colorize_bracket(")")?;
         } else {
-            self.colorize_bracket(&mut buf, "{")?;
+            self.colorize_bracket("{")?;
             self.increase_bracket_depth();
             for (i, (key, value)) in object.iter().enumerate() {
-                buf.write_fmt(format_args!("{}", format_key(key).color(self.theme.key)))?;
-                buf.write(b": ")?;
-                buf.write(&value.accept(self)?)?;
+                self.buf
+                    .write_fmt(format_args!("{}", format_key(key).color(self.theme.key)))?;
+                self.buf.write(b": ")?;
+                value.accept(self)?;
                 if i < len - 1 {
-                    buf.write(b", ")?;
+                    self.buf.write(b", ")?;
                 }
             }
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, "}")?;
+            self.colorize_bracket("}")?;
         }
 
-        Ok(buf)
+        Ok(())
     }
 
     fn visit_array<'a>(
@@ -191,44 +197,43 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
         identifier: Option<&DuperIdentifier<'a>>,
         array: &DuperArray<'a>,
     ) -> Self::Value {
-        let mut buf = Vec::new();
         let len = array.len();
 
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 identifier.as_ref().color(self.theme.identifier)
             ))?;
-            self.colorize_bracket(&mut buf, "(")?;
+            self.colorize_bracket("(")?;
             self.increase_bracket_depth();
-            self.colorize_bracket(&mut buf, "[")?;
+            self.colorize_bracket("[")?;
             self.increase_bracket_depth();
             for (i, value) in array.iter().enumerate() {
-                buf.write(&value.accept(self)?)?;
+                value.accept(self)?;
                 if i < len - 1 {
-                    buf.write(b", ")?;
+                    self.buf.write(b", ")?;
                 }
             }
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, "]")?;
+            self.colorize_bracket("]")?;
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, ")")?;
+            self.colorize_bracket(")")?;
         } else {
-            self.colorize_bracket(&mut buf, "[")?;
+            self.colorize_bracket("[")?;
             self.increase_bracket_depth();
             for (i, value) in array.iter().enumerate() {
-                buf.write(&value.accept(self)?)?;
+                value.accept(self)?;
                 if i < len - 1 {
-                    buf.write(b", ")?;
+                    self.buf.write(b", ")?;
                 }
             }
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, "]")?;
+            self.colorize_bracket("]")?;
         }
 
-        Ok(buf)
+        Ok(())
     }
 
     fn visit_tuple<'a>(
@@ -236,44 +241,43 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
         identifier: Option<&DuperIdentifier<'a>>,
         tuple: &DuperTuple<'a>,
     ) -> Self::Value {
-        let mut buf = Vec::new();
         let len = tuple.len();
 
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 identifier.as_ref().color(self.theme.identifier)
             ))?;
-            self.colorize_bracket(&mut buf, "(")?;
+            self.colorize_bracket("(")?;
             self.increase_bracket_depth();
-            self.colorize_bracket(&mut buf, "(")?;
+            self.colorize_bracket("(")?;
             self.increase_bracket_depth();
             for (i, value) in tuple.iter().enumerate() {
-                buf.write(&value.accept(self)?)?;
+                value.accept(self)?;
                 if i < len - 1 {
-                    buf.write(b", ")?;
+                    self.buf.write(b", ")?;
                 }
             }
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, ")")?;
+            self.colorize_bracket(")")?;
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, ")")?;
+            self.colorize_bracket(")")?;
         } else {
-            self.colorize_bracket(&mut buf, "(")?;
+            self.colorize_bracket("(")?;
             self.increase_bracket_depth();
             for (i, value) in tuple.iter().enumerate() {
-                buf.write(&value.accept(self)?)?;
+                value.accept(self)?;
                 if i < len - 1 {
-                    buf.write(b", ")?;
+                    self.buf.write(b", ")?;
                 }
             }
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, ")")?;
+            self.colorize_bracket(")")?;
         }
 
-        Ok(buf)
+        Ok(())
     }
 
     fn visit_string<'a>(
@@ -281,31 +285,29 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
         identifier: Option<&DuperIdentifier<'a>>,
         value: &DuperString<'a>,
     ) -> Self::Value {
-        let mut buf = Vec::new();
-
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 identifier.as_ref().color(self.theme.identifier)
             ))?;
-            self.colorize_bracket(&mut buf, "(")?;
+            self.colorize_bracket("(")?;
             self.increase_bracket_depth();
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 format_duper_string(value).color(self.theme.string)
             ))?;
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, ")")?;
+            self.colorize_bracket(")")?;
         } else {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 format_duper_string(value).color(self.theme.string)
             ))?;
         }
 
-        Ok(buf)
+        Ok(())
     }
 
     fn visit_bytes<'a>(
@@ -313,31 +315,29 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
         identifier: Option<&DuperIdentifier<'a>>,
         bytes: &DuperBytes<'a>,
     ) -> Self::Value {
-        let mut buf = Vec::new();
-
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 identifier.as_ref().color(self.theme.identifier)
             ))?;
-            self.colorize_bracket(&mut buf, "(")?;
+            self.colorize_bracket("(")?;
             self.increase_bracket_depth();
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 format_duper_bytes(bytes).color(self.theme.bytes)
             ))?;
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, ")")?;
+            self.colorize_bracket(")")?;
         } else {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 format_duper_bytes(bytes).color(self.theme.bytes)
             ))?;
         }
 
-        Ok(buf)
+        Ok(())
     }
 
     fn visit_integer(
@@ -345,59 +345,55 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
         identifier: Option<&DuperIdentifier<'_>>,
         integer: i64,
     ) -> Self::Value {
-        let mut buf = Vec::new();
-
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 identifier.as_ref().color(self.theme.identifier)
             ))?;
-            self.colorize_bracket(&mut buf, "(")?;
+            self.colorize_bracket("(")?;
             self.increase_bracket_depth();
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 format_integer(integer).color(self.theme.integer)
             ))?;
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, ")")?;
+            self.colorize_bracket(")")?;
         } else {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 format_integer(integer).color(self.theme.integer)
             ))?;
         }
 
-        Ok(buf)
+        Ok(())
     }
 
     fn visit_float(&mut self, identifier: Option<&DuperIdentifier<'_>>, float: f64) -> Self::Value {
-        let mut buf = Vec::new();
-
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 identifier.as_ref().color(self.theme.identifier)
             ))?;
-            self.colorize_bracket(&mut buf, "(")?;
+            self.colorize_bracket("(")?;
             self.increase_bracket_depth();
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 format_float(float).color(self.theme.float)
             ))?;
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, ")")?;
+            self.colorize_bracket(")")?;
         } else {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 format_float(float).color(self.theme.float)
             ))?;
         }
 
-        Ok(buf)
+        Ok(())
     }
 
     fn visit_boolean(
@@ -405,53 +401,51 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
         identifier: Option<&DuperIdentifier<'_>>,
         boolean: bool,
     ) -> Self::Value {
-        let mut buf = Vec::new();
-
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 identifier.as_ref().color(self.theme.identifier)
             ))?;
-            self.colorize_bracket(&mut buf, "(")?;
+            self.colorize_bracket("(")?;
             self.increase_bracket_depth();
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 format_boolean(boolean).color(self.theme.boolean)
             ))?;
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, ")")?;
+            self.colorize_bracket(")")?;
         } else {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 format_boolean(boolean).color(self.theme.boolean)
             ))?;
         }
 
-        Ok(buf)
+        Ok(())
     }
 
     fn visit_null(&mut self, identifier: Option<&DuperIdentifier<'_>>) -> Self::Value {
-        let mut buf = Vec::new();
-
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            buf.write_fmt(format_args!(
+            self.buf.write_fmt(format_args!(
                 "{}",
                 identifier.as_ref().color(self.theme.identifier)
             ))?;
-            self.colorize_bracket(&mut buf, "(")?;
+            self.colorize_bracket("(")?;
             self.increase_bracket_depth();
-            buf.write_fmt(format_args!("{}", format_null().color(self.theme.null)))?;
+            self.buf
+                .write_fmt(format_args!("{}", format_null().color(self.theme.null)))?;
             self.decrease_bracket_depth();
-            self.colorize_bracket(&mut buf, ")")?;
+            self.colorize_bracket(")")?;
         } else {
-            buf.write_fmt(format_args!("{}", format_null().color(self.theme.null)))?;
+            self.buf
+                .write_fmt(format_args!("{}", format_null().color(self.theme.null)))?;
         }
 
-        Ok(buf)
+        Ok(())
     }
 }
 

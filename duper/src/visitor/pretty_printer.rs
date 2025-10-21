@@ -14,6 +14,7 @@ use crate::{
 /// A Duper visitor which pretty-prints the provided [`DuperValue`] with
 /// line breaks, indentation, and trailing commas.
 pub struct PrettyPrinter<'pp> {
+    buf: String,
     strip_identifiers: bool,
     curr_indent: usize,
     indent: &'pp str,
@@ -22,6 +23,7 @@ pub struct PrettyPrinter<'pp> {
 impl Default for PrettyPrinter<'static> {
     fn default() -> Self {
         Self {
+            buf: String::new(),
             strip_identifiers: false,
             curr_indent: 0,
             indent: "  ",
@@ -40,6 +42,7 @@ impl<'pp> PrettyPrinter<'pp> {
             return Err("Indentation may only consist of spaces and tabs");
         }
         Ok(Self {
+            buf: String::new(),
             strip_identifiers,
             curr_indent: 0,
             indent,
@@ -48,7 +51,9 @@ impl<'pp> PrettyPrinter<'pp> {
 
     /// Convert the [`DuperValue`] into a pretty-printed [`String`].
     pub fn pretty_print<'a>(&mut self, value: DuperValue<'a>) -> String {
-        value.accept(self)
+        self.buf.clear();
+        value.accept(self);
+        std::mem::take(&mut self.buf)
     }
 
     fn increase_indentation(&mut self) {
@@ -59,61 +64,57 @@ impl<'pp> PrettyPrinter<'pp> {
         self.curr_indent -= 1;
     }
 
-    fn push_indentation(&self, buf: &mut String) {
+    fn push_indentation(&mut self) {
         for _ in 0..self.curr_indent {
-            buf.push_str(self.indent);
+            self.buf.push_str(self.indent);
         }
     }
 }
 
 impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
-    type Value = String;
+    type Value = ();
 
     fn visit_object<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
         object: &DuperObject<'a>,
     ) -> Self::Value {
-        let mut string = String::new();
-
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            string.push_str(identifier.as_ref());
+            self.buf.push_str(identifier.as_ref());
             if object.is_empty() {
-                string.push_str("({})");
+                self.buf.push_str("({})");
             } else {
-                string.push_str("({\n");
+                self.buf.push_str("({\n");
                 self.increase_indentation();
                 for (key, value) in object.iter() {
-                    self.push_indentation(&mut string);
-                    string.push_str(&format_key(key));
-                    string.push_str(": ");
-                    string.push_str(&value.accept(self));
-                    string.push_str(",\n");
+                    self.push_indentation();
+                    self.buf.push_str(&format_key(key));
+                    self.buf.push_str(": ");
+                    value.accept(self);
+                    self.buf.push_str(",\n");
                 }
                 self.decrease_indentation();
-                self.push_indentation(&mut string);
-                string.push_str("})\n");
+                self.push_indentation();
+                self.buf.push_str("})\n");
             }
         } else if object.is_empty() {
-            string.push_str("{}");
+            self.buf.push_str("{}");
         } else {
-            string.push_str("{\n");
+            self.buf.push_str("{\n");
             self.increase_indentation();
             for (key, value) in object.iter() {
-                self.push_indentation(&mut string);
-                string.push_str(&format_key(key));
-                string.push_str(": ");
-                string.push_str(&value.accept(self));
-                string.push_str(",\n");
+                self.push_indentation();
+                self.buf.push_str(&format_key(key));
+                self.buf.push_str(": ");
+                value.accept(self);
+                self.buf.push_str(",\n");
             }
             self.decrease_indentation();
-            self.push_indentation(&mut string);
-            string.push('}');
+            self.push_indentation();
+            self.buf.push('}');
         }
-
-        string
     }
 
     fn visit_array<'a>(
@@ -121,42 +122,38 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
         identifier: Option<&DuperIdentifier<'a>>,
         array: &DuperArray<'a>,
     ) -> Self::Value {
-        let mut string = String::new();
-
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            string.push_str(identifier.as_ref());
+            self.buf.push_str(identifier.as_ref());
             if array.is_empty() {
-                string.push_str("([])");
+                self.buf.push_str("([])");
             } else {
-                string.push_str("([\n");
+                self.buf.push_str("([\n");
                 self.increase_indentation();
                 for value in array.iter() {
-                    self.push_indentation(&mut string);
-                    string.push_str(&value.accept(self));
-                    string.push_str(",\n");
+                    self.push_indentation();
+                    value.accept(self);
+                    self.buf.push_str(",\n");
                 }
                 self.decrease_indentation();
-                self.push_indentation(&mut string);
-                string.push_str("])\n");
+                self.push_indentation();
+                self.buf.push_str("])\n");
             }
         } else if array.is_empty() {
-            string.push_str("[]");
+            self.buf.push_str("[]");
         } else {
-            string.push_str("[\n");
+            self.buf.push_str("[\n");
             self.increase_indentation();
             for value in array.iter() {
-                self.push_indentation(&mut string);
-                string.push_str(&value.accept(self));
-                string.push_str(",\n");
+                self.push_indentation();
+                value.accept(self);
+                self.buf.push_str(",\n");
             }
             self.decrease_indentation();
-            self.push_indentation(&mut string);
-            string.push(']');
+            self.push_indentation();
+            self.buf.push(']');
         }
-
-        string
     }
 
     fn visit_tuple<'a>(
@@ -164,50 +161,46 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
         identifier: Option<&DuperIdentifier<'a>>,
         tuple: &DuperTuple<'a>,
     ) -> Self::Value {
-        let mut string = String::new();
-
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            string.push_str(identifier.as_ref());
+            self.buf.push_str(identifier.as_ref());
             if tuple.is_empty() {
-                string.push_str("(())");
+                self.buf.push_str("(())");
             } else if tuple.len() == 1 {
-                string.push_str("((");
-                string.push_str(&tuple.get(0).unwrap().accept(self));
-                string.push_str("))");
+                self.buf.push_str("((");
+                tuple.get(0).unwrap().accept(self);
+                self.buf.push_str("))");
             } else {
-                string.push_str("((\n");
+                self.buf.push_str("((\n");
                 self.increase_indentation();
                 for value in tuple.iter() {
-                    self.push_indentation(&mut string);
-                    string.push_str(&value.accept(self));
-                    string.push_str(",\n");
+                    self.push_indentation();
+                    value.accept(self);
+                    self.buf.push_str(",\n");
                 }
                 self.decrease_indentation();
-                self.push_indentation(&mut string);
-                string.push_str("))");
+                self.push_indentation();
+                self.buf.push_str("))");
             }
         } else if tuple.is_empty() {
-            string.push_str("()");
+            self.buf.push_str("()");
         } else if tuple.len() == 1 {
-            string.push('(');
-            string.push_str(&tuple.get(0).unwrap().accept(self));
-            string.push(')');
+            self.buf.push('(');
+            tuple.get(0).unwrap().accept(self);
+            self.buf.push(')');
         } else {
-            string.push_str("(\n");
+            self.buf.push_str("(\n");
             self.increase_indentation();
             for value in tuple.iter() {
-                self.push_indentation(&mut string);
-                string.push_str(&value.accept(self));
-                string.push_str(",\n");
+                self.push_indentation();
+                value.accept(self);
+                self.buf.push_str(",\n");
             }
             self.decrease_indentation();
-            self.push_indentation(&mut string);
-            string.push(')');
+            self.push_indentation();
+            self.buf.push(')');
         }
-
-        string
     }
 
     fn visit_string<'a>(
@@ -220,22 +213,20 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
         {
             let value = format_duper_string(value);
             if value.len() + self.curr_indent > 60 {
-                let mut string = String::new();
-                string.push_str(identifier.as_ref());
-                string.push_str("(\n");
+                self.buf.push_str(identifier.as_ref());
+                self.buf.push_str("(\n");
                 self.increase_indentation();
-                self.push_indentation(&mut string);
-                string.push_str(&value);
-                string.push('\n');
+                self.push_indentation();
+                self.buf.push_str(&value);
+                self.buf.push('\n');
                 self.decrease_indentation();
-                self.push_indentation(&mut string);
-                string.push(')');
-                string
+                self.push_indentation();
+                self.buf.push(')');
             } else {
-                format!("{identifier}({value})")
+                self.buf.push_str(&format!("{identifier}({value})"));
             }
         } else {
-            format_duper_string(value).into_owned()
+            self.buf.push_str(&format_duper_string(value));
         }
     }
 
@@ -249,21 +240,19 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
         {
             let bytes = format_duper_bytes(bytes);
             if bytes.len() + self.curr_indent > 60 {
-                let mut string = String::new();
-                string.push_str(identifier.as_ref());
-                string.push_str("(\n");
+                self.buf.push_str(identifier.as_ref());
+                self.buf.push_str("(\n");
                 self.increase_indentation();
-                self.push_indentation(&mut string);
-                string.push_str(&bytes);
+                self.push_indentation();
+                self.buf.push_str(&bytes);
                 self.decrease_indentation();
-                self.push_indentation(&mut string);
-                string.push(')');
-                string
+                self.push_indentation();
+                self.buf.push(')');
             } else {
-                format!("{identifier}({bytes})")
+                self.buf.push_str(&format!("{identifier}({bytes})"));
             }
         } else {
-            format_duper_bytes(bytes).into_owned()
+            self.buf.push_str(&format_duper_bytes(bytes));
         }
     }
 
@@ -276,9 +265,9 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
             && let Some(identifier) = identifier
         {
             let value = format_integer(integer);
-            format!("{identifier}({value})")
+            self.buf.push_str(&format!("{identifier}({value})"));
         } else {
-            format_integer(integer)
+            self.buf.push_str(&format_integer(integer));
         }
     }
 
@@ -287,9 +276,9 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
             && let Some(identifier) = identifier
         {
             let value = format_float(float);
-            format!("{identifier}({value})")
+            self.buf.push_str(&format!("{identifier}({value})"));
         } else {
-            format_float(float)
+            self.buf.push_str(&format_float(float));
         }
     }
 
@@ -302,9 +291,9 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
             && let Some(identifier) = identifier
         {
             let value = format_boolean(boolean);
-            format!("{identifier}({value})")
+            self.buf.push_str(&format!("{identifier}({value})"));
         } else {
-            format_boolean(boolean).into()
+            self.buf.push_str(format_boolean(boolean));
         }
     }
 
@@ -313,9 +302,9 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
             && let Some(identifier) = identifier
         {
             let value = format_null();
-            format!("{identifier}({value})")
+            self.buf.push_str(&format!("{identifier}({value})"));
         } else {
-            format_null().into()
+            self.buf.push_str(format_null());
         }
     }
 }

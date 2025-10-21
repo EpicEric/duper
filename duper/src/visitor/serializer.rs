@@ -14,60 +14,63 @@ use crate::{
 /// A Duper visitor which serializes the provided [`DuperValue`].
 #[derive(Default)]
 pub struct Serializer {
+    buf: String,
     strip_identifiers: bool,
 }
 
 impl Serializer {
     /// Create a new [`Serializer`] visitor with the provided option.
     pub fn new(strip_identifiers: bool) -> Self {
-        Self { strip_identifiers }
+        Self {
+            buf: String::new(),
+            strip_identifiers,
+        }
     }
 
     /// Convert the [`DuperValue`] into a serialized [`String`].
     pub fn serialize<'a>(&mut self, value: DuperValue<'a>) -> String {
-        value.accept(self)
+        self.buf.clear();
+        value.accept(self);
+        std::mem::take(&mut self.buf)
     }
 }
 
 impl DuperVisitor for Serializer {
-    type Value = String;
+    type Value = ();
 
     fn visit_object<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
         object: &DuperObject<'a>,
     ) -> Self::Value {
-        let mut string = String::new();
         let len = object.len();
 
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            string.push_str(identifier.as_ref());
-            string.push_str("({");
+            self.buf.push_str(identifier.as_ref());
+            self.buf.push_str("({");
             for (i, (key, value)) in object.iter().enumerate() {
-                string.push_str(&format_key(key));
-                string.push_str(": ");
-                string.push_str(&value.accept(self));
+                self.buf.push_str(&format_key(key));
+                self.buf.push_str(": ");
+                value.accept(self);
                 if i < len - 1 {
-                    string.push_str(", ");
+                    self.buf.push_str(", ");
                 }
             }
-            string.push_str("})");
+            self.buf.push_str("})");
         } else {
-            string.push('{');
+            self.buf.push('{');
             for (i, (key, value)) in object.iter().enumerate() {
-                string.push_str(&format_key(key));
-                string.push_str(": ");
-                string.push_str(&value.accept(self));
+                self.buf.push_str(&format_key(key));
+                self.buf.push_str(": ");
+                value.accept(self);
                 if i < len - 1 {
-                    string.push_str(", ");
+                    self.buf.push_str(", ");
                 }
             }
-            string.push('}');
+            self.buf.push('}');
         }
-
-        string
     }
 
     fn visit_array<'a>(
@@ -75,33 +78,30 @@ impl DuperVisitor for Serializer {
         identifier: Option<&DuperIdentifier<'a>>,
         array: &DuperArray<'a>,
     ) -> Self::Value {
-        let mut string = String::new();
         let len = array.len();
 
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            string.push_str(identifier.as_ref());
-            string.push_str("([");
+            self.buf.push_str(identifier.as_ref());
+            self.buf.push_str("([");
             for (i, value) in array.iter().enumerate() {
-                string.push_str(&value.accept(self));
+                value.accept(self);
                 if i < len - 1 {
-                    string.push_str(", ");
+                    self.buf.push_str(", ");
                 }
             }
-            string.push_str("])");
+            self.buf.push_str("])");
         } else {
-            string.push('[');
+            self.buf.push('[');
             for (i, value) in array.iter().enumerate() {
-                string.push_str(&value.accept(self));
+                value.accept(self);
                 if i < len - 1 {
-                    string.push_str(", ");
+                    self.buf.push_str(", ");
                 }
             }
-            string.push(']');
+            self.buf.push(']');
         }
-
-        string
     }
 
     fn visit_tuple<'a>(
@@ -109,33 +109,30 @@ impl DuperVisitor for Serializer {
         identifier: Option<&DuperIdentifier<'a>>,
         tuple: &DuperTuple<'a>,
     ) -> Self::Value {
-        let mut string = String::new();
         let len = tuple.len();
 
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
-            string.push_str(identifier.as_ref());
-            string.push_str("((");
+            self.buf.push_str(identifier.as_ref());
+            self.buf.push_str("((");
             for (i, value) in tuple.iter().enumerate() {
-                string.push_str(&value.accept(self));
+                value.accept(self);
                 if i < len - 1 {
-                    string.push_str(", ");
+                    self.buf.push_str(", ");
                 }
             }
-            string.push_str("))");
+            self.buf.push_str("))");
         } else {
-            string.push('(');
+            self.buf.push('(');
             for (i, value) in tuple.iter().enumerate() {
-                string.push_str(&value.accept(self));
+                value.accept(self);
                 if i < len - 1 {
-                    string.push_str(", ");
+                    self.buf.push_str(", ");
                 }
             }
-            string.push(')');
+            self.buf.push(')');
         }
-
-        string
     }
 
     fn visit_string<'a>(
@@ -147,9 +144,9 @@ impl DuperVisitor for Serializer {
             && let Some(identifier) = identifier
         {
             let value = format_duper_string(value);
-            format!("{identifier}({value})")
+            self.buf.push_str(&format!("{identifier}({value})"));
         } else {
-            format_duper_string(value).into_owned()
+            self.buf.push_str(&format_duper_string(value));
         }
     }
 
@@ -162,9 +159,9 @@ impl DuperVisitor for Serializer {
             && let Some(identifier) = identifier
         {
             let bytes = format_duper_bytes(bytes);
-            format!("{identifier}({bytes})")
+            self.buf.push_str(&format!("{identifier}({bytes})"));
         } else {
-            format_duper_bytes(bytes).into_owned()
+            self.buf.push_str(&format_duper_bytes(bytes));
         }
     }
 
@@ -177,9 +174,9 @@ impl DuperVisitor for Serializer {
             && let Some(identifier) = identifier
         {
             let value = format_integer(integer);
-            format!("{identifier}({value})")
+            self.buf.push_str(&format!("{identifier}({value})"));
         } else {
-            format_integer(integer)
+            self.buf.push_str(&format_integer(integer));
         }
     }
 
@@ -188,9 +185,9 @@ impl DuperVisitor for Serializer {
             && let Some(identifier) = identifier
         {
             let value = format_float(float);
-            format!("{identifier}({value})")
+            self.buf.push_str(&format!("{identifier}({value})"));
         } else {
-            format_float(float)
+            self.buf.push_str(&format_float(float));
         }
     }
 
@@ -203,9 +200,9 @@ impl DuperVisitor for Serializer {
             && let Some(identifier) = identifier
         {
             let value = format_boolean(boolean);
-            format!("{identifier}({value})")
+            self.buf.push_str(&format!("{identifier}({value})"));
         } else {
-            format_boolean(boolean).into()
+            self.buf.push_str(format_boolean(boolean));
         }
     }
 
@@ -214,9 +211,9 @@ impl DuperVisitor for Serializer {
             && let Some(identifier) = identifier
         {
             let value = format_null();
-            format!("{identifier}({value})")
+            self.buf.push_str(&format!("{identifier}({value})"));
         } else {
-            format_null().into()
+            self.buf.push_str(format_null());
         }
     }
 }
