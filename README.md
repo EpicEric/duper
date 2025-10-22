@@ -157,9 +157,9 @@ cargo add serde_duper
 
 Duper excels in a variety of use cases:
 
-- In configuration files, its explicit types can better guide users.
-- Thanks to its self-documenting identifiers, Duper seamlessly feels right at home in REST APIs.
-- With its support for bytes, minimal syntax, and compatibility with JSON, Duper is also a great choice for data interchange.
+- In configuration files where users are expected to swap out values, its explicit types can be a helpful guide.
+- Thanks to its self-documenting identifiers, Duper feels right at home in REST APIs.
+- With support for bytes, minimal syntax, and compatibility with JSON, Duper is also a great choice for data interchange.
 
 ## A formal specification for implementers
 

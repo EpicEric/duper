@@ -3,7 +3,10 @@
 </p>
 <h1 align="center">Duper: The format that's super!</h1>
 
-> Specification version 0.1.1
+<p align="center">
+    <a href="https://github.com/EpicEric/duper/blob/main/SPEC.md"><img alt="Specification version" src="https://img.shields.io/badge/spec_version-0.1.1-blue"></a>
+    <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
+</p>
 
 Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
 
@@ -12,7 +15,7 @@ Duper aims to be a human-friendly extension of JSON with quality-of-life improve
 - Duper is case-sensitive and must be a valid UTF-8 encoded Unicode document.
 - Whitespace means tab (U+0009), space (U+0020), line feed (U+000A), or carriage return (U+000D).
 - Newline means line feed (U+000A) or carriage return (U+000D).
-- Files must have only one root value. Objects and arrays must be handled by a Duper parser, but other values may be allowed.
+- Files must have only one root value. Objects and arrays as the root value must always be accepted by a Duper parser, but implementations may allow other values as the root value.
 
 ## Comments
 
@@ -130,7 +133,7 @@ Defining a key multiple times is invalid. Note that plain keys, quoted keys, and
 {
   name: "Eric Rodrigues Pires",
   name: "Epic Eric",  // INVALID
-  "name": "Eric",  // INVALID
+  "n\x61me": "Eric",  // INVALID
   r"name": "Eric",  // INVALID
 }
 ```
@@ -149,22 +152,24 @@ A string may be either quoted or raw.
 
 For convenience, some popular characters have a compact escape sequence:
 
-```plaintext
-\b     - backspace       (U+0008)
-\f     - form feed       (U+000C)
-\n     - line feed       (U+000A)
-\r     - carriage return (U+000D)
-\t     - tab             (U+0009)
-\0     - null            (U+0000)
-\"     - quote           (U+0022)
-\\     - backslash       (U+005C)
-\xHH   - arbitrary byte  (U+00HH)
-\uHHHH - unicode         (U+HHHH)
+```duper
+[
+  r#" \b     - backspace       (U+0008) "#,
+  r#" \f     - form feed       (U+000C) "#,
+  r#" \n     - line feed       (U+000A) "#,
+  r#" \r     - carriage return (U+000D) "#,
+  r#" \t     - tab             (U+0009) "#,
+  r#" \0     - null            (U+0000) "#,
+  r#" \"     - quote           (U+0022) "#,
+  r#" \\     - backslash       (U+005C) "#,
+  r#" \xHH   - arbitrary byte  (U+00HH) "#,
+  r#" \uHHHH - unicode         (U+HHHH) "#,
+]
 ```
 
 Any Unicode character may be escaped with `\uHHHH` or a sequence of one or more `\xHH`. The escape codes must be Unicode [scalar values](https://unicode.org/glossary/#unicode_scalar_value).
 
-Keep in mind that Duper strings are sequences of Unicode characters, _not_ byte sequences. For binary data, use [byte strings](#byte-strings).
+Keep in mind that Duper strings are sequences of Unicode characters, _not_ byte sequences. Parsers should raise an error if a string contains invalid Unicode. For binary data, use [byte strings](#byte-strings).
 
 **Raw strings** start with the lowercase letter R, immediately followed by zero or more hash symbols `#`, immediately followed by a quotation mark `r"`. They end with a quotation mark `"`, followed by the same number of starting hash symbols `#`. They allow newlines and have no escaping whatsoever.
 
@@ -227,6 +232,9 @@ For large numbers, you may use underscores between digits to enhance readability
   int6: 5_349_221,
   int7: 53_49_221,
   int8: 1_2_3_4_5,
+  // INVALID: 1__2,
+  // INVALID: _12,
+  // INVALID: 12_,
 }
 ```
 
@@ -250,7 +258,7 @@ Non-negative integer values may also be expressed in hexadecimal, octal, or bina
 }
 ```
 
-Implementations are free to support any integer size. It's recommended that at least 64-bit signed integers (from −2^63 to 2^63−1) are accepted and handled losslessly. If an integer cannot be represented losslessly, an error must be thrown.
+Implementations are free to support any integer size. It's recommended that at least 64-bit signed integers (from −2^63 to 2^63−1) are accepted and handled losslessly. If an integer cannot be represented, it's recommended that implementations convert it into a float losslessly, or else convert it into a string, using an appropriate [identifier](#identifiers) in both cases.
 
 ## Floats
 
@@ -279,7 +287,7 @@ An exponent part is an E (upper or lower case) followed by an integer part (whic
 
 The decimal point, if used, must be surrounded by at least one digit on each side.
 
-```
+```duper
 {
   invalid_float_1: .7,  // INVALID
   invalid_float_2: 7.,  // INVALID
@@ -367,20 +375,22 @@ Tuples are similar to arrays, although parsers may choose to handle them differe
 }
 ```
 
+Any parenthesized expression must be interpreted as a tuple by parsers.
+
 ## Identifiers
 
-Identifiers are optional type-like annotations that wrap any kind of value, providing semantic meaning or hinting at special handling during parsing/validation. The first character must be an uppercase letter, followed by letters, numbers, underscores `_`, and hyphens `-`. They must start with an ASCII letter, or an underscore followed by a letter or digit. Sequences of underscores and hyphens are not allowed in the identifier.
+Identifiers are optional type-like annotations that wrap any kind of value, providing semantic meaning or hinting at special handling during parsing/validation. Identified values are composed of the identifier name, followed by the value wrapped in parenthesis `(` and `)`.
 
-The actual value must be wrapped in parenthesis `(` and `)`.
+The first character must be an uppercase letter, followed by letters, numbers, underscores `_`, and hyphens `-`. They must start with an ASCII letter, or an underscore followed by a letter or digit. Sequences of underscores and hyphens are not allowed in the identifier.
 
 ```duper
 {
   user_id: Uuid("550e8400-e29b-41d4-a716-446655440000"),
   created: DateTime("2024-01-15T10:30:00Z"),
-  birthday: Date("1990-05-20"),
+  birthday: ISO-8601("1990-05-20"),
   price: Decimal("19.99"),
   weight: Kilograms(2.5),
-  color: RGB((255, 0, 128)),  // Two sets of parenthesis for tuples
+  color: RGB((Red(255), Green(0), Blue(128))),  // Two sets of parenthesis for tuples
   address: IPV4("192.168.1.1"),
   nested: Metadata({
     version: Version("1.2.3"),
@@ -406,7 +416,9 @@ Values may not contain more than one identifier.
 }
 ```
 
-Parsers should preserve identifier information. Deserializers may ignore identifiers, or use them for validation. Serializers may choose to output or omit identifiers.
+Parsers should preserve identifier information. Deserializers may ignore identifiers, or use them for validation. Serializers may choose to output or omit identifiers by the user's request.
+
+Implementations are free to define their own identifiers with specific semantics.
 
 ## Filename Extension
 

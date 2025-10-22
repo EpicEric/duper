@@ -103,7 +103,7 @@ dependencies = [
 
 [[package]]
 name = "axum_duper"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "serde",
@@ -308,7 +308,7 @@ dependencies = [
 
 [[package]]
 name = "duper"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "insta",
  "miette",
@@ -322,7 +322,7 @@ dependencies = [
 
 [[package]]
 name = "duper-python"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "duper",
  "miette",
@@ -1077,7 +1077,7 @@ dependencies = [
 
 [[package]]
 name = "serde_duper"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bytes",
  "chrono",

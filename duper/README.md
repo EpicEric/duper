@@ -4,8 +4,8 @@
 <h1 align="center">Duper: The format that's super!</h1>
 
 <p align="center">
-    <a href="https://github.com/EpicEric/duper"><img alt="GitHub stars" src="https://img.shields.io/github/stars/EpicEric/duper?style=flat&logo=github&logoColor=white"></a>
     <a href="https://crates.io/crates/duper"><img alt="Crates.io version" src="https://img.shields.io/crates/v/duper?style=flat&logo=rust&logoColor=white&label=duper"></a>
+    <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
 </p>
 
 Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.

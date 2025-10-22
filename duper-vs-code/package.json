@@ -2,7 +2,7 @@
   "name": "duper-vs-code",
   "displayName": "Duper",
   "description": "Duper support for Visual Studio Code",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "engines": {
     "vscode": "^1.105.0"
   },
@@ -16,7 +16,7 @@
   "categories": [
     "Programming Languages"
   ],
-  "icon": "logo.png",
+  "icon": "images/logo.png",
   "contributes": {
     "languages": [
       {

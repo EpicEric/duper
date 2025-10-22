@@ -31,8 +31,8 @@
 //!
 //! ## Other crates
 //!
-//! - [`serde_duper`](https://docs.rs/serde_duper): Provides full serialization/
-//!   deserialization support between Duper and native data types.
+//! - [`serde_duper`](https://docs.rs/serde_duper): Provides full
+//!   serialization/deserialization support between Duper and native data types.
 //! - [`axum_duper`](https://docs.rs/axum_duper): Provides an extractor/response
 //!   for use with [`axum`](https://docs.rs/axum).
 //!

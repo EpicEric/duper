@@ -1,16 +1,22 @@
 //! The parser rules used to build the Duper abstract syntax tree (AST).
 
+// -- WHITESPACE --
+
 /// Matches whitespace, which is ignored.
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 
 /// Matches a comment, which is ignored.
 COMMENT = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 
+// -- ROOT --
+
 /// Matches a Duper trunk value, i.e. an object or array, at the root of the input.
 duper_trunk = { SOI ~ (identifier ~ "(" ~ (object | array) ~ ")" | object | array) ~ EOI }
 
 /// Matches any Duper value at the root of the input.
 duper_value = _{ SOI ~ described_value ~ EOI }
+
+// -- VALUES --
 
 /// Matches an identifier for a Duper value.
 identifier = @{ UPPERCASE_LETTER ~ (("-" | "_")? ~ LETTER | NUMBER)* }
@@ -20,6 +26,8 @@ described_value = { identifier ~ "(" ~ value ~ ")" | value }
 
 /// Matches any valid inner value.
 value = _{ object | array | tuple | quoted_string | raw_string | quoted_bytes | raw_bytes | float | integer | boolean | null }
+
+// -- OBJECTS --
 
 /// Matches a Duper object.
 object = {
@@ -36,10 +44,11 @@ key = _{ quoted_string | raw_string | plain_key }
 /// Matches a Duper object's plain key.
 plain_key = @{ (ASCII_ALPHA | "_" ~ ASCII_ALPHANUMERIC) ~ (("_" | "-")? ~ ASCII_ALPHANUMERIC)* }
 
+// -- TUPLES AND ARRAYS --
+
 /// Matches a Duper tuple.
 tuple = {
-    "()"
-  | "(" ~ "," ~ ")"
+    "(" ~ ","? ~ ")"
   | "(" ~ described_value ~ ("," ~ described_value)* ~ ","? ~ ")"
 }
 
@@ -49,13 +58,15 @@ array = {
   | "[" ~ described_value ~ ("," ~ described_value)* ~ ","? ~ "]"
 }
 
+// -- STRINGS AND BYTE STRINGS --
+
 /// Matches the characters inside a quoted string or a quoted byte string.
 quoted_inner = @{ char* }
 
 /// Matches the individual characters in a quoted string or a quoted byte string.
 char = {
     !("\"" | "\\") ~ ANY
-  | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+  | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | "0")
   | "\\" ~ ("x" ~ ASCII_HEX_DIGIT{2})
   | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
@@ -78,6 +89,8 @@ raw_bytes = ${
 
 /// Matches the characters inside a raw string or a raw byte string.
 raw_inner = @{ (!("\"" ~ PEEK) ~ ANY)* }
+
+// -- INTEGERS --
 
 /// Matches an integer.
 integer = { hex_integer | octal_integer | binary_integer | decimal_integer }
@@ -106,6 +119,8 @@ binary_integer = @{ "0b" ~ binary_digits }
 /// Matches the digits of a binary integer.
 binary_digits = { ASCII_BIN_DIGIT ~ ("_"? ~ ASCII_BIN_DIGIT)* }
 
+// -- FLOATING POINT NUMBERS --
+
 /// Matches a floating point number.
 float = @{
     ("+" | "-")? ~ ("0" | ASCII_NONZERO_DIGIT ~ ("_"? ~ ASCII_DIGIT)*) ~ ((decimal ~ exponent?) | (decimal? ~ exponent))
@@ -116,6 +131,8 @@ decimal = { "." ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)* ~ (^"e" ~ ("+" | "-")? ~ A
 
 /// Matches the exponent of a floating point number.
 exponent = { ^"e" ~ ("+" | "-")? ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)* }
+
+// -- BOOLEANS AND NULL --
 
 /// Matches a boolean.
 boolean = { "true" | "false" }
