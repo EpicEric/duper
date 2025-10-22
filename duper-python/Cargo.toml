@@ -1,7 +1,7 @@
 [package]
 name = "duper-python"
 description = "The format that's super!"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "MIT"
 authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
@@ -17,7 +17,7 @@ name = "_duper"
 crate-type = ["cdylib"]
 
 [dependencies]
-duper = { path = "../duper", version = "0.1.0" }
+duper = { path = "../duper", version = "0.1.1" }
 miette = "7.6.0"
 pyo3 = { version = "0.27.0", features = [
   "extension-module",
