@@ -17,49 +17,8 @@ use crate::{
 pub(crate) struct DuperBuilder;
 
 impl DuperBuilder {
-    pub(crate) fn build_duper_trunk(
-        pair: Pair<'_, Rule>,
-    ) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
-        Self::build_trunk(pair)
-    }
-
-    pub(crate) fn build_duper_value(
-        pair: Pair<'_, Rule>,
-    ) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
+    pub(crate) fn build_duper(pair: Pair<'_, Rule>) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
         Self::build_value(pair)
-    }
-
-    fn build_trunk(pair: Pair<'_, Rule>) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
-        debug_assert!(matches!(pair.as_rule(), Rule::duper_trunk));
-        let span = pair.as_span();
-        let mut duper_trunk = pair.into_inner();
-        let mut next = duper_trunk.next().unwrap();
-        let identifier = match next.as_rule() {
-            Rule::identifier => {
-                let identifier = next.as_str();
-                next = duper_trunk.next().unwrap();
-                Some(DuperIdentifier(Cow::Borrowed(identifier)))
-            }
-            _ => None,
-        };
-        Ok(match next.as_rule() {
-            Rule::object => DuperValue {
-                identifier,
-                inner: DuperInner::Object(Self::build_object(next)?),
-            },
-            Rule::array => DuperValue {
-                identifier,
-                inner: DuperInner::Array(Self::build_array(next)?),
-            },
-            rule => {
-                return Err(Box::new(Error::new_from_span(
-                    ErrorVariant::CustomError {
-                        message: format!("unexpected rule in trunk {rule:?}"),
-                    },
-                    span,
-                )));
-            }
-        })
     }
 
     fn build_object(pair: Pair<'_, Rule>) -> Result<DuperObject<'_>, Box<Error<Rule>>> {
@@ -72,12 +31,14 @@ impl DuperBuilder {
                 let mut inner_pair = pair.into_inner();
                 let key_pair = inner_pair.next().unwrap();
                 let key = match key_pair.as_rule() {
-                    Rule::string => unescape_str(key_pair.into_inner().next().unwrap().as_str())
-                        .expect("parsed valid escape sequences"),
+                    Rule::plain_key => Cow::Borrowed(key_pair.as_str()),
+                    Rule::quoted_string => {
+                        unescape_str(key_pair.into_inner().next().unwrap().as_str())
+                            .expect("parsed valid escape sequences")
+                    }
                     Rule::raw_string => {
                         Cow::Borrowed(key_pair.into_inner().next().unwrap().as_str())
                     }
-                    Rule::plain_key => Cow::Borrowed(key_pair.as_str()),
                     rule => {
                         return Err(Box::new(Error::new_from_span(
                             ErrorVariant::CustomError {
@@ -141,14 +102,14 @@ impl DuperBuilder {
                 Rule::object => DuperInner::Object(Self::build_object(next)?),
                 Rule::array => DuperInner::Array(Self::build_array(next)?),
                 Rule::tuple => DuperInner::Tuple(Self::build_tuple(next)?),
-                Rule::string => DuperInner::String(DuperString(
+                Rule::quoted_string => DuperInner::String(DuperString(
                     unescape_str(next.into_inner().next().unwrap().as_str())
                         .expect("parsed valid escape sequences"),
                 )),
                 Rule::raw_string => DuperInner::String(DuperString(Cow::Borrowed(
                     next.into_inner().next().unwrap().as_str(),
                 ))),
-                Rule::bytes => DuperInner::Bytes(DuperBytes(
+                Rule::quoted_bytes => DuperInner::Bytes(DuperBytes(
                     unescape_bytes(next.into_inner().next().unwrap().as_str())
                         .expect("parsed valid escape sequences"),
                 )),

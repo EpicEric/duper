@@ -1,6 +1,9 @@
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/EpicEric/duper/refs/heads/main/logos/duper-100-100.png"
+)]
 //! # Duper
 //!
-//! The format that's super.
+//! The format that's super!
 //!
 //! Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
 //!

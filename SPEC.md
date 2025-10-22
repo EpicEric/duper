@@ -1,8 +1,9 @@
-# Duper specification
+<p align="center">
+    <img src="https://raw.githubusercontent.com/EpicEric/duper/refs/heads/main/logos/duper-400.png" alt="The Duper logo, with a confident spectacled mole wearing a flailing blue cape." /> <br>
+</p>
+<h1 align="center">Duper: The format that's super!</h1>
 
-> Version 0.1.1
-
-The format that's super.
+> Specification version 0.1.1
 
 Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
 

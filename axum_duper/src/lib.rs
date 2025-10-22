@@ -1,3 +1,6 @@
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/EpicEric/duper/refs/heads/main/logos/duper-100-100.png"
+)]
 //! # Axum Duper
 //!
 //! Duper extractor / response for [`axum`].

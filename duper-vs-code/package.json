@@ -1,7 +1,7 @@
 {
   "name": "duper-vs-code",
   "displayName": "Duper",
-  "description": "Adds Duper support to VSCode",
+  "description": "Duper support for Visual Studio Code",
   "version": "0.1.0",
   "engines": {
     "vscode": "^1.105.0"
@@ -16,6 +16,7 @@
   "categories": [
     "Programming Languages"
   ],
+  "icon": "logo.png",
   "contributes": {
     "languages": [
       {

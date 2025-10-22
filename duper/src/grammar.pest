@@ -1,72 +1,124 @@
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
-COMMENT    = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+//! The parser rules used to build the Duper abstract syntax tree (AST).
 
-duper       = _{ SOI ~ duper_trunk ~ EOI }
+/// Matches whitespace, which is ignored.
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+/// Matches a comment, which is ignored.
+COMMENT = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+
+/// Matches a Duper trunk value, i.e. an object or array, at the root of the input.
+duper_trunk = { SOI ~ (identifier ~ "(" ~ (object | array) ~ ")" | object | array) ~ EOI }
+
+/// Matches any Duper value at the root of the input.
 duper_value = _{ SOI ~ described_value ~ EOI }
 
-duper_trunk =  { identifier ~ "(" ~ (object | array) ~ ")" | object | array }
-identifier  = @{ UPPERCASE_LETTER ~ (("-" | "_")? ~ LETTER | NUMBER)* }
+/// Matches an identifier for a Duper value.
+identifier = @{ UPPERCASE_LETTER ~ (("-" | "_")? ~ LETTER | NUMBER)* }
 
-described_value =  { identifier ~ "(" ~ value ~ ")" | value }
-value           = _{ object | array | tuple | string | raw_string | bytes | raw_bytes | float | integer | boolean | null }
+/// Matches a value with an optional identifier.
+described_value = { identifier ~ "(" ~ value ~ ")" | value }
 
-object    =  {
+/// Matches any valid inner value.
+value = _{ object | array | tuple | quoted_string | raw_string | quoted_bytes | raw_bytes | float | integer | boolean | null }
+
+/// Matches a Duper object.
+object = {
     "{" ~ ","? ~ "}"
   | "{" ~ pair ~ ("," ~ pair)* ~ ","? ~ "}"
 }
-pair      =  { key ~ ":" ~ described_value }
-key       = _{ string | raw_string | plain_key }
+
+/// Matches a Duper object's key-value pair.
+pair = { key ~ ":" ~ described_value }
+
+/// Matches a Duper object's key, which may be plain, quoted, or raw.
+key = _{ quoted_string | raw_string | plain_key }
+
+/// Matches a Duper object's plain key.
 plain_key = @{ (ASCII_ALPHA | "_" ~ ASCII_ALPHANUMERIC) ~ (("_" | "-")? ~ ASCII_ALPHANUMERIC)* }
 
+/// Matches a Duper tuple.
 tuple = {
     "()"
   | "(" ~ "," ~ ")"
   | "(" ~ described_value ~ ("," ~ described_value)* ~ ","? ~ ")"
 }
 
+/// Matches a Duper array.
 array = {
     "[" ~ ","? ~ "]"
   | "[" ~ described_value ~ ("," ~ described_value)* ~ ","? ~ "]"
 }
 
-inner = @{ char* }
-char  =  {
+/// Matches the characters inside a quoted string or a quoted byte string.
+quoted_inner = @{ char* }
+
+/// Matches the individual characters in a quoted string or a quoted byte string.
+char = {
     !("\"" | "\\") ~ ANY
   | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
   | "\\" ~ ("x" ~ ASCII_HEX_DIGIT{2})
   | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
 
-string = ${ "\"" ~ inner ~ "\"" }
+/// Matches a quoted string.
+quoted_string = ${ "\"" ~ quoted_inner ~ "\"" }
 
-bytes = ${ "b\"" ~ inner ~ "\"" }
+/// Matches a quoted byte string.
+quoted_bytes = ${ "b\"" ~ quoted_inner ~ "\"" }
 
-raw_string          = ${
-    "r" ~ PUSH("#"*) ~ "\"" ~ raw_string_interior ~ "\"" ~ POP
+/// Matches a raw string.
+raw_string = ${
+    "r" ~ PUSH("#"*) ~ "\"" ~ raw_inner ~ "\"" ~ POP
 }
-raw_string_interior = @{ (!("\"" ~ PEEK) ~ ANY)* }
 
-raw_bytes          = ${
-    "br" ~ PUSH("#"*) ~ "\"" ~ raw_bytes_interior ~ "\"" ~ POP
+/// Matches a raw byte string.
+raw_bytes = ${
+    "br" ~ PUSH("#"*) ~ "\"" ~ raw_inner ~ "\"" ~ POP
 }
-raw_bytes_interior = @{ (!("\"" ~ PEEK) ~ ANY)* }
 
-integer         =  { hex_integer | octal_integer | binary_integer | decimal_integer }
+/// Matches the characters inside a raw string or a raw byte string.
+raw_inner = @{ (!("\"" ~ PEEK) ~ ANY)* }
+
+/// Matches an integer.
+integer = { hex_integer | octal_integer | binary_integer | decimal_integer }
+
+/// Matches a decimal integer.
 decimal_integer = @{ ("+" | "-")? ~ decimal_digits }
-decimal_digits  =  { "0" | ASCII_NONZERO_DIGIT ~ ("_"? ~ ASCII_DIGIT)* }
-hex_integer     = @{ "0x" ~ hex_digits }
-hex_digits      =  { ASCII_HEX_DIGIT ~ ("_"? ~ ASCII_HEX_DIGIT)* }
-octal_integer   = @{ "0o" ~ octal_digits }
-octal_digits    =  { ASCII_OCT_DIGIT ~ ("_"? ~ ASCII_OCT_DIGIT)* }
-binary_integer  = @{ "0b" ~ binary_digits }
-binary_digits   =  { ASCII_BIN_DIGIT ~ ("_"? ~ ASCII_BIN_DIGIT)* }
 
-float    = @{
+/// Matches the digits of a decimal integer.
+decimal_digits = { "0" | ASCII_NONZERO_DIGIT ~ ("_"? ~ ASCII_DIGIT)* }
+
+/// Matches a hexadecimal integer.
+hex_integer = @{ "0x" ~ hex_digits }
+
+/// Matches the digits of a hexadecimal integer.
+hex_digits = { ASCII_HEX_DIGIT ~ ("_"? ~ ASCII_HEX_DIGIT)* }
+
+/// Matches an octal integer.
+octal_integer = @{ "0o" ~ octal_digits }
+
+/// Matches the digits of an octal integer.
+octal_digits = { ASCII_OCT_DIGIT ~ ("_"? ~ ASCII_OCT_DIGIT)* }
+
+/// Matches a binary integer.
+binary_integer = @{ "0b" ~ binary_digits }
+
+/// Matches the digits of a binary integer.
+binary_digits = { ASCII_BIN_DIGIT ~ ("_"? ~ ASCII_BIN_DIGIT)* }
+
+/// Matches a floating point number.
+float = @{
     ("+" | "-")? ~ ("0" | ASCII_NONZERO_DIGIT ~ ("_"? ~ ASCII_DIGIT)*) ~ ((decimal ~ exponent?) | (decimal? ~ exponent))
 }
-decimal  =  { "." ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)* ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)*)? }
-exponent =  { ^"e" ~ ("+" | "-")? ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)* }
 
+/// Matches the decimal part of a floating point number (i.e. the numbers after the period).
+decimal = { "." ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)* ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)*)? }
+
+/// Matches the exponent of a floating point number.
+exponent = { ^"e" ~ ("+" | "-")? ~ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT)* }
+
+/// Matches a boolean.
 boolean = { "true" | "false" }
 
+/// Matches a null value.
 null = { "null" }

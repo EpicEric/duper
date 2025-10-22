@@ -1,8 +1,12 @@
-# Duper
+<p align="center">
+    <img src="https://raw.githubusercontent.com/EpicEric/duper/refs/heads/main/logos/duper-400.png" alt="The Duper logo, with a confident spectacled mole wearing a flailing blue cape." /> <br>
+</p>
+<h1 align="center">Duper: The format that's super!</h1>
 
-[![Github license](https://img.shields.io/github/license/EpicEric/duper)](https://github.com/EpicEric/duper/blob/main/LICENSE)
-
-The format that's super.
+<p align="center">
+    <a href="https://github.com/EpicEric/duper"><img alt="GitHub stars" src="https://img.shields.io/github/stars/EpicEric/duper?style=flat&logo=github&logoColor=white"></a>
+    <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
+</p>
 
 Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
 
@@ -134,3 +138,29 @@ Product({
 ```
 
 Finally, Duper has the notion of _identifiers_: optional type-like annotations (`MyIdentifier(...)`) to help with readability, or to suggest that the parser handles/validates the data in a specific manner.
+
+## Quick start
+
+### Python
+
+```bash
+uv add duper-python
+```
+
+### Rust
+
+```bash
+cargo add serde_duper
+```
+
+## Why Duper?
+
+Duper excels in a variety of use cases:
+
+- In configuration files, its explicit types can better guide users.
+- Thanks to its self-documenting identifiers, Duper seamlessly feels right at home in REST APIs.
+- With its support for bytes, minimal syntax, and compatibility with JSON, Duper is also a great choice for data interchange.
+
+## A formal specification for implementers
+
+See [SPEC.md](SPEC.md) and the [Pest grammar](duper/src/grammar.pest) for more details.

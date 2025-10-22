@@ -1,4 +1,7 @@
-//! Macros for `serde_duper`.
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/EpicEric/duper/refs/heads/main/logos/duper-100-100.png"
+)]
+//! Macros for [`serde_duper`](https://docs.rs/serde_duper/).
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};

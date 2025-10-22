@@ -2,9 +2,9 @@ use pest::{Parser, error::Error};
 
 use crate::{ast::DuperValue, builder::DuperBuilder};
 
+/// The [`pest`]-based parser for Duper.
 #[derive(pest_derive::Parser)]
 #[grammar = "grammar.pest"]
-/// The [`pest`]-based parser for Duper.
 pub struct DuperParser;
 
 impl DuperParser {
@@ -21,12 +21,12 @@ impl DuperParser {
     ///     Err(error) => panic!("{:?}", miette::Error::new(error.into_miette())),
     /// };
     /// ```
-    pub fn parse_duper_trunk(input: &'_ str) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
-        let mut pairs = Self::parse(Rule::duper, input)?;
-        DuperBuilder::build_duper_trunk(pairs.next().unwrap())
+    pub fn parse_duper_trunk<'a>(input: &'a str) -> Result<DuperValue<'a>, Box<Error<Rule>>> {
+        let mut pairs = Self::parse(Rule::duper_trunk, input)?;
+        DuperBuilder::build_duper(pairs.next().unwrap())
     }
 
-    /// Parse a Duper value.
+    /// Parse a Duper value at the top level.
     ///
     /// You can map the error into a formatted `miette::Error` as follows:
     ///
@@ -39,9 +39,9 @@ impl DuperParser {
     ///     Err(error) => panic!("{:?}", miette::Error::new(error.into_miette())),
     /// };
     /// ```
-    pub fn parse_duper_value(input: &'_ str) -> Result<DuperValue<'_>, Box<Error<Rule>>> {
+    pub fn parse_duper_value<'a>(input: &'a str) -> Result<DuperValue<'a>, Box<Error<Rule>>> {
         let mut pairs = Self::parse(Rule::duper_value, input)?;
-        DuperBuilder::build_duper_value(pairs.next().unwrap())
+        DuperBuilder::build_duper(pairs.next().unwrap())
     }
 }
 
@@ -55,10 +55,51 @@ mod duper_parser_tests {
     #[test]
     fn duper_trunk() {
         let input = r#"
+            "hello"
+        "#;
+        assert!(DuperParser::parse_duper_trunk(input).is_err());
+
+        let input = r#"
+            br"¯\_(ツ)_/¯"
+        "#;
+        assert!(DuperParser::parse_duper_trunk(input).is_err());
+
+        let input = r#"
+            9001
+        "#;
+        assert!(DuperParser::parse_duper_trunk(input).is_err());
+
+        let input = r#"
+            3.14
+        "#;
+        assert!(DuperParser::parse_duper_trunk(input).is_err());
+
+        let input = r#"
+            true
+        "#;
+        assert!(DuperParser::parse_duper_trunk(input).is_err());
+
+        let input = r#"
+            null
+        "#;
+        assert!(DuperParser::parse_duper_trunk(input).is_err());
+
+        let input = r#"
+            (,)
+        "#;
+        assert!(DuperParser::parse_duper_trunk(input).is_err());
+
+        let input = r#"
             {duper: 1337}
         "#;
         let duper = DuperParser::parse_duper_trunk(input).unwrap();
         assert!(matches!(duper.inner, DuperInner::Object(_)));
+
+        let input = r#"
+            [1, 2.2, null]
+        "#;
+        let duper = DuperParser::parse_duper_trunk(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Array(_)));
     }
 
     #[test]
@@ -68,6 +109,54 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(duper.inner, DuperInner::String(_)));
+
+        let input = r#"
+            br"¯\_(ツ)_/¯"
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Bytes(_)));
+
+        let input = r#"
+            9001
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Integer(_)));
+
+        let input = r#"
+            3.14
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Float(_)));
+
+        let input = r#"
+            true
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Boolean(_)));
+
+        let input = r#"
+            null
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Null));
+
+        let input = r#"
+            (,)
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Tuple(_)));
+
+        let input = r#"
+            {duper: 1337}
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Object(_)));
+
+        let input = r#"
+            [1, 2.2, null]
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Array(_)));
     }
 
     #[test]

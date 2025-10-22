@@ -1,13 +1,13 @@
 [package]
 name = "duper"
-description = "The format that's super."
+description = "The format that's super!"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
 authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 repository = "https://github.com/EpicEric/duper"
 homepage = "https://github.com/EpicEric/duper"
-readme = "../README.md"
+readme = "README.md"
 categories = ["encoding", "parser-implementations"]
 keywords = ["duper", "parser", "serialization"]
 

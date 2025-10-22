@@ -3,12 +3,12 @@ use std::fmt::{self, Display};
 use duper::{DuperIdentifierTryFromError, DuperObjectTryFromError};
 
 /// The kinds of errors that can happen during serialization and deserialization.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum ErrorKind {
     /// Parsing failed at the given [`pest`] rule.
     ///
     /// This error implements `.to_miette()`, in order to allow generation of a
-    /// `miette` `Report`.
+    /// `miette` `Diagnostic`.
     ParseError(Box<pest::error::Error<duper::DuperRule>>),
     /// Serialization failed with an unspecified error.
     SerializationError,
@@ -18,6 +18,36 @@ pub enum ErrorKind {
     InvalidValue,
     /// Unspecified conditions.
     Custom,
+}
+
+impl Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            ErrorKind::ParseError(_) => "ParseError",
+            ErrorKind::SerializationError => "SerializationError",
+            ErrorKind::DeserializationError(_) => "DeserializationError",
+            ErrorKind::InvalidValue => "InvalidValue",
+            ErrorKind::Custom => "Custom",
+        })
+    }
+}
+
+impl fmt::Debug for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ParseError(pest_error) => f
+                .debug_tuple("ParseError")
+                .field(&miette::Error::new(pest_error.clone().into_miette()))
+                .finish(),
+            Self::SerializationError => write!(f, "SerializationError"),
+            Self::DeserializationError(serde_error) => f
+                .debug_tuple("DeserializationError")
+                .field(serde_error)
+                .finish(),
+            Self::InvalidValue => write!(f, "InvalidValue"),
+            Self::Custom => write!(f, "Custom"),
+        }
+    }
 }
 
 /// This type includes the error kind and message associated with the failure.
@@ -59,18 +89,7 @@ impl Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}: {}",
-            match self.inner.kind {
-                ErrorKind::ParseError(_) => "ParseError",
-                ErrorKind::SerializationError => "SerializationError",
-                ErrorKind::DeserializationError(_) => "DeserializationError",
-                ErrorKind::InvalidValue => "InvalidValue",
-                ErrorKind::Custom => "Custom",
-            },
-            self.inner.message
-        )
+        write!(f, "{}: {}", self.inner.kind, self.inner.message)
     }
 }
 

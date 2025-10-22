@@ -3,13 +3,12 @@ from duper.fastapi import DuperBody, DuperResponse
 from duper.pydantic import BaseModel
 from fastapi import FastAPI
 
-
-app = FastAPI()
-
-
 class PydanticModel(BaseModel):
     tup: tuple[str, bytes]
     value: int
+
+
+app = FastAPI()
 
 
 @app.post("/response_pydantic", response_class=DuperResponse)
