@@ -4,7 +4,7 @@
 <h1 align="center">Duper: The format that's super!</h1>
 
 <p align="center">
-    <a href="https://github.com/EpicEric/duper/blob/main/SPEC.md"><img alt="Specification version" src="https://img.shields.io/badge/spec_version-0.1.1-blue"></a>
+    <a href="https://github.com/EpicEric/duper/blob/main/SPEC.md"><img alt="Specification version" src="https://img.shields.io/badge/spec_version-0.1.2-blue"></a>
     <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
 </p>
 
@@ -94,7 +94,7 @@ Values must have one of the following types:
 
 A key may be either plain, quoted, or raw.
 
-**Plain keys** may only contain ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. They must start with an ASCII letter, or an underscore followed by a letter or digit. Sequences of underscores and hyphens are not allowed.
+**Plain keys** may only contain ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. They must start with an ASCII letter, or an underscore followed by a letter or digit. Sequences of underscores and hyphens are not allowed, and bare keys must not end with them.
 
 ```duper
 {
@@ -258,7 +258,7 @@ Non-negative integer values may also be expressed in hexadecimal, octal, or bina
 }
 ```
 
-Implementations are free to support any integer size. It's recommended that at least 64-bit signed integers (from −2^63 to 2^63−1) are accepted and handled losslessly. If an integer cannot be represented, it's recommended that implementations convert it into a float losslessly, or else convert it into a string, using an appropriate [identifier](#identifiers) in both cases.
+Implementations are free to support any integer size. It's recommended that at least 64-bit signed integers (i.e. long integers, from −2^63 to 2^63−1) are accepted and handled losslessly. If an integer cannot be represented in the chosen integer size, it's recommended that implementations convert it losslessly into a float or a string, using an appropriate [identifier](#identifiers) for its original type in both cases.
 
 ## Floats
 
@@ -296,7 +296,7 @@ The decimal point, if used, must be surrounded by at least one digit on each sid
 }
 ```
 
-Similar to integers, you may use underscores to enhance readability. Each underscore must be surrounded by at least one digit.
+Similar to integers, you may use underscores to enhance readability. Each underscore must be surrounded by digits.
 
 ```duper
 {
@@ -306,7 +306,7 @@ Similar to integers, you may use underscores to enhance readability. Each unders
 
 Float values `-0.0` and `+0.0` are valid and should map according to IEEE 754.
 
-Implementations are free to support any precision level. It's recommended that at least IEEE 754 binary64 values are supported.
+Implementations are free to support any precision level. It's recommended that at least IEEE 754 64-bit floating point values (i.e. doubles) are supported.
 
 ## Booleans
 
@@ -381,7 +381,7 @@ Any parenthesized expression must be interpreted as a tuple by parsers.
 
 Identifiers are optional type-like annotations that wrap any kind of value, providing semantic meaning or hinting at special handling during parsing/validation. Identified values are composed of the identifier name, followed by the value wrapped in parenthesis `(` and `)`.
 
-The first character must be an uppercase letter, followed by letters, numbers, underscores `_`, and hyphens `-`. They must start with an ASCII letter, or an underscore followed by a letter or digit. Sequences of underscores and hyphens are not allowed in the identifier.
+The first character must be an uppercase letter, followed by letters, numbers, underscores `_`, and hyphens `-`. They must start with an ASCII letter, or an underscore followed by a letter or digit. Sequences of underscores and hyphens are not allowed in the identifier, and identifiers may not start or end with either.
 
 ```duper
 {
@@ -390,7 +390,7 @@ The first character must be an uppercase letter, followed by letters, numbers, u
   birthday: ISO-8601("1990-05-20"),
   price: Decimal("19.99"),
   weight: Kilograms(2.5),
-  color: RGB((Red(255), Green(0), Blue(128))),  // Two sets of parenthesis for tuples
+  color: RGB((255, 0, 128)),  // Two sets of parenthesis for tuples
   address: IPV4("192.168.1.1"),
   nested: Metadata({
     version: Version("1.2.3"),
