@@ -10,6 +10,6 @@
 
 Duper highlighting support for Visual Studio Code.
 
-![An example of Duper highlighting on Visual Studio Code.](images/example-1.png)
+![An example of Duper highlighting on Visual Studio Code.](https://raw.githubusercontent.com/EpicEric/duper/refs/heads/main/duper-vs-code/images/example-1.png)
 
 [See the main project on GitHub.](https://github.com/EpicEric/duper)
