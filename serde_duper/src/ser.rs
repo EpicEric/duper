@@ -9,7 +9,7 @@ use serde_core::{Serialize, ser};
 use crate::Error;
 
 /// A structure for serializing Rust values into Duper values.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Serializer<'a> {
     _marker: PhantomData<DuperValue<'a>>,
 }
@@ -17,9 +17,7 @@ pub struct Serializer<'a> {
 impl<'a> Serializer<'a> {
     /// Creates a new Duper serializer.
     pub fn new() -> Self {
-        Self {
-            _marker: Default::default(),
-        }
+        Self::default()
     }
 }
 

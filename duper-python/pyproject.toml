@@ -32,6 +32,7 @@ bindings = "pyo3"
 dev = [
     "fastapi[standard]>=0.119.0",
     "httpx>=0.28.1",
+    "maturin>=1.9.6",
     "pytest>=8.4.2",
     "starlette>=0.48.0",
 ]

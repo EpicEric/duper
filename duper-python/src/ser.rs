@@ -503,8 +503,7 @@ fn serialize_pyclass_identifier<'py>(
             )?))
             .map_err(|error| {
                 PyErr::new::<PyValueError, String>(format!(
-                    "Invalid identifier: {} ({})",
-                    identifier, error
+                    "Invalid identifier: {identifier} ({error})"
                 ))
             })?,
         ))
@@ -519,8 +518,7 @@ fn serialize_pyclass_identifier<'py>(
             )?))
             .map_err(|error| {
                 PyErr::new::<PyValueError, String>(format!(
-                    "Invalid identifier: {} ({})",
-                    identifier, error
+                    "Invalid identifier: {identifier} ({error})"
                 ))
             })?,
         ))

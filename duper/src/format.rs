@@ -69,7 +69,7 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
         if chars_to_escape > max_hashtags && !has_char_that_should_be_escaped {
             // Raw string
             let hashtags: String = (0..max_hashtags).map(|_| '#').collect();
-            Cow::Owned(format!(r#"r{}"{}"{}"#, hashtags, string, hashtags))
+            Cow::Owned(format!(r#"r{hashtags}"{string}"{hashtags}"#))
         } else {
             // Regular string with escaping
             let escaped_key = escape_str(string);
@@ -130,10 +130,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
             // Raw bytes
             let hashtags: String = (0..max_hashtags).map(|_| '#').collect();
             let unesecaped_bytes: String = bytes.0.iter().copied().map(|b| b as char).collect();
-            Cow::Owned(format!(
-                r#"br{}"{}"{}"#,
-                hashtags, unesecaped_bytes, hashtags
-            ))
+            Cow::Owned(format!(r#"br{hashtags}"{unesecaped_bytes}"{hashtags}"#))
         } else {
             // Regular bytes with escaping
             let escaped_bytes = escape_bytes(&bytes.0);

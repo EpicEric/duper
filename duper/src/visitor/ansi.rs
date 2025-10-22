@@ -128,7 +128,7 @@ impl<'ansi> Ansi<'ansi> {
 
     fn colorize_bracket(&mut self, bracket: &str) -> Result<(), Error> {
         if self.theme.brackets.is_empty() {
-            self.buf.write(bracket.as_bytes())?;
+            self.buf.write_all(bracket.as_bytes())?;
             Ok(())
         } else {
             self.buf.write_fmt(format_args!(
@@ -163,10 +163,10 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
             for (i, (key, value)) in object.iter().enumerate() {
                 self.buf
                     .write_fmt(format_args!("{}", format_key(key).color(self.theme.key)))?;
-                self.buf.write(b": ")?;
+                self.buf.write_all(b": ")?;
                 value.accept(self)?;
                 if i < len - 1 {
-                    self.buf.write(b", ")?;
+                    self.buf.write_all(b", ")?;
                 }
             }
             self.decrease_bracket_depth();
@@ -179,10 +179,10 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
             for (i, (key, value)) in object.iter().enumerate() {
                 self.buf
                     .write_fmt(format_args!("{}", format_key(key).color(self.theme.key)))?;
-                self.buf.write(b": ")?;
+                self.buf.write_all(b": ")?;
                 value.accept(self)?;
                 if i < len - 1 {
-                    self.buf.write(b", ")?;
+                    self.buf.write_all(b", ")?;
                 }
             }
             self.decrease_bracket_depth();
@@ -213,7 +213,7 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
             for (i, value) in array.iter().enumerate() {
                 value.accept(self)?;
                 if i < len - 1 {
-                    self.buf.write(b", ")?;
+                    self.buf.write_all(b", ")?;
                 }
             }
             self.decrease_bracket_depth();
@@ -226,7 +226,7 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
             for (i, value) in array.iter().enumerate() {
                 value.accept(self)?;
                 if i < len - 1 {
-                    self.buf.write(b", ")?;
+                    self.buf.write_all(b", ")?;
                 }
             }
             self.decrease_bracket_depth();
@@ -257,7 +257,7 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
             for (i, value) in tuple.iter().enumerate() {
                 value.accept(self)?;
                 if i < len - 1 {
-                    self.buf.write(b", ")?;
+                    self.buf.write_all(b", ")?;
                 }
             }
             self.decrease_bracket_depth();
@@ -270,7 +270,7 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
             for (i, value) in tuple.iter().enumerate() {
                 value.accept(self)?;
                 if i < len - 1 {
-                    self.buf.write(b", ")?;
+                    self.buf.write_all(b", ")?;
                 }
             }
             self.decrease_bracket_depth();

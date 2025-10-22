@@ -121,7 +121,7 @@ fn process_field(
             }
         };
 
-        let path_string = format!("{}", mod_ident);
+        let path_string = format!("{mod_ident}");
 
         let serde_with_attr: Attribute = syn::parse_quote! {
             #[serde(with = #path_string)]

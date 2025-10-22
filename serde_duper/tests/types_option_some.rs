@@ -444,9 +444,11 @@ fn some_ffi_unix() {
         os_str: Option<&'a OsStr>,
     }
 
+    let c_string = CString::new("goodbye").unwrap();
+    let os_string = OsString::from("test_os_str");
     let value = TestSerializeOnly {
-        c_str: Some(&CString::new("goodbye").unwrap()),
-        os_str: Some(&OsString::from("test_os_str")),
+        c_str: Some(&c_string),
+        os_str: Some(&os_string),
     };
 
     let serialized = serde_duper::to_string(&value).unwrap();

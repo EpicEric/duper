@@ -3,6 +3,7 @@ name = "duper"
 description = "The format that's super!"
 version = "0.1.1"
 edition = "2024"
+rust-version = "1.88"
 license = "MIT"
 authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 repository = "https://github.com/EpicEric/duper"

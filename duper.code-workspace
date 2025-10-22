@@ -1,6 +1,10 @@
 {
   "folders": [
     {
+      "name": "/",
+      "path": "."
+    },
+    {
       "name": "axum_duper",
       "path": "axum_duper"
     },
@@ -23,10 +27,6 @@
     {
       "name": "serde_duper_macros",
       "path": "serde_duper_macros"
-    },
-    {
-      "name": "/",
-      "path": "."
     }
   ],
   "settings": {
