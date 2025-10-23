@@ -31,7 +31,6 @@ impl<'py> DuperVisitor for Visitor<'py> {
         let model_fields = PyDict::new(self.py);
         let instance_values = PyDict::new(self.py);
         for (key, value) in seq.into_iter() {
-            dbg!(key, value.value.get_type());
             let ty = match &value.duper {
                 Some(duper) => self
                     .py
@@ -52,9 +51,13 @@ impl<'py> DuperVisitor for Visitor<'py> {
         )?;
         Ok(VisitorValue {
             value: model.call((), Some(&instance_values))?,
-            duper: identifier
-                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
-                .transpose()?,
+            duper: Some(
+                match identifier {
+                    Some(identifier) => Duper::from_identifier(identifier)?,
+                    None => Duper { identifier: None },
+                }
+                .into_pyobject(self.py)?,
+            ),
         })
     }
 

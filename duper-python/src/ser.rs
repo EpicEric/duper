@@ -542,7 +542,7 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
                 let field_name: &Bound<'py, PyString> = field_name.cast()?;
                 let value = obj.getattr(field_name)?;
                 let duper_value = serialize_pyany(value)?;
-                let metadata = field_info
+                let duper_metadata = field_info
                     .getattr("metadata")?
                     .try_iter()?
                     .find(|metadata| match metadata {
@@ -550,7 +550,8 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
                         Err(_) => false,
                     })
                     .transpose()?;
-                let identifier = metadata.map_or(duper_value.identifier, |duper| {
+                dbg!(field_name, &duper_metadata, field_info.getattr("metadata")?);
+                let identifier = duper_metadata.map_or(duper_value.identifier, |duper| {
                     duper
                         .cast::<Duper>()
                         .expect("Duper instance")
