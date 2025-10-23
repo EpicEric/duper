@@ -59,5 +59,5 @@ class BaseModel(PydanticBaseModel):
         if type(serialized) is bytes:
             serialized = serialized.decode(encoding="utf-8")
         if type(serialized) is str:
-            return cls.model_validate(loads(serialized))
+            return cls.model_validate(loads(serialized).model_dump(mode="python"))
         return cls.model_validate(serialized)

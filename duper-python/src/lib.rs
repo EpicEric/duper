@@ -1,15 +1,57 @@
+use pyo3::{exceptions::PyValueError, prelude::*};
+
 mod de;
 mod ser;
+
+#[pyclass(frozen)]
+pub(crate) struct Duper {
+    pub(crate) identifier: duper::DuperIdentifier<'static>,
+}
+
+impl Duper {
+    pub(crate) fn create<'a, 'py>(identifier: &duper::DuperIdentifier<'a>) -> PyResult<Self> {
+        Ok(Self {
+            identifier: identifier.static_clone(),
+        })
+    }
+}
+
+#[pymethods]
+impl Duper {
+    #[new]
+    fn new<'py, 'a>(identifier: String) -> PyResult<Self> {
+        match duper::DuperIdentifier::try_from(identifier) {
+            Ok(identifier) => Self::create(&identifier),
+            Err(error) => Err(PyErr::new::<PyValueError, String>(error.to_string())),
+        }
+    }
+
+    #[getter]
+    fn identifier(&self) -> &str {
+        self.identifier.as_ref()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Duper({})", self.identifier.as_ref())
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+}
 
 #[pyo3::pymodule(name = "_duper")]
 mod duper_py {
     use duper::{DuperParser, DuperValue, PrettyPrinter, Serializer};
     use pyo3::{
+        IntoPyObjectExt,
         exceptions::PyValueError,
         prelude::*,
         types::{PyInt, PyString},
     };
 
+    #[pymodule_export]
+    use crate::Duper;
     use crate::{de::Visitor, ser::serialize_pyany};
 
     #[pyfunction]
@@ -94,7 +136,9 @@ mod duper_py {
                 miette::Error::new(err.into_miette())
             ))
         })?;
-        value.accept(&mut Visitor { py })
+        value
+            .accept(&mut Visitor { py })
+            .and_then(|visitor_value| visitor_value.value.into_bound_py_any(py))
     }
 
     #[pyfunction]
@@ -116,6 +160,8 @@ mod duper_py {
                 miette::Error::new(err.into_miette())
             ))
         })?;
-        value.accept(&mut Visitor { py })
+        value
+            .accept(&mut Visitor { py })
+            .and_then(|visitor_value| visitor_value.value.into_bound_py_any(py))
     }
 }

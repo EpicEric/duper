@@ -6,6 +6,8 @@ use duper::{
 };
 use pyo3::{BoundObject, exceptions::PyValueError, prelude::*, types::*};
 
+use crate::Duper;
+
 pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<'py>> {
     // Handle basic types
     if obj.is_instance_of::<PyDict>() {
@@ -160,6 +162,7 @@ fn serialize_pyslots<'py>(
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 enum WellKnownType<'py> {
     // collections
     Deque(Bound<'py, PyAny>),
@@ -535,15 +538,38 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
         let field_dict = model_fields.cast::<PyDict>()?;
         let fields: PyResult<Vec<_>> = field_dict
             .iter()
-            .map(|(field_name, _field_info)| {
+            .map(|(field_name, field_info)| {
                 let field_name: &Bound<'py, PyString> = field_name.cast()?;
                 let value = obj.getattr(field_name)?;
+                let duper_value = serialize_pyany(value)?;
+                let metadata = field_info
+                    .getattr("metadata")?
+                    .try_iter()?
+                    .find(|metadata| match metadata {
+                        Ok(metadata) => metadata.is_instance_of::<Duper>(),
+                        Err(_) => false,
+                    })
+                    .transpose()?;
+                let identifier = metadata.map_or(duper_value.identifier, |duper| {
+                    Some(
+                        duper
+                            .cast::<Duper>()
+                            .expect("Duper instance")
+                            .get()
+                            .identifier
+                            .clone(),
+                    )
+                });
                 Ok((
                     DuperKey::from(Cow::Owned(field_name.to_string())),
-                    serialize_pyany(value)?,
+                    DuperValue {
+                        identifier: identifier,
+                        inner: duper_value.inner,
+                    },
                 ))
             })
             .collect();
+        // TO-DO: Remove DuperUnknown identifier
         Ok(DuperValue {
             identifier: serialize_pyclass_identifier(&obj)?,
             inner: DuperInner::Object(

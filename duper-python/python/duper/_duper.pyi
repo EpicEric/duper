@@ -1,12 +1,21 @@
 from typing import Any
 from io import TextIOBase
 
+from pydantic import BaseModel
+
 __all__ = [
     "dumps",
     "dump",
     "loads",
     "load",
+    "Duper",
 ]
+
+class Duper:
+    """A frozen Duper value with an optional identifier.
+
+    Both of these are exposed as properties ``value`` and ``identifier``,
+    respectively."""
 
 def dumps(
     obj: Any,
@@ -42,7 +51,7 @@ def dump(
     If ``strip_identifiers`` is ``True``, then this function will strip
     all identifiers from the serialized value."""
 
-def loads(s: str, *, parse_any: bool = False) -> Any:
+def loads(s: str, *, parse_any: bool = False) -> BaseModel:  # noqa: F821
     """Deserialize ``s`` (a ``str`` instance containing a Duper object or
     array) to a Python object.
 
@@ -50,7 +59,7 @@ def loads(s: str, *, parse_any: bool = False) -> Any:
     types other than objects and arrays.
     """
 
-def load(fp: TextIOBase, *, parse_any: bool = False) -> Any:
+def load(fp: TextIOBase, *, parse_any: bool = False) -> BaseModel:
     """Deserialize ``fp`` (a ``.read()``-supporting file-like object
     containing a Duper object or array) to a Python object.
 

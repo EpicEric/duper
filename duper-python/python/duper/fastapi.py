@@ -85,7 +85,7 @@ def DuperBody(model_type: type[T]) -> Any:
             )
 
         body = await request.body()
-        parsed = loads(body.decode(encoding="utf-8"))
+        parsed = loads(body.decode(encoding="utf-8")).model_dump(mode="python")
 
         if issubclass(model_type, PydanticBaseModel):
             return model_type.model_validate(parsed)
@@ -93,6 +93,6 @@ def DuperBody(model_type: type[T]) -> Any:
             adapter = TypeAdapter(model_type)
             return adapter.validate_python(parsed)
         except Exception:
-            return parsed
+            return parsed  # pyright: ignore[reportReturnType]
 
     return Depends(_get_duper_body)

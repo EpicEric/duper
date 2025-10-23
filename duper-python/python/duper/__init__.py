@@ -7,6 +7,7 @@ from ._duper import (
     dump,
     loads,
     load,
+    Duper,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "dump",
     "loads",
     "load",
+    "Duper",
 ]
