@@ -553,7 +553,7 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
                 Ok((
                     DuperKey::from(Cow::Owned(field_name.to_string())),
                     DuperValue {
-                        identifier: identifier,
+                        identifier,
                         inner: duper_value.inner,
                     },
                 ))

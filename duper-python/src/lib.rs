@@ -12,9 +12,7 @@ pub(crate) struct Duper {
 }
 
 impl Duper {
-    pub(crate) fn from_identifier<'a, 'py>(
-        identifier: &duper::DuperIdentifier<'a>,
-    ) -> PyResult<Self> {
+    pub(crate) fn from_identifier<'a>(identifier: &duper::DuperIdentifier<'a>) -> PyResult<Self> {
         Ok(Self {
             identifier: Some(identifier.static_clone()),
         })
@@ -24,7 +22,7 @@ impl Duper {
 #[pymethods]
 impl Duper {
     #[new]
-    fn new<'py, 'a>(identifier: Option<String>) -> PyResult<Self> {
+    fn new(identifier: Option<String>) -> PyResult<Self> {
         match identifier {
             Some(identifier) => match duper::DuperIdentifier::try_from(identifier) {
                 Ok(identifier) => Self::from_identifier(&identifier),
