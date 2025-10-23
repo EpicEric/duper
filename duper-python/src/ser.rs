@@ -175,8 +175,6 @@ enum WellKnownType<'py> {
     Time(Bound<'py, PyAny>),
     // decimal
     Decimal(Bound<'py, PyAny>),
-    // duper
-    DuperBaseModel(Bound<'py, PyAny>),
     // enum
     Enum(Bound<'py, PyAny>),
     // ipaddress
@@ -233,10 +231,6 @@ impl<'py> WellKnownType<'py> {
                 ("datetime", "time") => return Ok(Some(WellKnownType::Time(value.clone()))),
                 // decimal
                 ("decimal", "Decimal") => return Ok(Some(WellKnownType::Decimal(value.clone()))),
-                // duper
-                ("duper.pydantic", "BaseModel") => {
-                    return Ok(Some(WellKnownType::DuperBaseModel(value.clone())));
-                }
                 // enum
                 ("enum", "Enum") => {
                     return Ok(Some(WellKnownType::Enum(value.clone())));
@@ -358,8 +352,6 @@ impl<'py> WellKnownType<'py> {
                 ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
-            // duper
-            WellKnownType::DuperBaseModel(value) => serialize_pydantic_model(value),
             // enum
             WellKnownType::Enum(value) => Ok(DuperValue {
                 identifier: Some(
@@ -550,7 +542,6 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
                         Err(_) => false,
                     })
                     .transpose()?;
-                dbg!(field_name, &duper_metadata, field_info.getattr("metadata")?);
                 let identifier = duper_metadata.map_or(duper_value.identifier, |duper| {
                     duper
                         .cast::<Duper>()
@@ -568,7 +559,6 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
                 ))
             })
             .collect();
-        // TO-DO: Remove DuperUnknown identifier
         Ok(DuperValue {
             identifier: serialize_pyclass_identifier(&obj)?,
             inner: DuperInner::Object(

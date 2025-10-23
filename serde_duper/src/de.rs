@@ -52,7 +52,6 @@ impl<'de> Deserializer<'de> {
 ///
 /// let u: User = serde_duper::from_string(j).unwrap();
 /// println!("{:#?}", u);
-///
 /// ```
 ///
 /// # Errors

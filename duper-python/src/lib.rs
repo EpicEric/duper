@@ -57,7 +57,6 @@ impl Duper {
 mod duper_py {
     use duper::{DuperParser, DuperValue, PrettyPrinter, Serializer};
     use pyo3::{
-        IntoPyObjectExt,
         exceptions::PyValueError,
         prelude::*,
         types::{PyInt, PyString},
@@ -151,7 +150,7 @@ mod duper_py {
         })?;
         value
             .accept(&mut Visitor { py })
-            .and_then(|visitor_value| visitor_value.value.into_bound_py_any(py))
+            .map(|visitor_value| visitor_value.value)
     }
 
     #[pyfunction]
@@ -175,6 +174,6 @@ mod duper_py {
         })?;
         value
             .accept(&mut Visitor { py })
-            .and_then(|visitor_value| visitor_value.value.into_bound_py_any(py))
+            .map(|visitor_value| visitor_value.value)
     }
 }

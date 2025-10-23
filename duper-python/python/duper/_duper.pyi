@@ -13,13 +13,22 @@ __all__ = [
 ]
 
 class Duper:
-    """An annotation of a Duper's optional identifier.
+    """An annotation of a Duper's optional identifier. Used to annotate fields in ``duper.BaseModel``.
 
     >>> from typing import Annotated
-    >>> from duper import BaseModel
+    >>> from decimal import Decimal
+    >>> from duper import BaseModel, Duper
     >>> class Foo(BaseModel):
-    ...     regular: str
-    ...     typed: Annotated[]
+    ...     regular: str | None
+    ...     identified: Annotated[str | None, Duper("Bar")]
+    ...     unidentified: Annotated[Decimal, Duper(None)]
+    >>> obj = Foo(
+    ...     regular="12",
+    ...     identified="34",
+    ...     unidentified=Decimal("56.7"),
+    >>> )
+    >>> obj.model_dump(mode="duper")
+    <<< "Foo({regular: \\"12\\", identified: Bar(\\"34\\"), unidentified: \\"56.7\\"})"
     """
 
     def __init__(self, identifier: str | None) -> None: ...
@@ -27,6 +36,7 @@ class Duper:
     def identifier(self) -> str: ...
 
 DuperType: TypeAlias = "dict[str, DuperType] | list[DuperType] | tuple[DuperType, ...] | str | bytes | int | float | bool | None"
+"""All possible Python return types for Duper values."""
 
 def dumps(
     obj: Any,  # pyright: ignore[reportExplicitAny, reportAny]

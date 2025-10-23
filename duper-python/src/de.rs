@@ -42,7 +42,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
             model_fields.set_item(key, ty)?;
             instance_values.set_item(key, value.value)?;
         }
-        let pydantic: Bound<'py, PyModule> = self.py.import("pydantic")?;
+        let pydantic: Bound<'py, PyModule> = self.py.import("duper.pydantic")?;
         let model = pydantic.getattr("create_model")?.call(
             (identifier
                 .map(|identifier| identifier.as_ref())
