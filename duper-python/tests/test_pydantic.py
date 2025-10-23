@@ -19,7 +19,7 @@ from uuid import UUID
 
 from pydantic import ByteSize
 
-from duper.pydantic import BaseModel
+from duper import BaseModel
 
 
 def test_pydantic_simple():

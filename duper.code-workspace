@@ -30,6 +30,7 @@
     }
   ],
   "settings": {
-    "rust-analyzer.cargo.features": "all"
+    "rust-analyzer.cargo.features": "all",
+    "python.analysis.typeCheckingMode": "off"
   }
 }

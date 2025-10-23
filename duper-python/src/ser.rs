@@ -6,6 +6,8 @@ use duper::{
 };
 use pyo3::{BoundObject, exceptions::PyValueError, prelude::*, types::*};
 
+use crate::Duper;
+
 pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<'py>> {
     // Handle basic types
     if obj.is_instance_of::<PyDict>() {
@@ -160,6 +162,7 @@ fn serialize_pyslots<'py>(
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 enum WellKnownType<'py> {
     // collections
     Deque(Bound<'py, PyAny>),
@@ -172,8 +175,6 @@ enum WellKnownType<'py> {
     Time(Bound<'py, PyAny>),
     // decimal
     Decimal(Bound<'py, PyAny>),
-    // duper
-    DuperBaseModel(Bound<'py, PyAny>),
     // enum
     Enum(Bound<'py, PyAny>),
     // ipaddress
@@ -230,10 +231,6 @@ impl<'py> WellKnownType<'py> {
                 ("datetime", "time") => return Ok(Some(WellKnownType::Time(value.clone()))),
                 // decimal
                 ("decimal", "Decimal") => return Ok(Some(WellKnownType::Decimal(value.clone()))),
-                // duper
-                ("duper.pydantic", "BaseModel") => {
-                    return Ok(Some(WellKnownType::DuperBaseModel(value.clone())));
-                }
                 // enum
                 ("enum", "Enum") => {
                     return Ok(Some(WellKnownType::Enum(value.clone())));
@@ -355,8 +352,6 @@ impl<'py> WellKnownType<'py> {
                 ),
                 inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
             }),
-            // duper
-            WellKnownType::DuperBaseModel(value) => serialize_pydantic_model(value),
             // enum
             WellKnownType::Enum(value) => Ok(DuperValue {
                 identifier: Some(
@@ -535,12 +530,32 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
         let field_dict = model_fields.cast::<PyDict>()?;
         let fields: PyResult<Vec<_>> = field_dict
             .iter()
-            .map(|(field_name, _field_info)| {
+            .map(|(field_name, field_info)| {
                 let field_name: &Bound<'py, PyString> = field_name.cast()?;
                 let value = obj.getattr(field_name)?;
+                let duper_value = serialize_pyany(value)?;
+                let duper_metadata = field_info
+                    .getattr("metadata")?
+                    .try_iter()?
+                    .find(|metadata| match metadata {
+                        Ok(metadata) => metadata.is_instance_of::<Duper>(),
+                        Err(_) => false,
+                    })
+                    .transpose()?;
+                let identifier = duper_metadata.map_or(duper_value.identifier, |duper| {
+                    duper
+                        .cast::<Duper>()
+                        .expect("Duper instance")
+                        .get()
+                        .identifier
+                        .clone()
+                });
                 Ok((
                     DuperKey::from(Cow::Owned(field_name.to_string())),
-                    serialize_pyany(value)?,
+                    DuperValue {
+                        identifier,
+                        inner: duper_value.inner,
+                    },
                 ))
             })
             .collect();

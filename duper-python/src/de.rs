@@ -1,85 +1,171 @@
 use duper::visitor::DuperVisitor;
 use pyo3::{prelude::*, types::*};
 
+use crate::Duper;
+
 #[derive(Clone)]
 pub(crate) struct Visitor<'py> {
     pub(crate) py: Python<'py>,
 }
 
+pub(crate) struct VisitorValue<'py> {
+    pub(crate) value: Bound<'py, PyAny>,
+    pub(crate) duper: Option<Bound<'py, Duper>>,
+}
+
 impl<'py> DuperVisitor for Visitor<'py> {
-    type Value = PyResult<Bound<'py, PyAny>>;
+    type Value = PyResult<VisitorValue<'py>>;
 
     fn visit_object<'a>(
         &mut self,
-        _identifier: Option<&duper::DuperIdentifier<'a>>,
+        identifier: Option<&duper::DuperIdentifier<'a>>,
         object: &duper::DuperObject<'a>,
     ) -> Self::Value {
-        let seq: PyResult<Vec<_>> = object
+        let seq = object
             .iter()
-            .map(|(key, value)| value.accept(self).map(|value| (key.as_ref(), value)))
-            .collect();
-        Ok(seq?.into_py_dict(self.py).unwrap().into_any())
+            .map(|(key, value)| {
+                let value = value.accept(self)?;
+                Ok((key.as_ref(), value))
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        let model_fields = PyDict::new(self.py);
+        let instance_values = PyDict::new(self.py);
+        for (key, value) in seq.into_iter() {
+            let ty = match &value.duper {
+                Some(duper) => self
+                    .py
+                    .import("typing")?
+                    .getattr("Annotated")?
+                    .get_item((value.value.get_type(), duper))?,
+                None => value.value.get_type().into_any(),
+            };
+            model_fields.set_item(key, ty)?;
+            instance_values.set_item(key, value.value)?;
+        }
+        let pydantic: Bound<'py, PyModule> = self.py.import("duper.pydantic")?;
+        let model = pydantic.getattr("create_model")?.call(
+            (identifier
+                .map(|identifier| identifier.as_ref())
+                .unwrap_or("DuperUnknown"),),
+            Some(&model_fields),
+        )?;
+        Ok(VisitorValue {
+            value: model.call((), Some(&instance_values))?,
+            duper: Some(
+                match identifier {
+                    Some(identifier) => Duper::from_identifier(identifier)?,
+                    None => Duper { identifier: None },
+                }
+                .into_pyobject(self.py)?,
+            ),
+        })
     }
 
     fn visit_array<'a>(
         &mut self,
-        _identifier: Option<&duper::DuperIdentifier<'a>>,
+        identifier: Option<&duper::DuperIdentifier<'a>>,
         array: &duper::DuperArray<'a>,
     ) -> Self::Value {
-        let vec: PyResult<Vec<_>> = array.iter().map(|value| value.accept(self)).collect();
-        PyList::new(self.py, vec?).map(|value| value.into_any())
+        let vec: PyResult<Vec<_>> = array
+            .iter()
+            .map(|value| Ok(value.accept(self)?.value))
+            .collect();
+        Ok(VisitorValue {
+            value: PyList::new(self.py, vec?).map(|value| value.into_any())?,
+            duper: identifier
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
+                .transpose()?,
+        })
     }
 
     fn visit_tuple<'a>(
         &mut self,
-        _identifier: Option<&duper::DuperIdentifier<'a>>,
+        identifier: Option<&duper::DuperIdentifier<'a>>,
         tuple: &duper::DuperTuple<'a>,
     ) -> Self::Value {
-        let vec: PyResult<Vec<_>> = tuple.iter().map(|value| value.accept(self)).collect();
-        PyTuple::new(self.py, vec?).map(|value| value.into_any())
+        let vec: PyResult<Vec<_>> = tuple
+            .iter()
+            .map(|value| Ok(value.accept(self)?.value))
+            .collect();
+        Ok(VisitorValue {
+            value: PyTuple::new(self.py, vec?).map(|value| value.into_any())?,
+            duper: identifier
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
+                .transpose()?,
+        })
     }
 
     fn visit_string<'a>(
         &mut self,
-        _identifier: Option<&duper::DuperIdentifier<'a>>,
+        identifier: Option<&duper::DuperIdentifier<'a>>,
         string: &duper::DuperString<'a>,
     ) -> Self::Value {
-        Ok(PyString::new(self.py, &string.clone().into_inner()).into_any())
+        Ok(VisitorValue {
+            value: PyString::new(self.py, &string.clone().into_inner()).into_any(),
+            duper: identifier
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
+                .transpose()?,
+        })
     }
 
     fn visit_bytes<'a>(
         &mut self,
-        _identifier: Option<&duper::DuperIdentifier<'a>>,
+        identifier: Option<&duper::DuperIdentifier<'a>>,
         bytes: &duper::DuperBytes<'a>,
     ) -> Self::Value {
-        Ok(PyBytes::new(self.py, &bytes.clone().into_inner()).into_any())
+        Ok(VisitorValue {
+            value: PyBytes::new(self.py, &bytes.clone().into_inner()).into_any(),
+            duper: identifier
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
+                .transpose()?,
+        })
     }
 
     fn visit_integer<'a>(
         &mut self,
-        _identifier: Option<&duper::DuperIdentifier<'a>>,
+        identifier: Option<&duper::DuperIdentifier<'a>>,
         integer: i64,
     ) -> Self::Value {
-        Ok(PyInt::new(self.py, integer).into_any())
+        Ok(VisitorValue {
+            value: PyInt::new(self.py, integer).into_any(),
+            duper: identifier
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
+                .transpose()?,
+        })
     }
 
     fn visit_float<'a>(
         &mut self,
-        _identifier: Option<&duper::DuperIdentifier<'a>>,
+        identifier: Option<&duper::DuperIdentifier<'a>>,
         float: f64,
     ) -> Self::Value {
-        Ok(PyFloat::new(self.py, float).into_any())
+        Ok(VisitorValue {
+            value: PyFloat::new(self.py, float).into_any(),
+            duper: identifier
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
+                .transpose()?,
+        })
     }
 
     fn visit_boolean<'a>(
         &mut self,
-        _identifier: Option<&duper::DuperIdentifier<'a>>,
+        identifier: Option<&duper::DuperIdentifier<'a>>,
         boolean: bool,
     ) -> Self::Value {
-        Ok(PyBool::new(self.py, boolean).to_owned().into_any())
+        Ok(VisitorValue {
+            value: PyBool::new(self.py, boolean).to_owned().into_any(),
+            duper: identifier
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
+                .transpose()?,
+        })
     }
 
-    fn visit_null<'a>(&mut self, _identifier: Option<&duper::DuperIdentifier<'a>>) -> Self::Value {
-        Ok(self.py.None().into_bound(self.py).into_any())
+    fn visit_null<'a>(&mut self, identifier: Option<&duper::DuperIdentifier<'a>>) -> Self::Value {
+        Ok(VisitorValue {
+            value: self.py.None().into_bound(self.py).into_any(),
+            duper: identifier
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
+                .transpose()?,
+        })
     }
 }

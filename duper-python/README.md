@@ -43,7 +43,7 @@ APIResponse({
 })
 """
 
-python_dict = duper.loads(DUPER_DATA)
+python_dict = duper.loads(DUPER_DATA)  # Actually a Pydantic BaseModel!
 
 with open("out.duper", "w") as f:
     duper.dump(DUPER_DATA)
@@ -58,7 +58,7 @@ from datetime import datetime
 import re
 import uuid
 
-from duper.pydantic import BaseModel
+from duper import BaseModel
 
 
 class RegisteredRegex(BaseModel):
@@ -74,9 +74,9 @@ data = RegisteredRegex(
 )
 
 data_str = data.model_dump(mode="duper")
+print(data_str)
 
 reconstituted_data = RegisteredRegex.model_validate_duper(data_str)
-
 assert data == reconstituted_data
 ```
 
@@ -87,7 +87,7 @@ Using [FastAPI](https://pypi.org/project/fastapi/):
 ```python
 from typing import Annotated
 from duper.fastapi import DuperBody, DuperResponse
-from duper.pydantic import BaseModel
+from duper import BaseModel
 from fastapi import FastAPI
 
 class DuplicatableData(BaseModel):

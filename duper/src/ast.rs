@@ -135,6 +135,11 @@ impl<'a> DuperIdentifier<'a> {
             None => value,
         }))
     }
+
+    /// Create a clone of this DuperIdentifier with a static lifetime.
+    pub fn static_clone(&self) -> DuperIdentifier<'static> {
+        DuperIdentifier(Cow::Owned(self.0.clone().into_owned()))
+    }
 }
 
 impl<'a> Display for DuperIdentifier<'a> {
@@ -180,6 +185,16 @@ impl<'a> TryFrom<Cow<'a, str>> for DuperIdentifier<'a> {
             }
         }
         Ok(Self(value))
+    }
+}
+
+impl TryFrom<String> for DuperIdentifier<'static> {
+    type Error = DuperIdentifierTryFromError<'static>;
+
+    /// Create a valid identifier from the provided [`String`], returning
+    /// an error if there are invalid characters.
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::try_from(Cow::Owned(value))
     }
 }
 

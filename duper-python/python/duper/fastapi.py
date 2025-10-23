@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from typing import Any, TypeVar
+from typing_extensions import override
 
 from fastapi import Depends, HTTPException, Request, status
 from pydantic import BaseModel as PydanticBaseModel, TypeAdapter
@@ -34,13 +35,13 @@ class DuperResponse(Response):
     ...     })
     """
 
-    media_type = DUPER_CONTENT_TYPE
+    media_type: str = DUPER_CONTENT_TYPE
     _indent: int | None
     _strip_identifiers: bool
 
     def __init__(
         self,
-        content: Any,
+        content: Any,  # pyright: ignore[reportExplicitAny, reportAny]
         status_code: int = 200,
         headers: Mapping[str, str] | None = None,
         background: BackgroundTask | None = None,
@@ -51,7 +52,8 @@ class DuperResponse(Response):
         self._strip_identifiers = strip_identifiers
         super().__init__(content, status_code, headers, self.media_type, background)
 
-    def render(self, content: Any) -> bytes:
+    @override
+    def render(self, content: Any) -> bytes:  # pyright: ignore[reportExplicitAny, reportAny]
         return dumps(
             content,
             indent=self._indent,
@@ -59,7 +61,7 @@ class DuperResponse(Response):
         ).encode("utf-8")
 
 
-def DuperBody(model_type: type[T]) -> Any:
+def DuperBody(model_type: type[T]) -> Any:  # pyright: ignore[reportExplicitAny, reportAny]
     """
     A dependency providing automatic parsing of an HTTP request containing a Duper value.
 
@@ -85,14 +87,19 @@ def DuperBody(model_type: type[T]) -> Any:
             )
 
         body = await request.body()
-        parsed = loads(body.decode(encoding="utf-8"))
+        parsed = loads(body.decode(encoding="utf-8"), parse_any=True)
+        if isinstance(parsed, PydanticBaseModel):
+            dumped = parsed.model_dump(mode="python")
+        else:
+            adapter = TypeAdapter(type(parsed))
+            dumped = adapter.dump_python(parsed)  # pyright: ignore[reportAny]
 
         if issubclass(model_type, PydanticBaseModel):
-            return model_type.model_validate(parsed)
+            return model_type.model_validate(dumped)
         try:
             adapter = TypeAdapter(model_type)
-            return adapter.validate_python(parsed)
+            return adapter.validate_python(dumped)
         except Exception:
-            return parsed
+            return dumped  # pyright: ignore[reportReturnType]
 
-    return Depends(_get_duper_body)
+    return Depends(_get_duper_body)  # pyright: ignore[reportAny]

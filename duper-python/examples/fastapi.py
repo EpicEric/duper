@@ -1,9 +1,10 @@
 from typing import Annotated
 from duper.fastapi import DuperBody, DuperResponse
-from duper.pydantic import BaseModel
+from duper import BaseModel
 from fastapi import FastAPI
 
-class PydanticModel(BaseModel):
+
+class CustomData(BaseModel):
     tup: tuple[str, bytes]
     value: int
 
@@ -13,10 +14,10 @@ app = FastAPI()
 
 @app.post("/response_pydantic", response_class=DuperResponse)
 async def response_pydantic(
-    body: Annotated[PydanticModel, DuperBody(PydanticModel)],
+    body: Annotated[CustomData, DuperBody(CustomData)],
 ) -> DuperResponse:
     return DuperResponse(
-        PydanticModel(
+        CustomData(
             tup=(body.tup[0] + body.tup[0], body.tup[1] + body.tup[1]),
             value=2 * body.value,
         )
@@ -26,7 +27,7 @@ async def response_pydantic(
 @app.get("/test", response_class=DuperResponse)
 async def cool() -> DuperResponse:
     return DuperResponse(
-        PydanticModel(
+        CustomData(
             tup=("test", b"123"),
             value=42,
         )

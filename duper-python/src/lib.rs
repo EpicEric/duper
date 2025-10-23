@@ -1,5 +1,55 @@
+use pyo3::{exceptions::PyValueError, prelude::*};
+
 mod de;
 mod ser;
+
+#[pyclass(frozen)]
+pub(crate) struct DuperType;
+
+#[pyclass(frozen)]
+pub(crate) struct Duper {
+    pub(crate) identifier: Option<duper::DuperIdentifier<'static>>,
+}
+
+impl Duper {
+    pub(crate) fn from_identifier<'a>(identifier: &duper::DuperIdentifier<'a>) -> PyResult<Self> {
+        Ok(Self {
+            identifier: Some(identifier.static_clone()),
+        })
+    }
+}
+
+#[pymethods]
+impl Duper {
+    #[new]
+    fn new(identifier: Option<String>) -> PyResult<Self> {
+        match identifier {
+            Some(identifier) => match duper::DuperIdentifier::try_from(identifier) {
+                Ok(identifier) => Self::from_identifier(&identifier),
+                Err(error) => Err(PyErr::new::<PyValueError, String>(error.to_string())),
+            },
+            None => Ok(Self { identifier: None }),
+        }
+    }
+
+    #[getter]
+    fn identifier(&self) -> Option<&str> {
+        self.identifier
+            .as_ref()
+            .map(|identifier| identifier.as_ref())
+    }
+
+    fn __repr__(&self) -> String {
+        match self.identifier.as_ref() {
+            Some(identifier) => format!("Duper('{}')", identifier.as_ref()),
+            None => "Duper(None)".into(),
+        }
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+}
 
 #[pyo3::pymodule(name = "_duper")]
 mod duper_py {
@@ -10,6 +60,8 @@ mod duper_py {
         types::{PyInt, PyString},
     };
 
+    #[pymodule_export]
+    use crate::{Duper, DuperType};
     use crate::{de::Visitor, ser::serialize_pyany};
 
     #[pyfunction]
@@ -94,7 +146,9 @@ mod duper_py {
                 miette::Error::new(err.into_miette())
             ))
         })?;
-        value.accept(&mut Visitor { py })
+        value
+            .accept(&mut Visitor { py })
+            .map(|visitor_value| visitor_value.value)
     }
 
     #[pyfunction]
@@ -116,6 +170,8 @@ mod duper_py {
                 miette::Error::new(err.into_miette())
             ))
         })?;
-        value.accept(&mut Visitor { py })
+        value
+            .accept(&mut Visitor { py })
+            .map(|visitor_value| visitor_value.value)
     }
 }
