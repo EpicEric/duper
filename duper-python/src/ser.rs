@@ -551,14 +551,12 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
                     })
                     .transpose()?;
                 let identifier = metadata.map_or(duper_value.identifier, |duper| {
-                    Some(
-                        duper
-                            .cast::<Duper>()
-                            .expect("Duper instance")
-                            .get()
-                            .identifier
-                            .clone(),
-                    )
+                    duper
+                        .cast::<Duper>()
+                        .expect("Duper instance")
+                        .get()
+                        .identifier
+                        .clone()
                 });
                 Ok((
                     DuperKey::from(Cow::Owned(field_name.to_string())),

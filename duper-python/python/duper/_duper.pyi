@@ -9,28 +9,27 @@ __all__ = [
     "loads",
     "load",
     "Duper",
+    "DuperType",
 ]
 
 class Duper:
-    """A frozen Duper value with an optional identifier.
+    """An annotation of a Duper's optional identifier.
 
-    Both of these are exposed as properties ``value`` and ``identifier``,
-    respectively."""
+    >>> from typing import Annotated
+    >>> from duper import BaseModel
+    >>> class Foo(BaseModel):
+    ...     regular: str
+    ...     typed: Annotated[]
+    """
 
-DuperType: TypeAlias = (
-    dict[str, DuperType]
-    | list[DuperType]
-    | tuple[DuperType, ...]
-    | str
-    | bytes
-    | int
-    | float
-    | bool
-    | None
-)
+    def __init__(self, identifier: str | None) -> None: ...
+    @property
+    def identifier(self) -> str: ...
+
+DuperType: TypeAlias = "dict[str, DuperType] | list[DuperType] | tuple[DuperType, ...] | str | bytes | int | float | bool | None"
 
 def dumps(
-    obj: Any,
+    obj: Any,  # pyright: ignore[reportExplicitAny, reportAny]
     *,
     indent: str | int | None = None,
     strip_identifiers: bool = False,
@@ -46,7 +45,7 @@ def dumps(
     all identifiers from the serialized value."""
 
 def dump(
-    obj: Any,
+    obj: Any,  # pyright: ignore[reportExplicitAny, reportAny]
     fp: TextIOBase,
     *,
     indent: str | int | None = None,

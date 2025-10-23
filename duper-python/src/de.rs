@@ -53,7 +53,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         Ok(VisitorValue {
             value: model.call((), Some(&instance_values))?,
             duper: identifier
-                .map(|identifier| Duper::create(identifier)?.into_pyobject(self.py))
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
         })
     }
@@ -70,7 +70,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         Ok(VisitorValue {
             value: PyList::new(self.py, vec?).map(|value| value.into_any())?,
             duper: identifier
-                .map(|identifier| Duper::create(identifier)?.into_pyobject(self.py))
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
         })
     }
@@ -87,7 +87,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         Ok(VisitorValue {
             value: PyTuple::new(self.py, vec?).map(|value| value.into_any())?,
             duper: identifier
-                .map(|identifier| Duper::create(identifier)?.into_pyobject(self.py))
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
         })
     }
@@ -100,7 +100,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         Ok(VisitorValue {
             value: PyString::new(self.py, &string.clone().into_inner()).into_any(),
             duper: identifier
-                .map(|identifier| Duper::create(identifier)?.into_pyobject(self.py))
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
         })
     }
@@ -113,7 +113,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         Ok(VisitorValue {
             value: PyBytes::new(self.py, &bytes.clone().into_inner()).into_any(),
             duper: identifier
-                .map(|identifier| Duper::create(identifier)?.into_pyobject(self.py))
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
         })
     }
@@ -126,7 +126,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         Ok(VisitorValue {
             value: PyInt::new(self.py, integer).into_any(),
             duper: identifier
-                .map(|identifier| Duper::create(identifier)?.into_pyobject(self.py))
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
         })
     }
@@ -139,7 +139,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         Ok(VisitorValue {
             value: PyFloat::new(self.py, float).into_any(),
             duper: identifier
-                .map(|identifier| Duper::create(identifier)?.into_pyobject(self.py))
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
         })
     }
@@ -152,7 +152,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         Ok(VisitorValue {
             value: PyBool::new(self.py, boolean).to_owned().into_any(),
             duper: identifier
-                .map(|identifier| Duper::create(identifier)?.into_pyobject(self.py))
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
         })
     }
@@ -161,7 +161,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         Ok(VisitorValue {
             value: self.py.None().into_bound(self.py).into_any(),
             duper: identifier
-                .map(|identifier| Duper::create(identifier)?.into_pyobject(self.py))
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
         })
     }

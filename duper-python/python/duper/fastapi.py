@@ -41,7 +41,7 @@ class DuperResponse(Response):
 
     def __init__(
         self,
-        content: Any,
+        content: Any,  # pyright: ignore[reportExplicitAny, reportAny]
         status_code: int = 200,
         headers: Mapping[str, str] | None = None,
         background: BackgroundTask | None = None,
@@ -53,7 +53,7 @@ class DuperResponse(Response):
         super().__init__(content, status_code, headers, self.media_type, background)
 
     @override
-    def render(self, content: Any) -> bytes:
+    def render(self, content: Any) -> bytes:  # pyright: ignore[reportExplicitAny, reportAny]
         return dumps(
             content,
             indent=self._indent,
@@ -61,7 +61,7 @@ class DuperResponse(Response):
         ).encode("utf-8")
 
 
-def DuperBody(model_type: type[T]) -> Any:
+def DuperBody(model_type: type[T]) -> Any:  # pyright: ignore[reportExplicitAny, reportAny]
     """
     A dependency providing automatic parsing of an HTTP request containing a Duper value.
 
@@ -92,7 +92,7 @@ def DuperBody(model_type: type[T]) -> Any:
             dumped = parsed.model_dump(mode="python")
         else:
             adapter = TypeAdapter(type(parsed))
-            dumped = adapter.dump_python(parsed)
+            dumped = adapter.dump_python(parsed)  # pyright: ignore[reportAny]
 
         if issubclass(model_type, PydanticBaseModel):
             return model_type.model_validate(dumped)
@@ -102,4 +102,4 @@ def DuperBody(model_type: type[T]) -> Any:
         except Exception:
             return dumped  # pyright: ignore[reportReturnType]
 
-    return Depends(_get_duper_body)
+    return Depends(_get_duper_body)  # pyright: ignore[reportAny]
