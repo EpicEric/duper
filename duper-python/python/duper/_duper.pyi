@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal, TypeAlias, overload
 from io import TextIOBase
 
 from pydantic import BaseModel
@@ -16,6 +16,18 @@ class Duper:
 
     Both of these are exposed as properties ``value`` and ``identifier``,
     respectively."""
+
+DuperType: TypeAlias = (
+    dict[str, DuperType]
+    | list[DuperType]
+    | tuple[DuperType, ...]
+    | str
+    | bytes
+    | int
+    | float
+    | bool
+    | None
+)
 
 def dumps(
     obj: Any,
@@ -51,17 +63,37 @@ def dump(
     If ``strip_identifiers`` is ``True``, then this function will strip
     all identifiers from the serialized value."""
 
-def loads(s: str, *, parse_any: bool = False) -> BaseModel:  # noqa: F821
+@overload
+def loads(
+    s: str, *, parse_any: Literal[False] = False
+) -> BaseModel | list[DuperType]: ...
+@overload
+def loads(
+    s: str, *, parse_any: Literal[True]
+) -> BaseModel | list[DuperType] | DuperType: ...
+def loads(
+    s: str, *, parse_any: bool = False
+) -> BaseModel | list[DuperType] | DuperType:
     """Deserialize ``s`` (a ``str`` instance containing a Duper object or
-    array) to a Python object.
+    array) to a Pydantic model.
 
     If ``parse_any`` is ``True``, then this function will also deserialize
     types other than objects and arrays.
     """
 
-def load(fp: TextIOBase, *, parse_any: bool = False) -> BaseModel:
+@overload
+def load(
+    fp: TextIOBase, *, parse_any: Literal[False] = False
+) -> BaseModel | list[DuperType]: ...
+@overload
+def load(
+    fp: TextIOBase, *, parse_any: Literal[True]
+) -> BaseModel | list[DuperType] | DuperType: ...
+def load(
+    fp: TextIOBase, *, parse_any: bool = False
+) -> BaseModel | list[DuperType] | DuperType:
     """Deserialize ``fp`` (a ``.read()``-supporting file-like object
-    containing a Duper object or array) to a Python object.
+    containing a Duper object or array) to a Pydantic model.
 
     If ``parse_any`` is ``True``, then this function will also deserialize
     types other than objects and arrays."""
