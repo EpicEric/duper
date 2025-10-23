@@ -34,5 +34,6 @@ dev = [
     "httpx>=0.28.1",
     "maturin>=1.9.6",
     "pytest>=8.4.2",
+    "ruff>=0.14.1",
     "starlette>=0.48.0",
 ]

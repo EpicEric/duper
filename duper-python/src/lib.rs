@@ -12,7 +12,6 @@ mod duper_py {
 
     use crate::{de::Visitor, ser::serialize_pyany};
 
-    #[allow(clippy::declare_interior_mutable_const)]
     #[pyfunction]
     #[pyo3(signature = (obj, *, indent=None, strip_identifiers=false))]
     fn dumps<'py>(
@@ -45,7 +44,6 @@ mod duper_py {
         }
     }
 
-    #[allow(clippy::declare_interior_mutable_const)]
     #[pyfunction]
     #[pyo3(signature = (obj, fp, *, indent=None, strip_identifiers=false))]
     fn dump<'py>(
@@ -83,7 +81,6 @@ mod duper_py {
         Ok(())
     }
 
-    #[allow(clippy::declare_interior_mutable_const)]
     #[pyfunction]
     #[pyo3(signature = (s, *, parse_any=false))]
     fn loads<'py>(py: Python<'py>, s: &str, parse_any: bool) -> PyResult<Bound<'py, PyAny>> {
@@ -100,7 +97,6 @@ mod duper_py {
         value.accept(&mut Visitor { py })
     }
 
-    #[allow(clippy::declare_interior_mutable_const)]
     #[pyfunction]
     #[pyo3(signature = (fp, *, parse_any=false))]
     fn load<'py>(
