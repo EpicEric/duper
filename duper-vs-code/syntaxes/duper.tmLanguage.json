@@ -46,7 +46,7 @@
       "patterns": [
         {
           "name": "entity.name.type.duper",
-          "begin": "[A-Z](-?[A-Za-z0-9])*(\\()",
+          "begin": "[A-Z]([_-]?[A-Za-z0-9])*(\\()",
           "beginCaptures": {
             "2": {
               "name": "punctuation.definition.identifiers.begin.duper"

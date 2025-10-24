@@ -14,15 +14,15 @@ COMMENT = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 duper_trunk = { SOI ~ (identifier ~ "(" ~ (object | array) ~ ")" | object | array) ~ EOI }
 
 /// Matches any Duper value at the root of the input.
-duper_value = _{ SOI ~ described_value ~ EOI }
+duper_value = _{ SOI ~ identified_value ~ EOI }
 
 // -- VALUES --
 
 /// Matches an identifier for a Duper value.
-identifier = @{ UPPERCASE_LETTER ~ (("-" | "_")? ~ LETTER | NUMBER)* }
+identifier = @{ ASCII_ALPHA_UPPER ~ (("-" | "_")? ~ (ASCII_ALPHA | ASCII_DIGIT))* }
 
 /// Matches a value with an optional identifier.
-described_value = { identifier ~ "(" ~ value ~ ")" | value }
+identified_value = { identifier ~ "(" ~ value ~ ")" | value }
 
 /// Matches any valid inner value.
 value = _{ object | array | tuple | quoted_string | raw_string | quoted_bytes | raw_bytes | float | integer | boolean | null }
@@ -36,7 +36,7 @@ object = {
 }
 
 /// Matches a Duper object's key-value pair.
-pair = { key ~ ":" ~ described_value }
+pair = { key ~ ":" ~ identified_value }
 
 /// Matches a Duper object's key, which may be plain, quoted, or raw.
 key = _{ quoted_string | raw_string | plain_key }
@@ -49,13 +49,13 @@ plain_key = @{ (ASCII_ALPHA | "_" ~ ASCII_ALPHANUMERIC) ~ (("_" | "-")? ~ ASCII_
 /// Matches a Duper tuple.
 tuple = {
     "(" ~ ","? ~ ")"
-  | "(" ~ described_value ~ ("," ~ described_value)* ~ ","? ~ ")"
+  | "(" ~ identified_value ~ ("," ~ identified_value)* ~ ","? ~ ")"
 }
 
 /// Matches a Duper array.
 array = {
     "[" ~ ","? ~ "]"
-  | "[" ~ described_value ~ ("," ~ described_value)* ~ ","? ~ "]"
+  | "[" ~ identified_value ~ ("," ~ identified_value)* ~ ","? ~ "]"
 }
 
 // -- STRINGS AND BYTE STRINGS --

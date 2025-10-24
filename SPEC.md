@@ -4,7 +4,7 @@
 <h1 align="center">Duper: The format that's super!</h1>
 
 <p align="center">
-    <a href="https://github.com/EpicEric/duper/blob/main/SPEC.md"><img alt="Specification version" src="https://img.shields.io/badge/spec_version-0.1.2-blue"></a>
+    <a href="https://github.com/EpicEric/duper/blob/main/SPEC.md"><img alt="Specification version" src="https://img.shields.io/badge/spec_version-0.2.0-blue"></a>
     <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
 </p>
 
@@ -381,7 +381,7 @@ Any parenthesized expression must be interpreted as a tuple by parsers.
 
 Identifiers are optional type-like annotations that wrap any kind of value, providing semantic meaning or hinting at special handling during parsing/validation. Identified values are composed of the identifier name, followed by the value wrapped in parenthesis `(` and `)`.
 
-The first character must be an uppercase letter, followed by letters, numbers, underscores `_`, and hyphens `-`. They must start with an ASCII letter, or an underscore followed by a letter or digit. Sequences of underscores and hyphens are not allowed in the identifier, and identifiers may not start or end with either.
+The first character must be an ASCII uppercase letter, followed by ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. Sequences of underscores and hyphens are not allowed in the identifier, and identifiers may not start or end with either of them.
 
 ```duper
 {
