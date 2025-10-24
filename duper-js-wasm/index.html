@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>@duper-js/wasm</title>
+  </head>
+  <body>
+    <script type="module">
+      import init, { parse, stringify } from "./pkg/duper_wasm.js";
+
+      async function run() {
+        await init();
+
+        const a = parse(`{hello: ("world", Test(null), Foo(42))}`);
+        console.log(a);
+        console.log(JSON.stringify(a));
+      }
+
+      run();
+    </script>
+  </body>
+</html>

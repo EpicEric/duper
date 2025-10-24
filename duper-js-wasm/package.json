@@ -1,0 +1,28 @@
+{
+  "name": "@duper-js/wasm",
+  "version": "0.1.0",
+  "description": "The format that's super!",
+  "keywords": [
+    "duper",
+    "serialization",
+    "wasm"
+  ],
+  "homepage": "https://github.com/EpicEric/duper#readme",
+  "bugs": {
+    "url": "https://github.com/EpicEric/duper/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EpicEric/duper.git"
+  },
+  "license": "MIT",
+  "author": "Eric Rodrigues Pires <eric@eric.dev.br>",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "build": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen ../target/wasm32-unknown-unknown/release/duper_wasm.wasm --out-dir ./pkg --target web"
+  },
+  "devDependencies": {
+    "@wasm-tool/wasm-pack-plugin": "^1.7.0"
+  }
+}

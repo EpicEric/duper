@@ -13,6 +13,10 @@
       "path": "duper"
     },
     {
+      "name": "duper-js-wasm",
+      "path": "duper-js-wasm"
+    },
+    {
       "name": "duper-python",
       "path": "duper-python"
     },
