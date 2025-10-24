@@ -16,8 +16,12 @@ classifiers = [
     "Framework :: Pydantic",
     "Framework :: Pydantic :: 2",
 ]
-urls = { homepage = "https://github.com/EpicEric/duper", source = "https://github.com/EpicEric/duper" }
 dependencies = ["pydantic>=2,<3"]
+
+[project.urls]
+homepage = "https://github.com/EpicEric/duper"
+source = "https://github.com/EpicEric/duper"
+changelog = "https://github.com/EpicEric/duper/blob/main/duper-python/CHANGELOG.md"
 
 [build-system]
 requires = ["maturin>=1.9,<2.0"]

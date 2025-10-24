@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 (2025-10-23)
+
+### Changed
+
+- Implement changes from specification 0.2.0.
+
 ## 0.1.2 (2025-10-22)
 
 ### Fixed
