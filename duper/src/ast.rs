@@ -230,6 +230,12 @@ impl<'a> From<Cow<'a, str>> for DuperKey<'a> {
     }
 }
 
+impl From<String> for DuperKey<'static> {
+    fn from(value: String) -> Self {
+        Self(Cow::Owned(value))
+    }
+}
+
 impl<'a> DuperValue<'a> {
     /// Accepts a [`DuperVisitor`] and visits it with the current value.
     pub fn accept<V: DuperVisitor>(&self, visitor: &mut V) -> V::Value {
@@ -416,6 +422,12 @@ impl<'a> From<Cow<'a, str>> for DuperString<'a> {
     }
 }
 
+impl From<String> for DuperString<'static> {
+    fn from(value: String) -> Self {
+        Self(Cow::Owned(value))
+    }
+}
+
 impl<'a> AsRef<str> for DuperString<'a> {
     fn as_ref(&self) -> &str {
         &self.0
@@ -432,6 +444,12 @@ impl<'a> DuperBytes<'a> {
 impl<'a> From<Cow<'a, [u8]>> for DuperBytes<'a> {
     fn from(value: Cow<'a, [u8]>) -> Self {
         Self(value)
+    }
+}
+
+impl From<Vec<u8>> for DuperBytes<'static> {
+    fn from(value: Vec<u8>) -> Self {
+        Self(Cow::Owned(value))
     }
 }
 

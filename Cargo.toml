@@ -3,6 +3,7 @@ resolver = "3"
 members = [
   "axum_duper",
   "duper",
+  "duper-js-wasm",
   "duper-python",
   "serde_duper",
   "serde_duper_macros",

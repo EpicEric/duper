@@ -12,6 +12,12 @@ Duper extractor / response for `axum`.
 
 [Check out the official website for Duper.](https://duper.dev.br)
 
+## Installation
+
+```bash
+cargo add axum_duper
+```
+
 ## Example
 
 ```rust

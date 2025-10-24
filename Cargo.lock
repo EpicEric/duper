@@ -320,6 +320,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "duper-js-wasm"
+version = "0.0.0"
+dependencies = [
+ "duper",
+ "js-sys",
+ "miette",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "duper-python"
 version = "0.2.1"
 dependencies = [

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>@duper-js/wasm</title>
+  </head>
+  <body>
+    <script type="module">
+      import { parse, stringify } from "./pkg/duper_js_wasm";
+
+      const input = `{hello: ("world", Test(null), Foo(42))}`;
+      console.log(input);
+      const a = parse(input);
+      console.log(a);
+      console.log(JSON.stringify(a));
+      console.log(stringify(a, { indent: "  " }));
+    </script>
+  </body>
+</html>
