@@ -12,6 +12,14 @@ Duper support for Python.
 
 [Check out the official website for Duper.](https://duper.dev.br)
 
+## Installation
+
+```bash
+uv add duper-python
+# -- or --
+pip install duper-python
+```
+
 ## Examples
 
 The basic `json`/`pickle`-like interface:

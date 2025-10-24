@@ -12,6 +12,14 @@ Adds `serde` support for Duper.
 
 [See the main project on GitHub.](https://github.com/EpicEric/duper)
 
+## Installation
+
+```bash
+cargo add serde_duper
+# -- or --
+cargo add serde_duper --features macros,uuid,chrono
+```
+
 ## Example
 
 ```rust

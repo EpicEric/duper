@@ -786,7 +786,7 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
                 let identifier = duper_metadata.map_or(duper_value.identifier, |duper| {
                     duper
                         .cast::<Duper>()
-                        .expect("Duper instance")
+                        .expect("checked Duper instance")
                         .get()
                         .identifier
                         .clone()
@@ -803,12 +803,12 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
         Ok(DuperValue {
             identifier: serialize_pyclass_identifier(&obj)?,
             inner: DuperInner::Object(
-                DuperObject::try_from(fields?).expect("no duplicate keys in pydantic model"),
+                DuperObject::try_from(fields?).expect("no duplicate keys in Pydantic model"),
             ),
         })
     } else {
         Err(PyErr::new::<PyValueError, String>(format!(
-            "Unsupported type: {}",
+            "unsupported type: {}",
             obj.get_type()
         )))
     }
