@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+#![cfg(feature = "macros")]
 use serde::{Deserialize, Serialize};
 use serde_duper::{bytes::ByteBuf, duper};
 use std::collections::HashMap;
@@ -118,6 +118,8 @@ fn duper_macro_for_tuple_struct() {
 #[test]
 #[cfg(feature = "chrono")]
 fn duper_macro_for_external_type() {
+    use chrono::{DateTime, Utc};
+
     duper! {
         #[derive(Debug, Clone, Serialize, Deserialize)]
         struct MyStruct {

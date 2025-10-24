@@ -64,8 +64,42 @@ jobs:
       - name: Build
         run: |
           cargo build --locked --all-features
-  test:
-    name: Run tests
+  test-rust-all-features:
+    name: Run Rust tests (all features)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Fetch MSRV
+        run: |
+          rustup toolchain install ${RUST_MSRV}-x86_64-unknown-linux-gnu
+          rustup override set ${RUST_MSRV}-x86_64-unknown-linux-gnu
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: Test Rust (all features)
+        run: |
+          cargo test --all-features
+  test-rust-no-features:
+    name: Run Rust tests (no features)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Fetch MSRV
+        run: |
+          rustup toolchain install ${RUST_MSRV}-x86_64-unknown-linux-gnu
+          rustup override set ${RUST_MSRV}-x86_64-unknown-linux-gnu
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: Test Rust (no features)
+        run: |
+          cargo test --lib --bins --tests --no-default-features
+  test-python:
+    name: Run Python tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -82,11 +116,6 @@ jobs:
           python-version: ${{ env.PYTHON_MINIMUM_VERSION }}
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
-      - name: Test Rust
-        env:
-          RUSTFLAGS: -A dead_code -A unused_variables
-        run: |
-          cargo test --all-features
       - name: Test Python
         working-directory: duper-python
         run: |
