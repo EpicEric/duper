@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Improved syntax highlighting.
+
 ## 0.2.0 (2025-10-23)
 
 ### Changed

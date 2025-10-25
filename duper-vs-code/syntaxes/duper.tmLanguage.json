@@ -1,6 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Duper",
+  "aliases": ["duper"],
   "patterns": [
     {
       "include": "#values"
@@ -23,7 +24,15 @@
         {
           "name": "string.quoted.double.duper",
           "begin": "b?\"",
-          "end": "\""
+          "end": "\"",
+          "patterns": [
+            {
+              "include": "#stringescapes"
+            },
+            {
+              "include": "#stringcontent"
+            }
+          ]
         },
         {
           "name": "string.quoted.double.raw_one.duper",
@@ -45,20 +54,44 @@
     "identifiers": {
       "patterns": [
         {
-          "name": "entity.name.type.duper",
-          "begin": "[A-Z]([_-]?[A-Za-z0-9])*(\\()",
+          "begin": "([A-Z](?:[_-]?[A-Za-z0-9])*)(\\()",
           "beginCaptures": {
+            "1": {
+              "name": "entity.name.type.duper"
+            },
             "2": {
-              "name": "punctuation.definition.identifiers.begin.duper"
+              "name": "punctuation.definition.identifiers.duper"
             }
           },
           "end": "(\\))",
           "endCaptures": {
             "1": {
-              "name": "punctuation.definition.identifiers.end.duper"
+              "name": "punctuation.definition.identifiers.duper"
             }
           },
           "patterns": [
+            {
+              "begin": "([A-Z](?:[_-]?[A-Za-z0-9])*)(\\()",
+              "beginCaptures": {
+                "1": {
+                  "name": "invalid.illegal.nested-identifier.duper"
+                },
+                "2": {
+                  "name": "invalid.illegal.nested-identifier.duper"
+                }
+              },
+              "end": "(\\))",
+              "endCaptures": {
+                "1": {
+                  "name": "invalid.illegal.nested-identifier.duper"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#values"
+                }
+              ]
+            },
             {
               "include": "#values"
             }
@@ -78,7 +111,7 @@
       "patterns": [
         {
           "name": "constant.numeric.duper",
-          "match": "0x[0-9a-fA-F]+|0o[0-7]+|0b[0-1]+|[+-]?(0|[1-9](_?[0-9]*))(\\.[0-9](_?[0-9])*([eE][+-]?[0-9](_?[0-9])*)?)?"
+          "match": "0x[0-9a-fA-F](_?[0-9a-fA-F])*|0o[0-7](_?[0-7])*|0b[0-7](_?[0-1])*|[+-]?(0|[1-9](_?[0-9])*)(\\.[0-9](_?[0-9])*)?(([eE][+-]?[0-9](_?[0-9])*)?)?"
         }
       ]
     },
@@ -94,7 +127,7 @@
       "patterns": [
         {
           "name": "comment.block.duper",
-          "begin": "/\\*",
+          "begin": "(/\\*)(?:\\s*((@)internal)(?=\\s|(\\*/)))?",
           "end": "\\*/",
           "patterns": [
             {
@@ -108,23 +141,28 @@
       "begin": "\\[",
       "beginCaptures": {
         "0": {
-          "name": "punctuation.definition.arrays.begin.duper"
+          "name": "punctuation.definition.arrays.duper"
         }
       },
       "end": "\\]",
       "endCaptures": {
         "0": {
-          "name": "punctuation.definition.arrays.end.duper"
+          "name": "punctuation.definition.arrays.duper"
         }
       },
-      "name": "meta.structure.arrays.duper",
       "patterns": [
         {
           "include": "#values"
         },
         {
+          "include": "#comments"
+        },
+        {
+          "include": "#multilinecomments"
+        },
+        {
           "match": ",",
-          "name": "keyword.operator.separator.arrays.duper"
+          "name": "punctuation.separator.arrays.duper"
         },
         {
           "match": "[^\\s\\]]",
@@ -136,13 +174,13 @@
       "begin": "\\(",
       "beginCaptures": {
         "0": {
-          "name": "punctuation.definition.tuple.begin.duper"
+          "name": "punctuation.definition.tuple.duper"
         }
       },
       "end": "\\)",
       "endCaptures": {
         "0": {
-          "name": "punctuation.definition.tuple.end.duper"
+          "name": "punctuation.definition.tuple.duper"
         }
       },
       "name": "meta.structure.tuple.duper",
@@ -151,8 +189,14 @@
           "include": "#values"
         },
         {
+          "include": "#comments"
+        },
+        {
+          "include": "#multilinecomments"
+        },
+        {
           "match": ",",
-          "name": "keyword.operator.separator.tuple.duper"
+          "name": "punctuation.separator.tuple.duper"
         },
         {
           "match": "[^\\s\\)]",
@@ -164,16 +208,15 @@
       "begin": "\\{",
       "beginCaptures": {
         "0": {
-          "name": "punctuation.definition.dictionary.begin.duper"
+          "name": "punctuation.definition.dictionary.duper"
         }
       },
       "end": "\\}",
       "endCaptures": {
         "0": {
-          "name": "punctuation.definition.dictionary.end.duper"
+          "name": "punctuation.definition.dictionary.duper"
         }
       },
-      "name": "meta.structure.dictionary.duper",
       "patterns": [
         {
           "include": "#objectkeys"
@@ -182,16 +225,19 @@
           "include": "#comments"
         },
         {
+          "include": "#multilinecomments"
+        },
+        {
           "begin": ":",
           "beginCaptures": {
             "0": {
-              "name": "keyword.operator.separator.dictionary.key-s.duper"
+              "name": "punctuation.separator.dictionary.key.duper"
             }
           },
           "end": "(,)|(?=\\})",
           "endCaptures": {
             "1": {
-              "name": "keyword.operator.separator.dictionary.pair.duper"
+              "name": "punctuation.separator.dictionary.pair.duper"
             }
           },
           "name": "meta.structure.dictionary.value.duper",
@@ -217,8 +263,20 @@
     "stringcontent": {
       "patterns": [
         {
-          "match": "\\\\.",
-          "name": "invalid.illegal.unrecognized-string-escape.duper"
+          "match": ".",
+          "name": "string.quoted.double.duper"
+        }
+      ]
+    },
+    "stringescapes": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.duper",
+          "match": "\\\\([\"\\/bfnrt0]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4})"
+        },
+        {
+          "name": "invalid.illegal.unrecognized-string-escape.duper",
+          "match": "\\\\."
         }
       ]
     },
