@@ -19,7 +19,7 @@ classifiers = [
 dependencies = ["pydantic>=2,<3"]
 
 [project.urls]
-homepage = "https://github.com/EpicEric/duper"
+homepage = "https://duper.dev.br"
 source = "https://github.com/EpicEric/duper"
 changelog = "https://github.com/EpicEric/duper/blob/main/duper-python/CHANGELOG.md"
 

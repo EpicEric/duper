@@ -4,4 +4,4 @@ This project adheres to the [Rust Code of Conduct](https://www.rust-lang.org/pol
 
 ## Enforcement
 
-Instances of violations of the Code of Conduct can be reported by contacting the project team at [duper-coc@eric.dev.br](mailto:duper-coc@eric.dev.br).
+Instances of violations of the Code of Conduct can be reported by contacting the project team at [coc@duper.dev.br](mailto:coc@duper.dev.br).

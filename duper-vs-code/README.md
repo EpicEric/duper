@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://raw.githubusercontent.com/EpicEric/duper/refs/heads/main/logos/duper-400.png" alt="The Duper logo, with a confident spectacled mole wearing a flailing blue cape." /> <br>
+    <img src="https://duper.dev.br/logos/duper-400.png" alt="The Duper logo, with a confident spectacled mole wearing a flailing blue cape." /> <br>
 </p>
 <h1 align="center">Duper for VS Code</h1>
 
@@ -12,4 +12,4 @@ Duper highlighting support for Visual Studio Code.
 
 ![An example of Duper highlighting on Visual Studio Code.](https://raw.githubusercontent.com/EpicEric/duper/refs/heads/main/duper-vs-code/images/example-1.png)
 
-[See the main project on GitHub.](https://github.com/EpicEric/duper)
+[Check out the official website for Duper.](https://duper.dev.br)

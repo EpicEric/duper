@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://raw.githubusercontent.com/EpicEric/duper/refs/heads/main/logos/duper-400.png" alt="The Duper logo, with a confident spectacled mole wearing a flailing blue cape." /> <br>
+    <img src="https://duper.dev.br/logos/duper-400.png" alt="The Duper logo, with a confident spectacled mole wearing a flailing blue cape." /> <br>
 </p>
 <h1 align="center">Axum Duper</h1>
 
@@ -10,7 +10,7 @@
 
 Duper extractor / response for `axum`.
 
-[See the main project on GitHub.](https://github.com/EpicEric/duper)
+[Check out the official website for Duper.](https://duper.dev.br)
 
 ## Example
 
