@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.2.2 (2025-10-25)
+
+### Changed
+
+- Update example image link.
+
+## 0.2.1 (2025-10-25)
 
 ### Changed
 

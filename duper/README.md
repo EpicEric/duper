@@ -43,7 +43,7 @@ Product({
 ```
 
 - Similar to JSON, but with support for unquoted keys, trailing commas, and comments.
-- It adds a couple of extra types: integers, tuples, bytes, raw strings, and raw bytes.
+- It includes support for extra types: integers, tuples, bytes, raw strings, and raw bytes.
 - Finally, Duper has the notion of _identifiers_: optional type-like annotations (`MyIdentifier(...)`) to help with readability, or to suggest that the parser handles/validates the data in a specific manner.
 
 ## Quick start
