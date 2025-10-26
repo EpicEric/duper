@@ -1,6 +1,6 @@
 {
   "name": "@duper-js/wasm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The format that's super!",
   "keywords": [
     "duper",
@@ -18,15 +18,23 @@
   "license": "MIT",
   "author": "Eric Rodrigues Pires <eric@eric.dev.br>",
   "type": "module",
-  "main": "index.js",
+  "main": "./pkg/duper_js_wasm.js",
+  "types": "./pkg/duper_js_wasm.d.ts",
+  "exports": {
+    ".": {
+      "import": "./pkg/duper_js_wasm.js",
+      "types": "./pkg/duper_js_wasm.d.ts"
+    },
+    "./wasm": {
+      "import": "./pkg/duper_js_wasm_bg.wasm"
+    }
+  },
+  "files": [
+    "pkg/*",
+    "README.md"
+  ],
   "scripts": {
     "build": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen ../target/wasm32-unknown-unknown/release/duper_js_wasm.wasm --out-dir ./pkg --target bundler",
-    "dev": "vite"
-  },
-  "devDependencies": {
-    "@wasm-tool/wasm-pack-plugin": "^1.7.0",
-    "vite": "^7.1.12",
-    "vite-plugin-top-level-await": "^1.6.0",
-    "vite-plugin-wasm": "^3.5.0"
+    "prepublishOnly": "npm run build"
   }
 }

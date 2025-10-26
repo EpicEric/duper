@@ -1,7 +1,6 @@
 [package]
 name = "duper-js-wasm"
 description = "The format that's super!"
-version = "0.0.0"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
