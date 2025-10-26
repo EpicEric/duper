@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@duper-js/wasm": "^0.1.1"
+  },
+  "devDependencies": {
+    "vite": "^7.1.12",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0"
+  }
+}
