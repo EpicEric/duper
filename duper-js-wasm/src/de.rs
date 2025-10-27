@@ -5,7 +5,9 @@ use wasm_bindgen::prelude::*;
 use crate::{SYMBOL_DUPER_IDENTIFIER, SYMBOL_DUPER_TYPE, SYMBOL_DUPER_VALUE};
 
 #[derive(Clone)]
-pub(crate) struct Visitor;
+pub(crate) struct Visitor {
+    pub(crate) json_safe: bool,
+}
 
 impl DuperVisitor for Visitor {
     type Value = Result<JsValue, JsError>;
@@ -108,7 +110,11 @@ impl DuperVisitor for Visitor {
         string: &duper::DuperString<'a>,
     ) -> Self::Value {
         let value = JsValue::from_str(string.as_ref());
-        attach_identifier(value, identifier, "string")
+        if self.json_safe {
+            Ok(value)
+        } else {
+            attach_identifier(value, identifier, "string")
+        }
     }
 
     fn visit_bytes<'a>(
@@ -116,9 +122,13 @@ impl DuperVisitor for Visitor {
         identifier: Option<&duper::DuperIdentifier<'a>>,
         bytes: &duper::DuperBytes<'a>,
     ) -> Self::Value {
-        let uint8_array = js_sys::Uint8Array::from(bytes.as_ref());
-        let value: JsValue = uint8_array.into();
-        attach_identifier(value, identifier, "bytes")
+        if self.json_safe {
+            Ok(bytes.as_ref().to_vec().into())
+        } else {
+            let uint8_array = js_sys::Uint8Array::from(bytes.as_ref());
+            let value: JsValue = uint8_array.into();
+            attach_identifier(value, identifier, "bytes")
+        }
     }
 
     fn visit_integer<'a>(
@@ -128,7 +138,11 @@ impl DuperVisitor for Visitor {
     ) -> Self::Value {
         // TO-DO: Handle big integers
         let value = JsValue::from_f64(integer as f64);
-        attach_identifier(value, identifier, "integer")
+        if self.json_safe {
+            Ok(value)
+        } else {
+            attach_identifier(value, identifier, "integer")
+        }
     }
 
     fn visit_float<'a>(
@@ -137,7 +151,11 @@ impl DuperVisitor for Visitor {
         float: f64,
     ) -> Self::Value {
         let value = JsValue::from_f64(float);
-        attach_identifier(value, identifier, "float")
+        if self.json_safe {
+            Ok(value)
+        } else {
+            attach_identifier(value, identifier, "float")
+        }
     }
 
     fn visit_boolean<'a>(
@@ -146,12 +164,20 @@ impl DuperVisitor for Visitor {
         boolean: bool,
     ) -> Self::Value {
         let value = JsValue::from_bool(boolean);
-        attach_identifier(value, identifier, "boolean")
+        if self.json_safe {
+            Ok(value)
+        } else {
+            attach_identifier(value, identifier, "boolean")
+        }
     }
 
     fn visit_null<'a>(&mut self, identifier: Option<&duper::DuperIdentifier<'a>>) -> Self::Value {
         let value = JsValue::NULL;
-        attach_identifier(value, identifier, "null")
+        if self.json_safe {
+            Ok(value)
+        } else {
+            attach_identifier(value, identifier, "null")
+        }
     }
 }
 
