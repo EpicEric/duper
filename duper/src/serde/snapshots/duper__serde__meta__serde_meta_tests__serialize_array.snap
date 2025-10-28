@@ -1,0 +1,9 @@
+---
+source: duper/src/serde/meta.rs
+expression: "serialize_meta(&DuperValue\n{ identifier: None, inner: DuperInner::Array(DuperArray(vec![])), })"
+---
+DuperValue({
+  identifier: null,
+  inner: [],
+  type: "array",
+})

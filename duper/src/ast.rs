@@ -188,6 +188,16 @@ impl<'a> TryFrom<Cow<'a, str>> for DuperIdentifier<'a> {
     }
 }
 
+impl<'a> TryFrom<&'a str> for DuperIdentifier<'a> {
+    type Error = DuperIdentifierTryFromError<'a>;
+
+    /// Create a valid identifier from the provided `&str`, returning
+    /// an error if there are invalid characters.
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        Self::try_from(Cow::Borrowed(value))
+    }
+}
+
 impl TryFrom<String> for DuperIdentifier<'static> {
     type Error = DuperIdentifierTryFromError<'static>;
 
@@ -227,6 +237,12 @@ impl<'a> AsRef<str> for DuperKey<'a> {
 impl<'a> From<Cow<'a, str>> for DuperKey<'a> {
     fn from(value: Cow<'a, str>) -> Self {
         Self(value)
+    }
+}
+
+impl<'a> From<&'a str> for DuperKey<'a> {
+    fn from(value: &'a str) -> Self {
+        Self(Cow::Borrowed(value))
     }
 }
 
@@ -422,6 +438,12 @@ impl<'a> From<Cow<'a, str>> for DuperString<'a> {
     }
 }
 
+impl<'a> From<&'a str> for DuperString<'a> {
+    fn from(value: &'a str) -> Self {
+        Self(Cow::Borrowed(value))
+    }
+}
+
 impl From<String> for DuperString<'static> {
     fn from(value: String) -> Self {
         Self(Cow::Owned(value))
@@ -444,6 +466,12 @@ impl<'a> DuperBytes<'a> {
 impl<'a> From<Cow<'a, [u8]>> for DuperBytes<'a> {
     fn from(value: Cow<'a, [u8]>) -> Self {
         Self(value)
+    }
+}
+
+impl<'a> From<&'a [u8]> for DuperBytes<'a> {
+    fn from(value: &'a [u8]) -> Self {
+        Self(Cow::Borrowed(value))
     }
 }
 

@@ -1,0 +1,40 @@
+---
+source: duper/src/serde/meta.rs
+expression: serialized
+---
+DuperValue({
+  identifier: "MyScalars",
+  inner: [
+    DuperValue({
+      identifier: "MyString",
+      inner: "Hello world!",
+      type: "string",
+    }),
+    DuperValue({
+      identifier: "MyBytes",
+      inner: br"/\",
+      type: "bytes",
+    }),
+    DuperValue({
+      identifier: "MyInt",
+      inner: 1337,
+      type: "integer",
+    }),
+    DuperValue({
+      identifier: "MyFloat",
+      inner: 8.25,
+      type: "float",
+    }),
+    DuperValue({
+      identifier: "MyBool",
+      inner: true,
+      type: "boolean",
+    }),
+    DuperValue({
+      identifier: "Mysterious",
+      inner: null,
+      type: "null",
+    }),
+  ],
+  type: "array",
+})

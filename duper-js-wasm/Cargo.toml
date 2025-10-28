@@ -20,6 +20,3 @@ duper = { path = "../duper", version = "0.2.0" }
 js-sys = "0.3.81"
 miette = "7.6.0"
 wasm-bindgen = "0.2.104"
-
-[profile.release]
-lto = true

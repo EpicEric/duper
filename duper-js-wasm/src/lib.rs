@@ -47,10 +47,8 @@ pub fn stringify(value: &JsValue, options: Option<IStringifyOptions>) -> Result<
         StringifyOptions {
             indent: if let Some(indent) = indent.as_f64() {
                 Some((0..indent as u32).map(|_| ' ').collect())
-            } else if let Some(indent) = indent.as_string() {
-                Some(indent)
             } else {
-                None
+                indent.as_string()
             },
             strip_identifiers: strip_identifiers.is_truthy(),
         }

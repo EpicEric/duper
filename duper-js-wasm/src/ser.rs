@@ -16,7 +16,7 @@ pub(crate) fn serialize_jsvalue(value: &JsValue) -> Result<DuperValue<'static>, 
             if identifier.is_string() {
                 identifier
                     .as_string()
-                    .map(|identifier| DuperIdentifier::try_from(identifier))
+                    .map(DuperIdentifier::try_from)
                     .transpose()
                     .map_err(|e| JsValue::from_str(&e.to_string()))?
             } else {
@@ -127,7 +127,7 @@ fn serialize_array(
     value: &JsValue,
     identifier: Option<DuperIdentifier<'static>>,
 ) -> Result<DuperValue<'static>, JsValue> {
-    let iterator = try_iter(value)?.ok_or_else(|| "cannot iterate over array")?;
+    let iterator = try_iter(value)?.ok_or("cannot iterate over array")?;
     let elements: Result<Vec<_>, JsValue> =
         iterator.map(|value| serialize_jsvalue(&value?)).collect();
     Ok(DuperValue {
@@ -140,7 +140,7 @@ fn serialize_tuple(
     value: &JsValue,
     identifier: Option<DuperIdentifier<'static>>,
 ) -> Result<DuperValue<'static>, JsValue> {
-    let iterator = try_iter(value)?.ok_or_else(|| "cannot iterate over tuple")?;
+    let iterator = try_iter(value)?.ok_or("cannot iterate over tuple")?;
     let elements: Result<Vec<_>, JsValue> =
         iterator.map(|value| serialize_jsvalue(&value?)).collect();
     Ok(DuperValue {

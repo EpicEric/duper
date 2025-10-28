@@ -97,7 +97,7 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
                 }
                 self.decrease_indentation();
                 self.push_indentation();
-                self.buf.push_str("})\n");
+                self.buf.push_str("})");
             }
         } else if object.is_empty() {
             self.buf.push_str("{}");
@@ -138,7 +138,7 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
                 }
                 self.decrease_indentation();
                 self.push_indentation();
-                self.buf.push_str("])\n");
+                self.buf.push_str("])");
             }
         } else if array.is_empty() {
             self.buf.push_str("[]");

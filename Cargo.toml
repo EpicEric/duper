@@ -8,3 +8,6 @@ members = [
   "serde_duper",
   "serde_duper_macros",
 ]
+
+[profile.release]
+lto = true

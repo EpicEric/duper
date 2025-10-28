@@ -1,0 +1,12 @@
+---
+source: duper/src/serde/mod.rs
+expression: serialized
+---
+[
+  "Hello world!",
+  br"/\",
+  1337,
+  8.25,
+  true,
+  null,
+]

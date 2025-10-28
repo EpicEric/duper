@@ -40,6 +40,8 @@ mod builder;
 mod escape;
 mod format;
 mod parser;
+#[cfg(feature = "serde")]
+pub mod serde;
 pub mod visitor;
 
 pub use ast::{

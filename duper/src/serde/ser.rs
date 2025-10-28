@@ -1,12 +1,12 @@
 use std::{borrow::Cow, marker::PhantomData};
 
-use duper::{
+use crate::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
     DuperTuple, DuperValue, PrettyPrinter as DuperPrettyPrinter, Serializer as DuperSerializer,
 };
 use serde_core::{Serialize, ser};
 
-use crate::Error;
+use super::error::Error;
 
 /// A structure for serializing Rust values into Duper values.
 #[derive(Clone, Default)]

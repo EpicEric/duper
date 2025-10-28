@@ -1,0 +1,12 @@
+---
+source: duper/src/serde/mod.rs
+expression: serialized
+---
+{
+  string: "Hello world!",
+  bytes: br"/\",
+  integer: 1337,
+  float: 8.25,
+  boolean: true,
+  null: null,
+}

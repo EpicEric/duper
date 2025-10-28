@@ -290,18 +290,125 @@
 //!
 
 pub mod bytes;
-mod de;
-mod error;
-mod ser;
 pub mod types;
 
-pub use de::{Deserializer, from_string, from_value};
+pub use duper::serde::de::Deserializer;
+pub use duper::serde::error::{Error, ErrorImpl, ErrorKind, Result};
+pub use duper::serde::ser::{
+    Serializer, to_duper, to_string, to_string_minified, to_string_pretty,
+};
 pub use duper::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
     DuperTuple, DuperValue,
 };
-pub use error::{Error, ErrorImpl, ErrorKind, Result};
-pub use ser::{Serializer, to_duper, to_string, to_string_minified, to_string_pretty};
 
 #[cfg(feature = "macros")]
 pub use serde_duper_macros::duper;
+
+/// Interpret a [`DuperValue`] as an instance of type `T`.
+///
+/// # Example
+///
+/// ```
+/// use std::borrow::Cow;
+/// use serde::Deserialize;
+/// use serde_duper::{
+///     DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject,
+///     DuperString, DuperValue,
+/// };
+///
+/// #[derive(Deserialize, Debug)]
+/// struct User {
+///     fingerprint: Vec<u8>,
+///     location: String,
+/// }
+///
+/// // The type of `d` is `serde_duper::DuperValue`
+/// let d = DuperValue {
+///     identifier: Some(DuperIdentifier::try_from(Cow::Borrowed("User")).unwrap()),
+///     inner: DuperInner::Object(DuperObject::try_from(vec![
+///         (
+///             DuperKey::from(Cow::Borrowed("fingerprint")),
+///             DuperValue {
+///                 identifier: None,
+///                 inner: DuperInner::Bytes(DuperBytes::from(Cow::Borrowed(
+///                     &b"\xF9\xBA\x14\x3B\x95\xFF\x6D\x82"[..],
+///                 ))),
+///             }
+///         ),
+///         (
+///             DuperKey::from(Cow::Borrowed("location")),
+///             DuperValue {
+///                 identifier: Some(
+///                     DuperIdentifier::try_from(Cow::Borrowed("City")).unwrap(),
+///                 ),
+///                 inner: DuperInner::String(DuperString::from(
+///                     Cow::Borrowed("Menlo Park, CA"),
+///                 )),
+///             }
+///         ),
+///     ]).unwrap()),
+/// };
+///
+/// let u: User = serde_duper::from_value(d).unwrap();
+/// println!("{:#?}", u);
+/// ```
+///
+/// # Errors
+///
+/// This conversion can fail if the structure of the input does not match the
+/// structure expected by `T`, for example if `T` is a struct type but the input
+/// contains something other than a Duper object. It can also fail if the
+/// structure is correct but `T`'s implementation of [`Deserialize`] decides that
+/// something is wrong with the data, for example required struct fields are
+/// missing from the Duper object or some number is too big to fit in the
+/// expected primitive type.
+#[inline]
+pub fn from_value<'a, T>(value: DuperValue<'a>) -> Result<T>
+where
+    T: serde_core::Deserialize<'a>,
+{
+    duper::serde::de::from_value(value)
+}
+
+/// Deserialize an instance of type `T` from a str slice of Duper text.
+///
+/// # Example
+///
+/// ```
+/// use serde::Deserialize;
+///
+/// #[derive(Deserialize, Debug)]
+/// struct User {
+///     fingerprint: Vec<u8>,
+///     location: String,
+/// }
+///
+///
+/// // The type of `j` is `&str`
+/// let j = r#"
+///     User({
+///         fingerprint: b"\xF9\xBA\x14\x3B\x95\xFF\x6D\x82",
+///         location: City("Menlo Park, CA"),
+///     })"#;
+///
+/// let u: User = serde_duper::from_string(j).unwrap();
+/// println!("{:#?}", u);
+/// ```
+///
+/// # Errors
+///
+/// This conversion can fail if the structure of the input does not match the
+/// structure expected by `T`, for example if `T` is a struct type but the input
+/// contains something other than a Duper object. It can also fail if the
+/// structure is correct but `T`'s implementation of [`Deserialize`] decides that
+/// something is wrong with the data, for example required struct fields are
+/// missing from the Duper object or some number is too big to fit in the
+/// expected primitive type.
+#[inline]
+pub fn from_string<'a, T>(input: &'a str) -> Result<T>
+where
+    T: serde_core::Deserialize<'a>,
+{
+    duper::serde::de::from_string(input)
+}

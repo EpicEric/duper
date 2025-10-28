@@ -1,0 +1,13 @@
+---
+source: duper/src/serde/meta.rs
+expression: serialized
+---
+DuperValue({
+  identifier: "Outer",
+  inner: (DuperValue({
+    identifier: "Inner",
+    inner: (),
+    type: "tuple",
+  })),
+  type: "tuple",
+})

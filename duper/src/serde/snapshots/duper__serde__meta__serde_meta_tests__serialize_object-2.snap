@@ -1,0 +1,15 @@
+---
+source: duper/src/serde/meta.rs
+expression: serialized
+---
+DuperValue({
+  identifier: "Outer",
+  inner: {
+    foo: DuperValue({
+      identifier: "Inner",
+      inner: {},
+      type: "object",
+    }),
+  },
+  type: "object",
+})

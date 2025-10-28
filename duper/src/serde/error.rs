@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-use duper::{DuperIdentifierTryFromError, DuperObjectTryFromError};
+use crate::{DuperIdentifierTryFromError, DuperObjectTryFromError};
 
 /// The kinds of errors that can happen during serialization and deserialization.
 #[derive(Clone)]
@@ -9,7 +9,7 @@ pub enum ErrorKind {
     ///
     /// This error implements `.to_miette()`, in order to allow generation of a
     /// `miette` `Diagnostic`.
-    ParseError(Box<pest::error::Error<duper::DuperRule>>),
+    ParseError(Box<pest::error::Error<crate::DuperRule>>),
     /// Serialization failed with an unspecified error.
     SerializationError,
     /// Deserialization failed with the given reason.
@@ -111,8 +111,8 @@ impl From<serde_core::de::value::Error> for Error {
     }
 }
 
-impl From<Box<pest::error::Error<duper::DuperRule>>> for Error {
-    fn from(value: Box<pest::error::Error<duper::DuperRule>>) -> Self {
+impl From<Box<pest::error::Error<crate::DuperRule>>> for Error {
+    fn from(value: Box<pest::error::Error<crate::DuperRule>>) -> Self {
         let message = value.variant.message().into_owned();
         Self::new(ErrorKind::ParseError(value), message)
     }

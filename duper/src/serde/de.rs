@@ -1,14 +1,13 @@
 use std::borrow::Cow;
 
-use duper::{DuperArray, DuperKey};
-use duper::{DuperInner, DuperParser, DuperValue};
+use crate::{DuperArray, DuperInner, DuperKey, DuperParser, DuperValue};
 use serde_core::{
     Deserialize,
     de::{self, DeserializeSeed, IntoDeserializer, Visitor},
     forward_to_deserialize_any,
 };
 
-use crate::Error;
+use super::error::Error;
 
 /// Implementation of a deserializer from a [`DuperValue`].
 pub struct Deserializer<'de> {
@@ -50,7 +49,7 @@ impl<'de> Deserializer<'de> {
 ///         location: City("Menlo Park, CA"),
 ///     })"#;
 ///
-/// let u: User = serde_duper::from_string(j).unwrap();
+/// let u: User = duper::serde::de::from_string(j).unwrap();
 /// println!("{:#?}", u);
 /// ```
 ///
@@ -79,7 +78,7 @@ where
 /// ```
 /// use std::borrow::Cow;
 /// use serde::Deserialize;
-/// use serde_duper::{
+/// use duper::{
 ///     DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject,
 ///     DuperString, DuperValue,
 /// };
@@ -117,7 +116,7 @@ where
 ///     ]).unwrap()),
 /// };
 ///
-/// let u: User = serde_duper::from_value(d).unwrap();
+/// let u: User = duper::serde::de::from_value(d).unwrap();
 /// println!("{:#?}", u);
 /// ```
 ///

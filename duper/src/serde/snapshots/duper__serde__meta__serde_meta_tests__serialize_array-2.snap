@@ -1,0 +1,15 @@
+---
+source: duper/src/serde/meta.rs
+expression: "serialize_meta(&DuperValue\n{\n    identifier:\n    Some(DuperIdentifier::try_from(\"Outer\").expect(\"valid identifier\")),\n    inner:\n    DuperInner::Array(DuperArray(vec![DuperValue\n    {\n        identifier:\n        Some(DuperIdentifier::try_from(\"Inner\").expect(\"valid identifier\")),\n        inner: DuperInner::Array(DuperArray(vec![])),\n    },])),\n})"
+---
+DuperValue({
+  identifier: "Outer",
+  inner: [
+    DuperValue({
+      identifier: "Inner",
+      inner: [],
+      type: "array",
+    }),
+  ],
+  type: "array",
+})
