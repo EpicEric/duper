@@ -8,9 +8,12 @@
   },
   "publisher": "epic-eric",
   "homepage": "https://duper.dev.br",
+  "bugs": {
+    "url": "https://github.com/EpicEric/duper/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/EpicEric/duper"
+    "url": "git+https://github.com/EpicEric/duper.git"
   },
   "license": "MIT",
   "categories": [

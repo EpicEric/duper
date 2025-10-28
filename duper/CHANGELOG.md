@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.2 (2025-10-28)
+
+### Added
+
+- Add `serde` feature flag.
+- Add `Serialize`/`Deserialize` implementations to `DuperValue` and related.
+- Add custom `serialize_meta`/`deserialize_meta` methods.
+
+### Changed
+
+- Move `serde_duper` serializer and deserializer interfaces into this crate.
+
 ## 0.2.1 (2025-10-25)
 
 ### Changed
