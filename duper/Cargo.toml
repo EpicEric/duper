@@ -19,12 +19,11 @@ serde = ["dep:serde_core"]
 
 [dependencies]
 owo-colors = { version = "4", optional = true }
-miette = "7"
-pest = { version = "2.8.3", features = ["miette-error"] }
-pest_derive = "2.8.3"
 ryu = "1"
 serde_core = { version = "1", optional = true }
 unicode-general-category = "1"
+chumsky = "0.11.1"
+ariadne = { version = "0.6.0", features = ["auto-color"] }
 
 [dev-dependencies]
 insta = "1.43.2"

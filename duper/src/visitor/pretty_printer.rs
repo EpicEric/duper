@@ -406,7 +406,9 @@ mod pretty_printer_tests {
                             },
                             DuperValue {
                                 identifier: None,
-                                inner: DuperInner::String(DuperString::from(Cow::Borrowed("pest"))),
+                                inner: DuperInner::String(DuperString::from(Cow::Borrowed(
+                                    "chumsky",
+                                ))),
                             },
                         ])),
                     },

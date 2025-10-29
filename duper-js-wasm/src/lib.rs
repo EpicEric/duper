@@ -73,7 +73,7 @@ pub fn parse(
     #[wasm_bindgen(js_name = "jsonSafe")] json_safe: Option<bool>,
 ) -> Result<JsValue, JsError> {
     let value = DuperParser::parse_duper_value(value)
-        .map_err(|err| JsError::new(&format!("{:?}", miette::Error::new(err.into_miette()))))?;
+        .map_err(|err| JsError::new(&DuperParser::prettify_error(value, &err, None)))?;
     value.accept(&mut Visitor {
         json_safe: json_safe.is_some_and(|json_safe| json_safe),
     })
