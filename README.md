@@ -10,7 +10,7 @@
 
 Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
 
-[Check out the official website](https://duper.dev.br) for quick start guides, the specification, and more.
+[Check out the official website](https://duper.dev.br) for examples, quick start guides, and more.
 
 ## Why Duper?
 
@@ -23,7 +23,3 @@ Duper excels in a variety of use cases:
 ## A formal specification for implementers
 
 See [the specification](https://duper.dev.br/spec.html) and the [official Pest grammar](duper/src/grammar.pest) for more details.
-
-## Other repositories
-
-- [duper.dev.br](https://github.com/EpicEric/duper.dev.br): Source code for the official website.

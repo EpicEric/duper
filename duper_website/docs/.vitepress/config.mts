@@ -61,10 +61,13 @@ export default defineConfig({
       level: [2, 3],
     },
 
-    socialLinks: [{ icon: "github", link: "https://github.com/EpicEric/duper" }],
+    socialLinks: [
+      { icon: "github", link: "https://github.com/EpicEric/duper" },
+    ],
 
     editLink: {
-      pattern: "https://github.com/EpicEric/duper.dev.br/edit/main/docs/:path",
+      pattern:
+        "https://github.com/EpicEric/duper/edit/main/duper_website/docs/:path",
     },
 
     footer: {
@@ -74,12 +77,9 @@ export default defineConfig({
   },
 
   vite: {
-    plugins: [
-      wasm(),
-      topLevelAwait(),
-    ],
+    plugins: [wasm(), topLevelAwait()],
     ssr: {
-      noExternal: ['monaco-editor'],
+      noExternal: ["monaco-editor"],
     },
   },
 });

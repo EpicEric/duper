@@ -341,7 +341,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "duper_dev_br"
+name = "duper_website"
 version = "0.0.0"
 dependencies = [
  "duper",

@@ -1,5 +1,5 @@
 [package]
-name = "duper_dev_br"
+name = "duper_website"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
