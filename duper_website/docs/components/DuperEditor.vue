@@ -33,12 +33,13 @@ import jsonGrammar from "@shikijs/langs/json";
 import tomlGrammar from "@shikijs/langs/toml";
 import yamlGrammar from "@shikijs/langs/yaml";
 import { shikiToMonaco } from "@shikijs/monaco";
-import githubDark from "@shikijs/themes/github-dark";
-import githubLight from "@shikijs/themes/github-light";
+import githubDarkTheme from "@shikijs/themes/github-dark";
+import githubLightTheme from "@shikijs/themes/github-light";
 import { createHighlighterCore } from "shiki/core";
 import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 import shikiWasm from "shiki/wasm";
-import { onMounted, onUnmounted, ref } from "vue";
+import { useData } from 'vitepress'
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import duperGrammar from "../../duper.tmLanguage.json" with { type: "json" };
 import { convertDuper } from "../../pkg/duper_website";
 
@@ -48,6 +49,7 @@ const props = defineProps<{
 
 const activeTab = ref<"json" | "yaml" | "toml">("json");
 const error = ref("");
+const { isDark } = useData();
 
 const duperMonaco = ref<HTMLDivElement>();
 const otherMonaco = ref<HTMLDivElement>();
@@ -58,7 +60,7 @@ onMounted(async () => {
   const monaco = await import("monaco-editor/esm/vs/editor/editor.api");
 
   const highlighter = await createHighlighterCore({
-    themes: [githubDark, githubLight],
+    themes: [githubDarkTheme, githubLightTheme],
     langs: [jsonGrammar, yamlGrammar, tomlGrammar, duperGrammar],
     engine: createOnigurumaEngine(shikiWasm),
   });
@@ -74,6 +76,7 @@ onMounted(async () => {
     scrollBeyondLastLine: false,
     automaticLayout: true,
     minimap: { enabled: false },
+    theme: isDark.value ? "github-dark" : "github-light",
   };
 
   duperEditor = monaco.editor.create(duperMonaco.value!, {
@@ -82,6 +85,7 @@ onMounted(async () => {
     language: "duper",
   });
   duperEditor.getModel().onDidChangeContent(handleDuperInput);
+
   otherEditor = monaco.editor.create(otherMonaco.value!, {
     ...editorOptions as any,
     value: props.initial ? convertDuper(props.initial, "json") : "",
@@ -98,8 +102,8 @@ onUnmounted(() => {
 function handleDuperInput() {
   try {
     error.value = "";
-    const text = duperEditor!.getValue();
-    otherEditor.setValue(convertDuper(text, activeTab.value));
+    const text = duperEditor?.getValue() || "";
+    otherEditor?.setValue(convertDuper(text, activeTab.value));
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err);
   }
@@ -107,9 +111,14 @@ function handleDuperInput() {
 
 function switchTab(tab: "json" | "yaml" | "toml") {
   activeTab.value = tab;
-  otherEditor.getModel().setLanguage(tab);
+  otherEditor?.getModel().setLanguage(tab);
   handleDuperInput();
 }
+
+watch(isDark, (newIsDark) => {
+  duperEditor?.updateOptions({ theme: newIsDark ? "github-dark" : "github-light" });
+  otherEditor?.updateOptions({ theme: newIsDark ? "github-dark" : "github-light" });
+})
 </script>
 
 <style scoped>

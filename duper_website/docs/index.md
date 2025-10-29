@@ -17,7 +17,7 @@ hero:
       link: https://github.com/EpicEric/duper
 
 features:
-  - title: Human-friendly
+  - title: Ergonomic
     details: Optional quotes for keys, trailing commas, comments, and clean syntax.
     icon: 🎨
   - title: Rich types
@@ -67,15 +67,16 @@ Duper excels in a variety of use cases:
 
 ## Comparison
 
-| Feature         | JSON | JSON5 | TOML | YAML | Duper |
-| --------------- | ---- | ----- | ---- | ---- | ----- |
-| Comments        | ❌   | ✅    | ✅   | ✅   | ✅    |
-| Trailing commas | ❌   | ✅    | ✅   | ✅   | ✅    |
-| Unquoted keys   | ❌   | ✅    | ✅   | ✅   | ✅    |
-| Unambiguous     | ✅   | ✅    | ⚠️   | ❌   | ✅    |
-| Identifiers     | ❌   | ❌    | ❌   | ❌   | ✅    |
-| Tuples          | ❌   | ❌    | ❌   | ❌   | ✅    |
-| Bytes           | ❌   | ❌    | ❌   | ⚠️   | ✅    |
-| Raw strings     | ❌   | ❌    | ✅   | ⚠️   | ✅    |
-| Simplicity      | ✅   | ✅    | ✅   | ❌   | ✅    |
-| Popularity      | ✅   | ❌    | ✅   | ✅   | ❌    |
+| Feature         | Duper | JSON | JSON5 | TOML | YAML |
+| --------------- | ----- | ---- | ----- | ---- | ---- |
+| Comments        | ✅    | ❌   | ✅    | ✅   | ✅   |
+| Trailing commas | ✅    | ❌   | ✅    | ✅   | ✅   |
+| Unquoted keys   | ✅    | ❌   | ✅    | ✅   | ✅   |
+| Integers        | ✅    | ❌   | ❌    | ✅   | ✅   |
+| Tuples          | ✅    | ❌   | ❌    | ❌   | ❌   |
+| Bytes           | ✅    | ❌   | ❌    | ❌   | ⚠️   |
+| Raw strings     | ✅    | ❌   | ❌    | ✅   | ✅   |
+| Identifiers     | ✅    | ❌   | ❌    | ❌   | ❌   |
+| Unambiguous     | ✅    | ✅   | ✅    | ⚠️   | ❌   |
+| Simple          | ✅    | ✅   | ✅    | ✅   | ❌   |
+| Popular         | ❌    | ✅   | ❌    | ✅   | ✅   |
