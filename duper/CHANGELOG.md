@@ -12,6 +12,10 @@
 
 - Move `serde_duper` serializer and deserializer interfaces into this crate.
 
+### Fixed
+
+- Removed extra line break when pretty printing identifiers.
+
 ## 0.2.1 (2025-10-25)
 
 ### Changed

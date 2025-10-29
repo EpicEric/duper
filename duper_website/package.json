@@ -16,7 +16,7 @@
     "build": "vitepress build docs",
     "preview": "vitepress preview docs",
     "wasm:build": "cargo build --target wasm32-unknown-unknown --release",
-    "wasm:package": "wasm-bindgen ../target/wasm32-unknown-unknown/release/duper_dev_br.wasm --out-dir ./pkg --target bundler"
+    "wasm:package": "wasm-bindgen ../target/wasm32-unknown-unknown/release/duper_website.wasm --out-dir ./pkg --target bundler"
   },
   "dependencies": {
     "@shikijs/langs": "^3.14.0",

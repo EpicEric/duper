@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 (2025-10-28)
+
+### Changed
+
+- Bump `duper` to 0.2.2.
+
 ## 0.2.1 (2025-10-25)
 
 ### Changed
@@ -7,6 +13,8 @@
 - Update logo links.
 
 ## 0.2.0 (2025-10-23)
+
+### Changed
 
 - Bump `duper` to 0.2.0.
 
