@@ -40,7 +40,7 @@ import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 import shikiWasm from "shiki/wasm";
 import { onMounted, onUnmounted, ref } from "vue";
 import duperGrammar from "../../duper.tmLanguage.json" with { type: "json" };
-import { convertDuper } from "../../pkg/duper_dev_br";
+import { convertDuper } from "../../pkg/duper_website";
 
 const props = defineProps<{
   initial?: string;
