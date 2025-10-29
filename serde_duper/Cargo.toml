@@ -29,7 +29,6 @@ uuid = ["dep:uuid"]
 [dependencies]
 # Core dependencies
 duper = { path = "../duper", version = "0.2.2", features = ["serde"] }
-pest = "2.8.3"
 serde_bytes = "0.11"
 serde_core = "1"
 

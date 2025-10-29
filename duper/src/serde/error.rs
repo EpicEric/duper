@@ -1,15 +1,12 @@
 use std::fmt::{self, Display};
 
-use crate::{DuperIdentifierTryFromError, DuperObjectTryFromError};
+use crate::{DuperIdentifierTryFromError, DuperObjectTryFromError, DuperParser};
 
 /// The kinds of errors that can happen during serialization and deserialization.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum ErrorKind {
-    /// Parsing failed at the given [`pest`] rule.
-    ///
-    /// This error implements `.to_miette()`, in order to allow generation of a
-    /// `miette` `Diagnostic`.
-    ParseError(Box<pest::error::Error<crate::DuperRule>>),
+    /// Parsing failed at the given [`chumsky`] spans.
+    ParseError(Vec<chumsky::error::Rich<'static, char>>),
     /// Serialization failed with an unspecified error.
     SerializationError,
     /// Deserialization failed with the given reason.
@@ -29,24 +26,6 @@ impl Display for ErrorKind {
             ErrorKind::InvalidValue => "InvalidValue",
             ErrorKind::Custom => "Custom",
         })
-    }
-}
-
-impl fmt::Debug for ErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ParseError(pest_error) => f
-                .debug_tuple("ParseError")
-                .field(&miette::Error::new(pest_error.clone().into_miette()))
-                .finish(),
-            Self::SerializationError => write!(f, "SerializationError"),
-            Self::DeserializationError(serde_error) => f
-                .debug_tuple("DeserializationError")
-                .field(serde_error)
-                .finish(),
-            Self::InvalidValue => write!(f, "InvalidValue"),
-            Self::Custom => write!(f, "Custom"),
-        }
     }
 }
 
@@ -76,6 +55,14 @@ impl Error {
 
     pub(crate) fn custom(msg: impl Into<String> + Clone) -> Self {
         Self::new(ErrorKind::Custom, msg)
+    }
+
+    pub(crate) fn parse<'a>(src: &'a str, err_vec: Vec<chumsky::error::Rich<'a, char>>) -> Self {
+        let message = DuperParser::prettify_error(src, &err_vec, None);
+        Self::new(
+            ErrorKind::ParseError(err_vec.into_iter().map(|err| err.into_owned()).collect()),
+            message,
+        )
     }
 
     pub(crate) fn serialization(msg: impl Into<String>) -> Self {
@@ -108,13 +95,6 @@ impl From<serde_core::de::value::Error> for Error {
     fn from(value: serde_core::de::value::Error) -> Self {
         let message = value.to_string();
         Self::new(ErrorKind::DeserializationError(value), message)
-    }
-}
-
-impl From<Box<pest::error::Error<crate::DuperRule>>> for Error {
-    fn from(value: Box<pest::error::Error<crate::DuperRule>>) -> Self {
-        let message = value.variant.message().into_owned();
-        Self::new(ErrorKind::ParseError(value), message)
     }
 }
 

@@ -22,4 +22,4 @@ Duper excels in a variety of use cases:
 
 ## A formal specification for implementers
 
-See [the specification](https://duper.dev.br/spec.html) and the [official Pest grammar](duper/src/grammar.pest) for more details.
+See [the specification](https://duper.dev.br/spec.html) and the [official Chumsky parser](duper/src/parser.rs) for more details.

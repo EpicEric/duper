@@ -18,7 +18,8 @@ pub struct Deserializer<'de> {
 impl<'de> Deserializer<'de> {
     /// Creates a Duper deserializer from a `&str`.
     pub fn from_string(input: &'de str) -> Result<Self, Error> {
-        let value = DuperParser::parse_duper_value(input)?;
+        let value =
+            DuperParser::parse_duper_value(input).map_err(|err| Error::parse(input, err))?;
         Ok(Self { value: Some(value) })
     }
 

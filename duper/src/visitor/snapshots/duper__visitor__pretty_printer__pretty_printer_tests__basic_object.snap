@@ -7,6 +7,6 @@ expression: pp
   one: ("Sandhole"),
   two: (
     "rust",
-    "pest",
+    "chumsky",
   ),
 }

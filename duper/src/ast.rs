@@ -6,7 +6,7 @@ use std::{
     fmt::{Debug, Display},
 };
 
-use crate::{DuperParser, DuperRule, visitor::DuperVisitor};
+use crate::{DuperParser, visitor::DuperVisitor};
 
 /// A Duper identifier: `MyIdentifier(...)`
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -274,7 +274,7 @@ impl<'a> DuperValue<'a> {
 }
 
 impl<'a> TryFrom<&'a str> for DuperValue<'a> {
-    type Error = Box<pest::error::Error<DuperRule>>;
+    type Error = Vec<chumsky::error::Rich<'a, char>>;
 
     fn try_from(value: &'a str) -> Result<Self, Self::Error> {
         DuperParser::parse_duper_value(value)
