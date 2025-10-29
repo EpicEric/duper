@@ -1,0 +1,38 @@
+{
+  "name": "duper_website",
+  "private": true,
+  "type": "module",
+  "homepage": "https://duper.dev.br",
+  "bugs": {
+    "url": "https://github.com/EpicEric/duper/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EpicEric/duper"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "vitepress dev docs",
+    "build": "vitepress build docs",
+    "preview": "vitepress preview docs",
+    "wasm:build": "cargo build --target wasm32-unknown-unknown --release",
+    "wasm:package": "wasm-bindgen ../target/wasm32-unknown-unknown/release/duper_dev_br.wasm --out-dir ./pkg --target bundler"
+  },
+  "dependencies": {
+    "@shikijs/langs": "^3.14.0",
+    "@shikijs/monaco": "^3.14.0",
+    "@shikijs/themes": "^3.14.0",
+    "monaco-editor": "^0.54.0",
+    "shiki": "^3.14.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.1",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.9.1",
+    "vite": "^7.1.12",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0",
+    "vitepress": "^2.0.0-alpha.12",
+    "vue": "^3.5.22"
+  }
+}

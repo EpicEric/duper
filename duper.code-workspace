@@ -25,6 +25,10 @@
       "path": "duper-vs-code"
     },
     {
+      "name": "duper_website",
+      "path": "duper_website"
+    },
+    {
       "name": "serde_duper",
       "path": "serde_duper"
     },

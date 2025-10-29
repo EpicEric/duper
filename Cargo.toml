@@ -5,6 +5,7 @@ members = [
   "duper",
   "duper-js-wasm",
   "duper-python",
+  "duper_website",
   "serde_duper",
   "serde_duper_macros",
 ]
