@@ -35,6 +35,6 @@
   ],
   "scripts": {
     "build": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen ../target/wasm32-unknown-unknown/release/duper_js_wasm.wasm --out-dir ./pkg --target bundler",
-    "prepublishOnly": "npm run build"
+    "optimize": "wasm-opt -Os ./pkg/duper_website_bg.wasm -o ./pkg/duper_website_bg.wasm"
   }
 }
