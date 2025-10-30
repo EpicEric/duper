@@ -1,5 +1,5 @@
 ---
-version: "0.2.1"
+version: "0.3.0"
 ---
 
 <p align="center">
@@ -19,6 +19,7 @@ Duper aims to be a human-friendly extension of JSON with quality-of-life improve
 - Whitespace means tab (U+0009), space (U+0020), line feed (U+000A), or carriage return (U+000D).
 - Newline means line feed (U+000A) or carriage return (U+000D).
 - Files must have only one root value. Parsers must always accept objects, arrays, and tuples as the root value, but implementations may allow other values as the root value.
+- JSON values are valid Duper values.
 
 ## Comments
 
@@ -146,7 +147,7 @@ Defining a key multiple times is invalid. Note that plain keys, quoted keys, and
 
 A string may be either quoted or raw.
 
-**Quoted strings** are surrounded by quotation marks `"`. Any Unicode character may be used, except those that must be escaped: quotation mark `"`, backslash `\`, and the control characters other than tab (U+0000 to U+0008, U+000A to U+001F, U+007F).
+**Quoted strings** are surrounded by quotation marks `"`. Any Unicode character may be used, except those that must be escaped: quotation mark `"`, backslash `\`, and the control characters including tabs (U+0000 to U+0009, U+000A to U+001F, U+007F).
 
 ```duper
 {
@@ -158,12 +159,12 @@ For convenience, some popular characters have a compact escape sequence:
 
 ```duper
 [
-  r#" \b     - backspace       (U+0008) "#,
-  r#" \f     - form feed       (U+000C) "#,
-  r#" \n     - line feed       (U+000A) "#,
-  r#" \r     - carriage return (U+000D) "#,
-  r#" \t     - tab             (U+0009) "#,
   r#" \0     - null            (U+0000) "#,
+  r#" \b     - backspace       (U+0008) "#,
+  r#" \t     - tab             (U+0009) "#,
+  r#" \n     - line feed       (U+000A) "#,
+  r#" \f     - form feed       (U+000C) "#,
+  r#" \r     - carriage return (U+000D) "#,
   r#" \"     - quote           (U+0022) "#,
   r#" \\     - backslash       (U+005C) "#,
   r#" \xHH   - arbitrary byte  (U+00HH) "#,

@@ -270,7 +270,7 @@ fn handle_enum_internally_tagged() {
     assert_eq!(map.get("duper"), Some(&true));
     assert_eq!(
         serde_duper::to_string(&Test::Dup(map)).unwrap(),
-        // TODO: Find a way to fix this
+        // TO-DO: Find a way to fix this
         // r#"Test({type: "Dup", duper: true})"#
         r#"{type: "Dup", duper: true}"#
     );

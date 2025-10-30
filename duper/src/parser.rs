@@ -12,6 +12,8 @@ pub struct DuperParser;
 
 impl DuperParser {
     /// Parse a Duper trunk, i.e. only an array, tuple, or object at the top level.
+    ///
+    /// A pretty printed version of the error can be obtained from the [`prettify_error`] method.
     pub fn parse_duper_trunk<'a>(input: &'a str) -> Result<DuperValue<'a>, Vec<Rich<'a, char>>> {
         // duper_trunk().parse(input).into_result()
         let value = duper_trunk().parse(input).into_result()?;
@@ -22,6 +24,8 @@ impl DuperParser {
     }
 
     /// Parse a Duper value at the top level.
+    ///
+    /// A pretty printed version of the error can be obtained from the [`prettify_error`] method.
     pub fn parse_duper_value<'a>(input: &'a str) -> Result<DuperValue<'a>, Vec<Rich<'a, char>>> {
         duper_value().parse(input).into_result()
     }
@@ -105,52 +109,10 @@ pub(crate) fn identifier<'a>()
 
 pub(crate) fn identified_trunk<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
-    let object = object_key()
-        .then_ignore(just(':').padded_by(whitespace_and_comments()))
-        .then(identified_value().clone())
-        .padded_by(whitespace_and_comments())
-        .separated_by(just(',').padded_by(whitespace_and_comments()))
-        .allow_trailing()
-        .collect::<Vec<_>>()
-        .map(|pairs| DuperObject::try_from(pairs))
-        .unwrapped()
-        .delimited_by(just('{'), just('}'));
-
-    let array = identified_value()
-        .clone()
-        .padded_by(whitespace_and_comments())
-        .separated_by(just(',').padded_by(whitespace_and_comments()))
-        .allow_trailing()
-        .collect::<Vec<_>>()
-        .map(|values| DuperArray(values))
-        .delimited_by(
-            just('[').padded_by(whitespace_and_comments()),
-            just(']').padded_by(whitespace_and_comments()),
-        )
-        .or(just(',')
-            .padded_by(whitespace_and_comments())
-            .delimited_by(just('['), just(']'))
-            .map(|_| DuperArray(vec![])));
-
-    let tuple = identified_value()
-        .padded_by(whitespace_and_comments())
-        .separated_by(just(',').padded_by(whitespace_and_comments()))
-        .allow_trailing()
-        .collect::<Vec<_>>()
-        .map(|values| DuperTuple(values))
-        .delimited_by(
-            just('(').padded_by(whitespace_and_comments()),
-            just(')').padded_by(whitespace_and_comments()),
-        )
-        .or(just(',')
-            .padded_by(whitespace_and_comments())
-            .delimited_by(just('('), just(')'))
-            .map(|_| DuperTuple(vec![])));
-
     let inner_trunk = choice((
-        object.map(DuperInner::Object),
-        array.map(DuperInner::Array),
-        tuple.map(DuperInner::Tuple),
+        object(identified_value()).map(DuperInner::Object),
+        array(identified_value()).map(DuperInner::Array),
+        tuple(identified_value()).map(DuperInner::Tuple),
     ))
     .padded_by(whitespace_and_comments());
 
@@ -170,52 +132,10 @@ pub(crate) fn identified_trunk<'a>()
 pub(crate) fn identified_value<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     recursive(move |identified_value| {
-        let object = object_key()
-            .then_ignore(just(':').padded_by(whitespace_and_comments()))
-            .then(identified_value.clone())
-            .padded_by(whitespace_and_comments())
-            .separated_by(just(',').padded_by(whitespace_and_comments()))
-            .allow_trailing()
-            .collect::<Vec<_>>()
-            .map(|pairs| DuperObject::try_from(pairs))
-            .unwrapped()
-            .delimited_by(just('{'), just('}'));
-
-        let array = identified_value
-            .clone()
-            .padded_by(whitespace_and_comments())
-            .separated_by(just(',').padded_by(whitespace_and_comments()))
-            .allow_trailing()
-            .collect::<Vec<_>>()
-            .map(|values| DuperArray(values))
-            .delimited_by(
-                just('[').padded_by(whitespace_and_comments()),
-                just(']').padded_by(whitespace_and_comments()),
-            )
-            .or(just(',')
-                .padded_by(whitespace_and_comments())
-                .delimited_by(just('['), just(']'))
-                .map(|_| DuperArray(vec![])));
-
-        let tuple = identified_value
-            .padded_by(whitespace_and_comments())
-            .separated_by(just(',').padded_by(whitespace_and_comments()))
-            .allow_trailing()
-            .collect::<Vec<_>>()
-            .map(|values| DuperTuple(values))
-            .delimited_by(
-                just('(').padded_by(whitespace_and_comments()),
-                just(')').padded_by(whitespace_and_comments()),
-            )
-            .or(just(',')
-                .padded_by(whitespace_and_comments())
-                .delimited_by(just('('), just(')'))
-                .map(|_| DuperTuple(vec![])));
-
         let inner_value = choice((
-            object.map(DuperInner::Object),
-            array.map(DuperInner::Array),
-            tuple.map(DuperInner::Tuple),
+            object(identified_value.clone()).map(DuperInner::Object),
+            array(identified_value.clone()).map(DuperInner::Array),
+            tuple(identified_value).map(DuperInner::Tuple),
             quoted_string().map(|cow_str| DuperInner::String(DuperString(cow_str))),
             raw_string().map(|str| DuperInner::String(DuperString(Cow::Borrowed(str)))),
             quoted_bytes().map(|cow_bytes| DuperInner::Bytes(DuperBytes(cow_bytes))),
@@ -239,6 +159,35 @@ pub(crate) fn identified_value<'a>()
             }))
             .padded_by(whitespace_and_comments())
     })
+}
+
+pub(crate) fn object<'a>(
+    identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
+) -> impl Parser<'a, &'a str, DuperObject<'a>, extra::Err<Rich<'a, char>>> + Clone {
+    object_key()
+        .then_ignore(
+            just(':')
+                .ignored()
+                .recover_with(via_parser(value_recovery()))
+                .padded_by(whitespace_and_comments()),
+        )
+        .then(identified_value)
+        .padded_by(whitespace_and_comments())
+        .separated_by(
+            just(',')
+                .ignored()
+                .recover_with(via_parser(key_recovery()))
+                .padded_by(whitespace_and_comments()),
+        )
+        .allow_trailing()
+        .collect::<Vec<_>>()
+        .try_map(|object, span| {
+            DuperObject::try_from(object).map_err(|err| Rich::custom(span, err))
+        })
+        .delimited_by(
+            just('{').padded_by(whitespace_and_comments()),
+            just('}').padded_by(whitespace_and_comments()),
+        )
 }
 
 pub(crate) fn object_key<'a>()
@@ -269,25 +218,86 @@ pub(crate) fn object_key<'a>()
         .map(|str| DuperKey(Cow::Borrowed(str)));
 
     quoted_string()
-        .map(|cow_str| DuperKey(cow_str))
+        .map(DuperKey)
         .or(raw_string().map(|str| DuperKey(Cow::Borrowed(str))))
         .or(plain_key)
+}
+
+pub(crate) fn array<'a>(
+    identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
+) -> impl Parser<'a, &'a str, DuperArray<'a>, extra::Err<Rich<'a, char>>> + Clone {
+    identified_value
+        .padded_by(whitespace_and_comments())
+        .separated_by(
+            just(',')
+                .ignored()
+                .recover_with(via_parser(value_recovery()))
+                .padded_by(whitespace_and_comments()),
+        )
+        .allow_trailing()
+        .collect::<Vec<_>>()
+        .map(DuperArray)
+        .delimited_by(
+            just('[').padded_by(whitespace_and_comments()),
+            just(']').padded_by(whitespace_and_comments()),
+        )
+        .or(just(',')
+            .padded_by(whitespace_and_comments())
+            .delimited_by(just('['), just(']'))
+            .map(|_| DuperArray(vec![])))
+}
+
+pub(crate) fn tuple<'a>(
+    identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
+) -> impl Parser<'a, &'a str, DuperTuple<'a>, extra::Err<Rich<'a, char>>> + Clone {
+    identified_value
+        .padded_by(whitespace_and_comments())
+        .separated_by(
+            just(',')
+                .ignored()
+                .recover_with(via_parser(value_recovery()))
+                .padded_by(whitespace_and_comments()),
+        )
+        .allow_trailing()
+        .collect::<Vec<_>>()
+        .map(DuperTuple)
+        .delimited_by(
+            just('(').padded_by(whitespace_and_comments()),
+            just(')').padded_by(whitespace_and_comments()),
+        )
+        .or(just(',')
+            .padded_by(whitespace_and_comments())
+            .delimited_by(just('('), just(')'))
+            .map(|_| DuperTuple(vec![])))
+}
+
+pub(crate) fn key_recovery<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
+{
+    choice((one_of('a'..='z'), one_of('A'..='Z'), one_of("_\""))).ignored()
+}
+
+pub(crate) fn value_recovery<'a>()
+-> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+    choice((
+        one_of('0'..='9'),
+        one_of('A'..='Z'),
+        one_of(r#"_"brntf-+{[("#),
+    ))
+    .ignored()
 }
 
 pub(crate) fn quoted_string<'a>()
 -> impl Parser<'a, &'a str, Cow<'a, str>, extra::Err<Rich<'a, char>>> + Clone {
     quoted_inner()
         .delimited_by(just('"'), just('"'))
-        .map(unescape_str)
-        .unwrapped()
+        .try_map(|str, span| unescape_str(str).map_err(|err| Rich::custom(span, err)))
 }
 
 pub(crate) fn quoted_bytes<'a>()
 -> impl Parser<'a, &'a str, Cow<'a, [u8]>, extra::Err<Rich<'a, char>>> + Clone {
     quoted_inner()
         .delimited_by(just("b\""), just('"'))
-        .map(unescape_bytes)
-        .unwrapped()
+        .try_map(|bytes, span| unescape_bytes(bytes).map_err(|err| Rich::custom(span, err)))
 }
 
 pub(crate) fn quoted_inner<'a>()
@@ -298,7 +308,7 @@ pub(crate) fn quoted_inner<'a>()
             just('x')
                 .then(
                     any()
-                        .filter(|char: &char| char.is_digit(16))
+                        .filter(|char: &char| char.is_ascii_hexdigit())
                         .labelled("a hexadecimal digit")
                         .repeated()
                         .exactly(2),
@@ -307,7 +317,7 @@ pub(crate) fn quoted_inner<'a>()
             just('u')
                 .then(
                     any()
-                        .filter(|char: &char| char.is_digit(16))
+                        .filter(|char: &char| char.is_ascii_hexdigit())
                         .labelled("a hexadecimal digit")
                         .repeated()
                         .exactly(4),
@@ -407,7 +417,14 @@ pub(crate) fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, c
         .then(integer_digits())
         .to_slice();
 
-    let fractional = just('.').then(text::digits(10).separated_by(just('_').to_slice()));
+    let fractional = just('.').then(
+        one_of('0'..='9').labelled("a digit").then(
+            just('_')
+                .or_not()
+                .then(one_of('0'..='9').labelled("a digit"))
+                .repeated(),
+        ),
+    );
 
     let exponent = one_of("eE")
         .then(just('+').or(just('-')).or_not())
@@ -419,8 +436,17 @@ pub(crate) fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, c
         decimal.then(fractional.then(exponent.or_not())).to_slice(),
     ))
     .to_slice()
-    .map(|float: &str| float.replace('_', "").parse())
-    .unwrapped()
+    .try_map(|float: &str, span| {
+        let float: f64 = float
+            .replace('_', "")
+            .parse()
+            .map_err(|err| Rich::custom(span, err))?;
+        if float.is_infinite() {
+            Err(Rich::custom(span, "float cannot be represented in f64"))
+        } else {
+            Ok(float)
+        }
+    })
 }
 
 pub(crate) fn integer<'a>() -> impl Parser<'a, &'a str, i64, extra::Err<Rich<'a, char>>> + Clone {
@@ -429,23 +455,65 @@ pub(crate) fn integer<'a>() -> impl Parser<'a, &'a str, i64, extra::Err<Rich<'a,
         .or_not()
         .then(integer_digits())
         .to_slice()
-        .map(|integer: &str| integer.replace('_', "").parse())
-        .unwrapped();
+        .try_map(|integer: &str, span| {
+            integer
+                .replace('_', "")
+                .parse()
+                .map_err(|err| Rich::custom(span, err))
+        });
 
     let hex_integer = just("0x")
-        .ignore_then(text::digits(16).separated_by(just('_')).to_slice())
-        .map(|integer: &str| i64::from_str_radix(&integer.replace('_', ""), 16))
-        .unwrapped();
+        .ignore_then(
+            any()
+                .filter(|char: &char| char.is_ascii_hexdigit())
+                .labelled("a hexadecimal digit")
+                .then(
+                    just('_')
+                        .or_not()
+                        .then(
+                            any()
+                                .filter(|char: &char| char.is_ascii_hexdigit())
+                                .labelled("a hexadecimal digit"),
+                        )
+                        .repeated(),
+                )
+                .to_slice(),
+        )
+        .try_map(|integer: &str, span| {
+            i64::from_str_radix(&integer.replace('_', ""), 16)
+                .map_err(|err| Rich::custom(span, err))
+        });
 
     let octal_integer = just("0o")
-        .ignore_then(text::digits(8).separated_by(just('_')).to_slice())
-        .map(|integer: &str| i64::from_str_radix(&integer.replace('_', ""), 8))
-        .unwrapped();
+        .ignore_then(
+            any()
+                .filter(|char: &char| char.is_digit(8))
+                .labelled("an octal digit")
+                .then(
+                    just('_')
+                        .or_not()
+                        .then(
+                            any()
+                                .filter(|char: &char| char.is_digit(8))
+                                .labelled("an octal digit"),
+                        )
+                        .repeated(),
+                )
+                .to_slice(),
+        )
+        .try_map(|integer: &str, span| {
+            i64::from_str_radix(&integer.replace('_', ""), 8).map_err(|err| Rich::custom(span, err))
+        });
 
     let binary_integer = just("0b")
-        .ignore_then(text::digits(2).separated_by(just('_')).to_slice())
-        .map(|integer: &str| i64::from_str_radix(&integer.replace('_', ""), 2))
-        .unwrapped();
+        .ignore_then(
+            one_of("01")
+                .then(just('_').or_not().then(one_of("01")).repeated())
+                .to_slice(),
+        )
+        .try_map(|integer: &str, span| {
+            i64::from_str_radix(&integer.replace('_', ""), 2).map_err(|err| Rich::custom(span, err))
+        });
 
     choice((hex_integer, octal_integer, binary_integer, decimal_integer))
 }
@@ -537,7 +605,37 @@ mod duper_parser_tests {
         assert!(matches!(duper.inner, DuperInner::Integer(_)));
 
         let input = r#"
+            0x2001
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Integer(_)));
+
+        let input = r#"
+            0o755
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Integer(_)));
+
+        let input = r#"
+            0b0101_0101
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Integer(_)));
+
+        let input = r#"
             3.14
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Float(_)));
+
+        let input = r#"
+            12e-10
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Float(_)));
+
+        let input = r#"
+            1_2.3_4E5_6
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(duper.inner, DuperInner::Float(_)));
@@ -571,6 +669,352 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(duper.inner, DuperInner::Array(_)));
+    }
+
+    #[test]
+    fn parsing_errors() {
+        // No values
+        let input = "";
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            // Only a line comment
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            /*
+                Only a multiline comment
+            */
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+
+        // Strings and bytes
+        let input = r#"
+            'single quotes'
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            "unclosed
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            unopened"
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            b"unclosed bytes
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            r"unclosed raw
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            br"unclosed raw bytes
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            "invalid UTF-8 \xF0\x90\x80"
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            "unknown escape \e"
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+
+        // Floats and decimal
+        let input = r#"
+            +
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            -
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            01  // No trailing zero
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            _
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            _12
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12_
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            1__2
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12f
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12.
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12e
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12e+
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"12e-"#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12.34.56
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12e34e56
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12.3a4
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            e10
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            .
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            -.5
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            +.5
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            _.123
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12._34
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12e_34
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12e+_34
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            1__2.34
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12.3__4
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12e3__4
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12.34_
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12e34_
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12e
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            12e3.4
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            1e1000  // Too big to represent
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+
+        // Hexadecimal
+        let input = r#"
+            0x
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0xg
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0x_
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0x1_
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0x_1
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0x1.2
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0x-1
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            -0x1
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+
+        // Octal
+        let input = r#"
+            0o
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0o8
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0o_
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0o1_
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0o_1
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0o1.2
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0o-1
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            -0o1
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+
+        // Binary
+        let input = r#"
+            0b
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0b2
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0b_
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0b1_
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0b_1
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0b1.1
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            0b-1
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            -0b1
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+
+        // Objects
+        let input = r#"
+            {,}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {,,}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {1234: "invalid key"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {b"value as key": null}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {"missing" "colon"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {"missing_value"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {
+                name: "duplicated",
+                "n\x61me": "duplicated",
+            }
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+
+        // Arrays and tuples
+        let input = r#"
+            [,,]
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            (,,)
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+
+        // Identifiers and values
+        let input = r#"
+            ÑInvalidIdentifier({})
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            NoParenthesis[]
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            NoValue()
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            null,
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            ,null
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            true,false
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
     }
 
     #[test]

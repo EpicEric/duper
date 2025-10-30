@@ -92,6 +92,7 @@ impl<'a> DuperIdentifier<'a> {
 
     /// Create a valid identifier from the provided [`Cow<'_, str>`], discarding
     /// any invalid characters if necessary.
+    // TO-DO: Use parser
     pub fn try_from_lossy(value: Cow<'a, str>) -> Result<Self, DuperIdentifierTryFromError<'a>> {
         let mut new_value = None;
         let mut chars = value.char_indices();
@@ -159,6 +160,7 @@ impl<'a> TryFrom<Cow<'a, str>> for DuperIdentifier<'a> {
 
     /// Create a valid identifier from the provided [`Cow<'_, str>`], returning
     /// an error if there are invalid characters.
+    // TO-DO: Use parser
     fn try_from(value: Cow<'a, str>) -> Result<Self, Self::Error> {
         let mut chars = value.char_indices();
         match chars.next() {

@@ -110,7 +110,6 @@ impl<'py> WellKnownType<'py> {
             let module: &str = module_attr.extract()?;
             let classname_attr = class.getattr("__name__")?;
             let classname: &str = classname_attr.extract()?;
-            dbg!(module, classname);
             match (module, classname) {
                 // bson
                 ("bson.objectid", "ObjectId") => {
