@@ -123,7 +123,14 @@ pub(crate) fn identified_trunk<'a>()
         .allow_trailing()
         .collect::<Vec<_>>()
         .map(|values| DuperArray(values))
-        .delimited_by(just('['), just(']'));
+        .delimited_by(
+            just('[').padded_by(whitespace_and_comments()),
+            just(']').padded_by(whitespace_and_comments()),
+        )
+        .or(just(',')
+            .padded_by(whitespace_and_comments())
+            .delimited_by(just('['), just(']'))
+            .map(|_| DuperArray(vec![])));
 
     let tuple = identified_value()
         .padded_by(whitespace_and_comments())
@@ -131,7 +138,10 @@ pub(crate) fn identified_trunk<'a>()
         .allow_trailing()
         .collect::<Vec<_>>()
         .map(|values| DuperTuple(values))
-        .delimited_by(just('('), just(')'))
+        .delimited_by(
+            just('(').padded_by(whitespace_and_comments()),
+            just(')').padded_by(whitespace_and_comments()),
+        )
         .or(just(',')
             .padded_by(whitespace_and_comments())
             .delimited_by(just('('), just(')'))
@@ -178,7 +188,14 @@ pub(crate) fn identified_value<'a>()
             .allow_trailing()
             .collect::<Vec<_>>()
             .map(|values| DuperArray(values))
-            .delimited_by(just('['), just(']'));
+            .delimited_by(
+                just('[').padded_by(whitespace_and_comments()),
+                just(']').padded_by(whitespace_and_comments()),
+            )
+            .or(just(',')
+                .padded_by(whitespace_and_comments())
+                .delimited_by(just('['), just(']'))
+                .map(|_| DuperArray(vec![])));
 
         let tuple = identified_value
             .padded_by(whitespace_and_comments())
@@ -186,7 +203,10 @@ pub(crate) fn identified_value<'a>()
             .allow_trailing()
             .collect::<Vec<_>>()
             .map(|values| DuperTuple(values))
-            .delimited_by(just('('), just(')'))
+            .delimited_by(
+                just('(').padded_by(whitespace_and_comments()),
+                just(')').padded_by(whitespace_and_comments()),
+            )
             .or(just(',')
                 .padded_by(whitespace_and_comments())
                 .delimited_by(just('('), just(')'))

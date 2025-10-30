@@ -1,6 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Duper",
+  "scopeName": "source.duper",
   "aliases": ["duper"],
   "patterns": [
     {
@@ -103,7 +104,7 @@
       "patterns": [
         {
           "name": "string.unquoted.duper",
-          "match": "(_[A-Za-z0-9]|[A-Za-z])([_-]?[A-Za-z0-9])*"
+          "match": "(_[A-Za-z0-9]?|[A-Za-z])([_-]?[A-Za-z0-9])*"
         }
       ]
     },
@@ -272,7 +273,7 @@
       "patterns": [
         {
           "name": "constant.character.escape.duper",
-          "match": "\\\\([\"\\/bfnrt0]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4})"
+          "match": "\\\\([\\\\\"\\/bfnrt0]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4})"
         },
         {
           "name": "invalid.illegal.unrecognized-string-escape.duper",
@@ -311,6 +312,5 @@
         }
       ]
     }
-  },
-  "scopeName": "source.duper"
+  }
 }

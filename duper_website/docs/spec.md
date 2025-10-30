@@ -1,5 +1,5 @@
 ---
-version: "0.2.0"
+version: "0.2.1"
 ---
 
 <p align="center">
@@ -18,11 +18,11 @@ Duper aims to be a human-friendly extension of JSON with quality-of-life improve
 - Duper is case-sensitive and must be a valid UTF-8 encoded Unicode document.
 - Whitespace means tab (U+0009), space (U+0020), line feed (U+000A), or carriage return (U+000D).
 - Newline means line feed (U+000A) or carriage return (U+000D).
-- Files must have only one root value. Objects and arrays as the root value must always be accepted by a Duper parser, but implementations may allow other values as the root value.
+- Files must have only one root value. Parsers must always accept objects, arrays, and tuples as the root value, but implementations may allow other values as the root value.
 
 ## Comments
 
-Two forward slashes `//` mark the rest of the line of a comment, except when inside of a string.
+Two forward slashes `//` mark the rest of the line, including the newline, as a comment, except when inside of a string.
 
 ```duper
 // This is a full-line comment
@@ -50,9 +50,9 @@ Comments should be used to communicate between the human readers of a file. Pars
 
 ## Objects
 
-Objects are composed of zero or more key/value pairs.
+Objects are composed of zero or more key-value pairs.
 
-Keys are on the left of the colon `:` and values are on the right. Whitespace is ignored around key names, colon, and values. The key, colon, and value may be on the same line or different ones.
+Keys are on the left of the colon `:`, and values are on the right. Whitespace is ignored around key names, colon, and values. The key, colon, and value may be on the same line or different ones.
 
 ```duper
 {
@@ -72,12 +72,12 @@ There must be a comma `,` between key/value pairs.
 }
 ```
 
-Additionally, there may be a comma after the last key-value pair.
+Additionally, a trailing comma after the last key-value pair is allowed.
 
 ```duper
 {
   key: "value",
-  foo: "bar",  // Comma here is valid
+  foo: "bar",  // Comma here is valid but not required
 }
 ```
 
@@ -97,14 +97,15 @@ Values must have one of the following types:
 
 A key may be either plain, quoted, or raw.
 
-**Plain keys** may only contain ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. They must start with an ASCII letter, or an underscore followed by a letter or digit. Sequences of underscores and hyphens are not allowed, and bare keys must not end with them.
+**Plain keys** may only contain ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. They must start with an ASCII letter or an underscore. Sequences of underscores and hyphens are not allowed, and bare keys must not end with them.
 
 ```duper
 {
   key: "value",
   bare_key: "value",
-  bare-key: "value",
+  b4re-k3y: "value",
   _1234: "value",
+  _: "value",
 }
 ```
 
@@ -170,17 +171,18 @@ For convenience, some popular characters have a compact escape sequence:
 ]
 ```
 
-Any Unicode character may be escaped with `\uHHHH` or a sequence of one or more `\xHH`. The escape codes must be Unicode [scalar values](https://unicode.org/glossary/#unicode_scalar_value).
+Any Unicode character may be escaped with `\uHHHH` or a sequence of one or more `\xHH`. The escape codes must be valid Unicode [scalar values](https://unicode.org/glossary/#unicode_scalar_value).
 
 Keep in mind that Duper strings are sequences of Unicode characters, _not_ byte sequences. Parsers should raise an error if a string contains invalid Unicode. For binary data, use [byte strings](#byte-strings).
 
-**Raw strings** start with the lowercase letter R `r`, immediately followed by zero or more hash symbols `#`, immediately followed by a quotation mark `"`. They end with a quotation mark `"`, followed by the same number of starting hash symbols `#`. They allow newlines and have no escaping whatsoever.
+**Raw strings** start with the lowercase letter R `r`, immediately followed by zero or more hash symbols `#`, immediately followed by a quotation mark `"`. They end with a quotation mark, followed by the same number of starting hash symbols. They allow newlines and have no escaping whatsoever.
 
 ```duper
 {
   winpath: r"C:\Users\nodejs\templates",
   regex: r"<\i\c*\s*>",
   quoted: r#"Hello, "world"!"#,
+  excessive_hashtags: r####"Just to be safe..."####,
   lines: r"
 The first newline is not trimmed.
   All whitespace is
@@ -216,7 +218,7 @@ Byte strings are similar to strings, but represent binary data. Like strings, th
 
 ## Integers
 
-Integers are whole numbers. Positive numbers may be prefixed with a plus sign. Negative numbers are prefixed with a minus sign.
+Integers are whole numbers. Positive numbers may be prefixed with a plus sign `+`. Negative numbers are prefixed with a minus sign `-`.
 
 ```duper
 {
@@ -235,9 +237,9 @@ For large numbers, you may use underscores between digits to enhance readability
   int6: 5_349_221,
   int7: 53_49_221,
   int8: 1_2_3_4_5,
-  // INVALID: 1__2,
-  // INVALID: _12,
-  // INVALID: 12_,
+  INVALID1: 1__2,
+  INVALID2: _12,
+  INVALID3: 12_,
 }
 ```
 
@@ -261,7 +263,7 @@ Non-negative integer values may also be expressed in hexadecimal, octal, or bina
 }
 ```
 
-Implementations are free to support any integer size. It's recommended that at least 64-bit signed integers (i.e. long integers, from −2^63 to 2^63−1) are accepted and handled losslessly. If an integer cannot be represented in the chosen integer size, it's recommended that implementations convert it losslessly into a float or a string, using an appropriate [identifier](#identifiers) for its original type in both cases.
+Implementations are free to support any integer size. It's recommended that at least 64-bit signed integers (i.e. long integers, from −2^63 to 2^63−1) are accepted and handled losslessly. If an integer cannot be represented in the chosen integer size, implementations may convert it losslessly into a float or a string, using an appropriate [identifier](#identifiers) for its original type in both cases.
 
 ## Floats
 
@@ -307,7 +309,7 @@ Similar to integers, you may use underscores to enhance readability. Each unders
 }
 ```
 
-Float values `-0.0` and `+0.0` are valid and should map according to IEEE 754.
+Float values `-0.0` and `+0.0` are valid and should map according to IEEE 754. Infinity and NaN are invalid values.
 
 Implementations are free to support any precision level. It's recommended that at least IEEE 754 64-bit floating point values (i.e. doubles) are supported.
 
@@ -334,7 +336,7 @@ Null is always `null`.
 
 ## Arrays
 
-Arrays are ordered values surrounded by square brackets `[` and `]`. Whitespace is ignored. Elements are separated by commas. Arrays can contain values of the same data types as allowed in key/value pairs. Values of different types may be mixed.
+Arrays are ordered values surrounded by square brackets `[` and `]`. Whitespace is ignored. Elements are separated by commas. Arrays can contain values of the same data types as allowed in key-value pairs. Values of different types may be mixed.
 
 ```duper
 {
@@ -344,7 +346,7 @@ Arrays are ordered values surrounded by square brackets `[` and `]`. Whitespace 
   colors: ["red", "yellow", "green"],
   nested_arrays_of_ints: [[1, 2], [3, 4, 5]],
   nested_mixed_array: [[1, 2], ["a", "b", "c"]],
-  string_array: ["all string", r"are the", r#"same type"#],
+  string_array: ["all strings", r"are the", r#"same type"#],
 
   // Mixed-type arrays are allowed
   numbers: [0.1, 0.2, 0.5, 1, 2, 5],
@@ -366,7 +368,7 @@ Arrays can span multiple lines. A terminating comma (also called a trailing comm
 
 ## Tuples
 
-Tuples are similar to arrays, although parsers may choose to handle them differently. They are surrounded by parenthesis `(` and `)`.
+Tuples are similar to arrays, although parsers may choose to handle them differently. They are surrounded by parenthesis `(` and `)`. Unlike arrays, empty tuples must be represented with joined parenthesis `()`, or with a comma optionally surrounded by whitespace and comments.
 
 ```duper
 {
@@ -398,7 +400,7 @@ The first character must be an ASCII uppercase letter, followed by ASCII letters
   address: IPV4("192.168.1.1"),
   nested: Metadata({
     version: Version("1.2.3"),
-    hash: SHA256(b"\xde\xad\xbe\xef"),
+    hash: SHA_256(b"\xde\xad\xbe\xef"),
   }),
 }
 ```
