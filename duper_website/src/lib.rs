@@ -27,7 +27,7 @@ impl TryFrom<&'_ str> for ConvertTo {
             "json" => Ok(Self::Json),
             "yaml" => Ok(Self::Yaml),
             "toml" => Ok(Self::Toml),
-            _ => Err(JsError::new(&format!("unknown "))),
+            _ => Err(JsError::new(&format!("unknown encoding {value}"))),
         }
     }
 }

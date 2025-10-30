@@ -46,7 +46,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         let model = pydantic.getattr("create_model")?.call(
             (identifier
                 .map(|identifier| identifier.as_ref())
-                .unwrap_or("Unknown"),),
+                .unwrap_or("Object"),),
             Some(&model_fields),
         )?;
         Ok(VisitorValue {

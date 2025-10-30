@@ -3,6 +3,7 @@ use unicode_general_category::{GeneralCategory, get_general_category};
 
 #[derive(Debug)]
 pub(crate) enum UnescapeError {
+    UnescapedTab,
     InvalidByteSequence(String),
     InvalidUnicode(String),
 }
@@ -10,6 +11,7 @@ pub(crate) enum UnescapeError {
 impl Display for UnescapeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            UnescapeError::UnescapedTab => f.write_str("unescaped tab not allowed"),
             UnescapeError::InvalidByteSequence(hex_str) => f.write_fmt(format_args!(
                 "invalid escape sequence for bytes: \\x{hex_str}"
             )),
@@ -31,7 +33,9 @@ pub(crate) fn unescape_str<'a>(input: &'a str) -> Result<Cow<'a, str>, UnescapeE
     let mut chars = input.chars();
 
     while let Some(c) = chars.next() {
-        if c == '\\' {
+        if c == '\t' {
+            return Err(UnescapeError::UnescapedTab);
+        } else if c == '\\' {
             match chars.next() {
                 Some('"') => result.push('"'),
                 Some('\\') => result.push('\\'),
@@ -208,7 +212,9 @@ pub(crate) fn unescape_bytes<'a>(input: &'a str) -> Result<Cow<'a, [u8]>, Unesca
     let mut buf = [0u8; 4];
 
     while let Some(c) = chars.next() {
-        if c == '\\' {
+        if c == '\t' {
+            return Err(UnescapeError::UnescapedTab);
+        } else if c == '\\' {
             match chars.next() {
                 Some('"') => result.push(b'"'),
                 Some('\\') => result.push(b'\\'),

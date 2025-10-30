@@ -86,7 +86,7 @@ pub static VSCODE_DARK_PLUS_THEME: &AnsiTheme = &AnsiTheme {
     ],
 };
 
-// TODO: More ANSI themes
+// TO-DO: More ANSI themes
 
 impl Default for Ansi<'static> {
     fn default() -> Self {
