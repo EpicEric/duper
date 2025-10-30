@@ -43,8 +43,27 @@ pub fn convert_duper(value: &str, to: Option<ConvertDuperTo>) -> Result<String, 
             ConvertTo::try_from(target.as_str())
         })
         .unwrap_or(Ok(ConvertTo::Json))?;
-    let duper = DuperParser::parse_duper_value(value)
-        .map_err(|err| JsError::new(&format!("{}", err.first().unwrap().to_string())))?;
+
+    let duper = DuperParser::parse_duper_value(value).map_err(|err| {
+        let err = err.first().unwrap();
+        let mut line = 1;
+        let mut column = 1;
+        for char in value.chars().take(err.span().start) {
+            if char == '\n' || char == '\r' {
+                line += 1;
+                column = 1;
+            } else {
+                column += 1;
+            }
+        }
+        JsError::new(&format!(
+            "Line {} column {} | {}",
+            line,
+            column,
+            err.reason()
+        ))
+    })?;
+
     match target {
         ConvertTo::Json => {
             serde_json::to_string_pretty(&duper).map_err(|err| JsError::new(&err.to_string()))
