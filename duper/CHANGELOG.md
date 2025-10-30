@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Swap `pest` parser for `chumsky`.
+
 ## 0.2.2 (2025-10-28)
 
 ### Added

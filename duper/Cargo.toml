@@ -22,8 +22,8 @@ owo-colors = { version = "4", optional = true }
 ryu = "1"
 serde_core = { version = "1", optional = true }
 unicode-general-category = "1"
-chumsky = "0.11.1"
-ariadne = { version = "0.6.0", features = ["auto-color"] }
+chumsky = "0.11"
+ariadne = { version = "0.6", features = ["auto-color"] }
 
 [dev-dependencies]
 insta = "1.43.2"
