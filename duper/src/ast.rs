@@ -6,7 +6,12 @@ use std::{
     fmt::{Debug, Display},
 };
 
-use crate::{DuperParser, visitor::DuperVisitor};
+use chumsky::Parser;
+
+use crate::{
+    parser::{self, DuperParser},
+    visitor::DuperVisitor,
+};
 
 /// A Duper identifier: `MyIdentifier(...)`
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -92,49 +97,22 @@ impl<'a> DuperIdentifier<'a> {
 
     /// Create a valid identifier from the provided [`Cow<'_, str>`], discarding
     /// any invalid characters if necessary.
-    // TO-DO: Use parser
     pub fn try_from_lossy(value: Cow<'a, str>) -> Result<Self, DuperIdentifierTryFromError<'a>> {
-        let mut new_value = None;
-        let mut chars = value.char_indices();
-        match chars.next() {
-            None => return Err(DuperIdentifierTryFromError::EmptyIdentifier),
-            Some((_, c)) if c.is_alphabetic() && !c.is_uppercase() => {
-                new_value = Some(c.to_uppercase().to_string());
-            }
-            Some((_, c)) if c.is_alphabetic() && c.is_uppercase() => (),
-            _ => return Err(DuperIdentifierTryFromError::InvalidChar(value, 0)),
+        if value.is_empty() {
+            return Err(DuperIdentifierTryFromError::EmptyIdentifier);
         }
-        let mut last_char_was_separator = false;
-        for (pos, char) in chars {
-            match char {
-                '-' | '_' => {
-                    match new_value.as_mut() {
-                        Some(new_value) if !last_char_was_separator => {
-                            new_value.push(char);
-                        }
-                        _ => (),
-                    }
-                    last_char_was_separator = true;
-                }
-                char if char.is_alphanumeric() => {
-                    if let Some(new_value) = new_value.as_mut() {
-                        new_value.push(char);
-                    }
-                    last_char_was_separator = false;
-                }
-                _ => match new_value.as_mut() {
-                    Some(_) => (),
-                    None => new_value = Some(value.split_at(pos).0.to_owned()),
-                },
-            }
+        let invalid_char_pos = match parser::identifier_lossy()
+            .parse(value.as_ref())
+            .into_result()
+        {
+            Err(errs) => Some(errs[0].span().start),
+            Ok(None) => None,
+            Ok(Some(identifier)) => return Ok(DuperIdentifier(Cow::Owned(identifier))),
+        };
+        match invalid_char_pos {
+            Some(pos) => Err(DuperIdentifierTryFromError::InvalidChar(value, pos)),
+            None => Ok(Self(value)),
         }
-        Ok(Self(match new_value {
-            Some(new_value) if new_value.is_empty() => {
-                return Err(DuperIdentifierTryFromError::EmptyIdentifier);
-            }
-            Some(new_value) => Cow::Owned(new_value),
-            None => value,
-        }))
     }
 
     /// Create a clone of this DuperIdentifier with a static lifetime.
@@ -160,33 +138,19 @@ impl<'a> TryFrom<Cow<'a, str>> for DuperIdentifier<'a> {
 
     /// Create a valid identifier from the provided [`Cow<'_, str>`], returning
     /// an error if there are invalid characters.
-    // TO-DO: Use parser
     fn try_from(value: Cow<'a, str>) -> Result<Self, Self::Error> {
-        let mut chars = value.char_indices();
-        match chars.next() {
-            None => return Err(DuperIdentifierTryFromError::EmptyIdentifier),
-            Some((_, c)) if !c.is_uppercase() => {
-                return Err(DuperIdentifierTryFromError::InvalidChar(value, 0));
-            }
-            _ => (),
+        if value.is_empty() {
+            return Err(DuperIdentifierTryFromError::EmptyIdentifier);
         }
-        let mut last_char_was_separator = false;
-        for (pos, char) in chars {
-            match char {
-                '-' | '_' => {
-                    if last_char_was_separator {
-                        return Err(DuperIdentifierTryFromError::InvalidChar(value, pos));
-                    } else {
-                        last_char_was_separator = true;
-                    }
-                }
-                char if char.is_alphanumeric() => {
-                    last_char_was_separator = false;
-                }
-                _ => return Err(DuperIdentifierTryFromError::InvalidChar(value, pos)),
-            }
+        let invalid_char_pos = parser::identifier()
+            .parse(value.as_ref())
+            .into_result()
+            .err()
+            .map(|errs| errs[0].span().start);
+        match invalid_char_pos {
+            Some(pos) => Err(DuperIdentifierTryFromError::InvalidChar(value, pos)),
+            None => Ok(Self(value)),
         }
-        Ok(Self(value))
     }
 }
 
@@ -488,3 +452,6 @@ impl<'a> AsRef<[u8]> for DuperBytes<'a> {
         &self.0
     }
 }
+
+#[cfg(test)]
+mod ast_tests {}

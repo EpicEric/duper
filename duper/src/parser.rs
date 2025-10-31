@@ -13,7 +13,7 @@ pub struct DuperParser;
 impl DuperParser {
     /// Parse a Duper trunk, i.e. only an array, tuple, or object at the top level.
     ///
-    /// A pretty printed version of the error can be obtained from the [`prettify_error`] method.
+    /// A pretty-printed version of the error can be obtained from the `prettify_error` method.
     pub fn parse_duper_trunk<'a>(input: &'a str) -> Result<DuperValue<'a>, Vec<Rich<'a, char>>> {
         // duper_trunk().parse(input).into_result()
         let value = duper_trunk().parse(input).into_result()?;
@@ -25,7 +25,7 @@ impl DuperParser {
 
     /// Parse a Duper value at the top level.
     ///
-    /// A pretty printed version of the error can be obtained from the [`prettify_error`] method.
+    /// A pretty-printed version of the error can be obtained from the `prettify_error` method.
     pub fn parse_duper_value<'a>(input: &'a str) -> Result<DuperValue<'a>, Vec<Rich<'a, char>>> {
         duper_value().parse(input).into_result()
     }
@@ -88,13 +88,41 @@ pub(crate) fn whitespace_and_comments<'a>()
     .ignored()
 }
 
+pub(crate) fn identifier_lossy<'a>()
+-> impl Parser<'a, &'a str, Option<String>, extra::Err<Rich<'a, char>>> + Clone {
+    let subsequent_characters = one_of("-_")
+        .then_ignore(one_of("-_").repeated())
+        .or_not()
+        .then(
+            any()
+                .filter(|c: &char| c.is_ascii_alphanumeric())
+                .labelled("ASCII alphanumeric"),
+        )
+        .repeated();
+
+    identifier().to(None).or(one_of('A'..='Z')
+        .or(one_of('a'..='z'))
+        .labelled("ASCII letter")
+        .map(|c: char| c.to_ascii_uppercase().to_string())
+        .foldl(
+            subsequent_characters,
+            |mut acc: String, (underscore_or_hyphen, ascii_alphanumeric)| {
+                if let Some(underscore_or_hyphen) = underscore_or_hyphen {
+                    acc.push(underscore_or_hyphen);
+                }
+                acc.push(ascii_alphanumeric);
+                acc
+            },
+        )
+        .map(Some))
+}
+
 pub(crate) fn identifier<'a>()
 -> impl Parser<'a, &'a str, DuperIdentifier<'a>, extra::Err<Rich<'a, char>>> + Clone {
     one_of('A'..='Z')
         .labelled("ASCII uppercase letter")
         .then(
-            just('-')
-                .or(just('_'))
+            one_of("-_")
                 .or_not()
                 .then(
                     any()
@@ -204,8 +232,7 @@ pub(crate) fn object_key<'a>()
             )
             .to_slice())
         .then(
-            just('-')
-                .or(just('_'))
+            one_of("-_")
                 .or_not()
                 .then(
                     any()
@@ -337,8 +364,7 @@ pub(crate) fn raw_string<'a>()
 -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
     let hashtags = just('#')
         .repeated()
-        .to_slice()
-        .map(|slice: &str| slice.len())
+        .count()
         .delimited_by(just('r'), just('"'));
 
     hashtags.ignore_with_ctx(
@@ -411,11 +437,7 @@ pub(crate) fn integer_digits<'a>()
 }
 
 pub(crate) fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, char>>> + Clone {
-    let decimal = just('+')
-        .or(just('-'))
-        .or_not()
-        .then(integer_digits())
-        .to_slice();
+    let decimal = one_of("+-").or_not().then(integer_digits()).to_slice();
 
     let fractional = just('.').then(
         one_of('0'..='9').labelled("a digit").then(
@@ -427,7 +449,7 @@ pub(crate) fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, c
     );
 
     let exponent = one_of("eE")
-        .then(just('+').or(just('-')).or_not())
+        .then(one_of("+-").or_not())
         .then(integer_digits())
         .to_slice();
 
@@ -450,8 +472,7 @@ pub(crate) fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, c
 }
 
 pub(crate) fn integer<'a>() -> impl Parser<'a, &'a str, i64, extra::Err<Rich<'a, char>>> + Clone {
-    let decimal_integer = just('+')
-        .or(just('-'))
+    let decimal_integer = one_of("+-")
         .or_not()
         .then(integer_digits())
         .to_slice()
