@@ -1,7 +1,6 @@
 name: Build @duper-js/wasm
 
 on:
-  workflow_dispatch:
   push:
     branches: ["main"]
   pull_request:
@@ -51,8 +50,3 @@ jobs:
           npm install
           npm run build
           ../binaryen/bin/wasm-opt -Os ./pkg/duper_js_wasm_bg.wasm -o ./pkg/duper_js_wasm_bg.wasm
-      - name: Publish to NPM
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        working-directory: ./duper-js-wasm
-        run: |
-          npm publish --access public
