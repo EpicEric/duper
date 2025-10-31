@@ -16,6 +16,6 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-duper = { path = "../duper", version = "0.2.2" }
+duper = { path = "../duper" }
 js-sys = "0.3.81"
 wasm-bindgen = "0.2.104"

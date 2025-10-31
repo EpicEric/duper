@@ -15,8 +15,8 @@ use axum::{
     http::{HeaderValue, StatusCode, header::CONTENT_TYPE},
     response::{IntoResponse, Response},
 };
+use duper::serde::error::ErrorKind;
 use serde_core::{Serialize, de::DeserializeOwned};
-use serde_duper::ErrorKind;
 
 pub static DUPER_CONTENT_TYPE: &str = "application/duper";
 pub static DUPER_ALT_CONTENT_TYPE: &str = "application/x-duper";
@@ -143,7 +143,7 @@ where
     /// extracting a `Request` into `String`, then optionally constructing a
     /// `Duper<T>`.
     pub fn from_string(string: &str) -> Result<Self, DuperRejection> {
-        match serde_duper::from_string(string) {
+        match duper::serde::de::from_string(string) {
             Ok(value) => Ok(Self(value)),
             Err(err) => match err.inner.kind {
                 ErrorKind::ParseError(_) => Err(DuperRejection::DuperSyntaxError),
@@ -209,7 +209,7 @@ where
     T: Serialize,
 {
     fn into_response(self) -> Response {
-        serde_duper::to_string(&self.0)
+        duper::serde::ser::to_string(&self.0)
             .map(|string| {
                 (
                     [(CONTENT_TYPE, HeaderValue::from_static(DUPER_CONTENT_TYPE))],

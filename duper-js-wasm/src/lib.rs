@@ -5,11 +5,8 @@ use wasm_bindgen::prelude::*;
 use crate::{de::Visitor, ser::serialize_jsvalue};
 
 mod de;
+mod repr;
 mod ser;
-
-pub(crate) static SYMBOL_DUPER_VALUE: &str = "$duper.value";
-pub(crate) static SYMBOL_DUPER_IDENTIFIER: &str = "$duper.identifier";
-pub(crate) static SYMBOL_DUPER_TYPE: &str = "$duper.type";
 
 struct StringifyOptions {
     indent: Option<String>,
@@ -18,6 +15,11 @@ struct StringifyOptions {
 
 #[wasm_bindgen(typescript_custom_section)]
 const I_STRINGIFY_OPTIONS: &'static str = r#"
+/**
+ * @property {string | number} [indent] - Whitespace string to use as indentation, or the number of
+ * spaces to use as indentation.
+ * @property {boolean} [stripIdentifiers] - Whether Duper identifiers should be removed from the stringified value.
+ */
 interface IStringifyOptions {
     indent?: string | number;
     stripIdentifiers?: boolean;
@@ -29,6 +31,7 @@ extern "C" {
     pub type IStringifyOptions;
 }
 
+/// Stringifies the provided value into Duper, with the specified options.
 #[wasm_bindgen]
 pub fn stringify(value: &JsValue, options: Option<IStringifyOptions>) -> Result<String, JsError> {
     let value: DuperValue = serialize_jsvalue(value)
@@ -67,6 +70,7 @@ pub fn stringify(value: &JsValue, options: Option<IStringifyOptions>) -> Result<
     }
 }
 
+/// Parses the provided Duper string into a DuperValue, or a JSON-safe alternative if specified.
 #[wasm_bindgen]
 pub fn parse(
     value: &str,
@@ -74,7 +78,12 @@ pub fn parse(
 ) -> Result<JsValue, JsError> {
     let value = DuperParser::parse_duper_value(value)
         .map_err(|err| JsError::new(&DuperParser::prettify_error(value, &err, None)))?;
-    value.accept(&mut Visitor {
-        json_safe: json_safe.is_some_and(|json_safe| json_safe),
-    })
+    let deserialized = value.accept(&mut Visitor)?;
+    if json_safe.is_some_and(|json_safe| json_safe) {
+        deserialized
+            .to_json()
+            .map_err(|err| JsError::new(&format!("failed to make JSON-safe: {err:?}")))
+    } else {
+        Ok(deserialized.into())
+    }
 }
