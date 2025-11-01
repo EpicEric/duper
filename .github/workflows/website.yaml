@@ -15,7 +15,7 @@ concurrency:
 
 env:
   RUST_VERSION: "1.91.0"
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
   BINARYEN_VERSION: "124"
 
 jobs:
