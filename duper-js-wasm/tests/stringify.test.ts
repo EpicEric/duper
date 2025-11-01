@@ -12,4 +12,10 @@ describe("stringify", () => {
     const duper_string = stringify(data);
     expect(duper_string).toMatchSnapshot();
   });
+
+  it("stringifies nested structures", () => {
+    const data = ["foo", { bar: ["baz", { qux: null }] }];
+    const duper_string = stringify(data);
+    expect(duper_string).toMatchSnapshot();
+  });
 });

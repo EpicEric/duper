@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
-use duper::{DuperIdentifier, DuperValue};
+use duper::{DuperIdentifier, DuperValue, Serializer};
 use js_sys::{Array, BigInt, Boolean, Function, Object, Reflect, Uint8Array};
-use wasm_bindgen::{convert::TryFromJsValue, prelude::*};
+use wasm_bindgen::{convert::RefFromWasmAbi, prelude::*};
 
 use crate::ser::{
     serialize_array, serialize_boolean, serialize_bytes, serialize_float, serialize_integer,
@@ -52,19 +52,16 @@ impl JsDuperValueInner {
                             )));
                         }
                         let value = tup.get(1);
-                        match JsDuperValue::try_from_js_value(value) {
-                            Ok(value) => {
-                                Reflect::set(&new_object, &key, &value.into()).map_err(|err| {
-                                    JsError::new(&format!(
-                                        "failed to set key {key:?} of Object: {err:?}"
-                                    ))
-                                })?
-                            }
-                            Err(value) => {
-                                return Err(JsError::new(&format!(
-                                    "invalid value with key {key:?} for Object: expected DuperValue, found {value:?}"
-                                )));
-                            }
+                        if JsDuperValue::is_duper_value(&value) {
+                            Reflect::set(&new_object, &key, &value).map_err(|err| {
+                                JsError::new(&format!(
+                                    "failed to set key {key:?} of Object: {err:?}"
+                                ))
+                            })?;
+                        } else {
+                            return Err(JsError::new(&format!(
+                                "invalid value with key {key:?} for Object: expected DuperValue, found {value:?}"
+                            )));
                         };
                     }
                     Ok(JsDuperValueInner::Object(new_object.into()))
@@ -75,13 +72,12 @@ impl JsDuperValueInner {
                     })?;
                     let new_array = Array::new_with_length(array.length());
                     for (index, element) in array.into_iter().enumerate() {
-                        match JsDuperValue::try_from_js_value(element) {
-                            Ok(value) => new_array.set(index as u32, value.into()),
-                            Err(element) => {
-                                return Err(JsError::new(&format!(
-                                    "invalid element #{index} for Array: expected DuperValue, found {element:?}"
-                                )));
-                            }
+                        if JsDuperValue::is_duper_value(&element) {
+                            new_array.set(index as u32, element);
+                        } else {
+                            return Err(JsError::new(&format!(
+                                "invalid element #{index} for Array: expected DuperValue, found {element:?}"
+                            )));
                         }
                     }
                     Ok(JsDuperValueInner::Array(new_array.into()))
@@ -92,13 +88,12 @@ impl JsDuperValueInner {
                     })?;
                     let new_array = Array::new_with_length(array.length());
                     for (index, element) in array.into_iter().enumerate() {
-                        match JsDuperValue::try_from_js_value(element) {
-                            Ok(value) => new_array.set(index as u32, value.into()),
-                            Err(element) => {
-                                return Err(JsError::new(&format!(
-                                    "invalid element #{index} for Array: expected DuperValue, found {element:?}"
-                                )));
-                            }
+                        if JsDuperValue::is_duper_value(&element) {
+                            new_array.set(index as u32, element);
+                        } else {
+                            return Err(JsError::new(&format!(
+                                "invalid element #{index} for Array: expected DuperValue, found {element:?}"
+                            )));
                         }
                     }
                     Ok(JsDuperValueInner::Tuple(new_array.into()))
@@ -120,9 +115,16 @@ impl JsDuperValueInner {
                             bytes.set(&element, index as u32);
                         }
                         Ok(JsDuperValueInner::Bytes(bytes.into()))
+                    } else if inner.is_string() {
+                        let vec = inner.as_string().expect("checked conversion").into_bytes();
+                        let bytes = Uint8Array::new_with_length(vec.len() as u32);
+                        for (index, element) in vec.into_iter().enumerate() {
+                            bytes.set(&element.into(), index as u32);
+                        }
+                        Ok(JsDuperValueInner::Bytes(bytes.into()))
                     } else {
                         Err(JsError::new(&format!(
-                            "expected Uint8Array or Array, found {inner:?}"
+                            "expected Uint8Array, Array, or string, found {inner:?}"
                         )))
                     }
                 }
@@ -149,7 +151,7 @@ impl JsDuperValueInner {
                 }
                 "float" => {
                     if inner.as_f64().is_some() {
-                        Ok(JsDuperValueInner::Integer(inner))
+                        Ok(JsDuperValueInner::Float(inner))
                     } else {
                         Err(JsError::new(&format!("expected number, found {inner:?}")))
                     }
@@ -185,9 +187,47 @@ impl JsDuperValueInner {
         } else if inner.as_string().is_some() {
             Ok(JsDuperValueInner::String(inner))
         } else if Array::is_array(&inner) {
-            Ok(JsDuperValueInner::Array(inner))
+            let array = inner
+                .dyn_into::<Array>()
+                .map_err(|inner| JsError::new(&format!("expected Array, found {inner:?}")))?;
+            let new_array = Array::new_with_length(array.length());
+            for (index, element) in array.into_iter().enumerate() {
+                if JsDuperValue::is_duper_value(&element) {
+                    new_array.set(index as u32, element);
+                } else {
+                    return Err(JsError::new(&format!(
+                        "invalid element #{index} for Array: expected DuperValue, found {element:?}"
+                    )));
+                }
+            }
+            Ok(JsDuperValueInner::Array(new_array.into()))
         } else if Object::instanceof(&inner) && !inner.is_function() && !inner.is_symbol() {
-            Ok(JsDuperValueInner::Object(inner))
+            let entries = Object::entries(
+                &inner
+                    .dyn_into()
+                    .map_err(|inner| JsError::new(&format!("expected Object, found {inner:?}")))?,
+            );
+            let new_object = Object::new();
+            for tup in entries.into_iter() {
+                let tup: Array = tup.dyn_into().expect("expected key-value tuple");
+                let key = tup.get(0);
+                if !key.is_string() {
+                    return Err(JsError::new(&format!(
+                        "invalid key for Object: expected string, found {key:?}"
+                    )));
+                }
+                let value = tup.get(1);
+                if JsDuperValue::is_duper_value(&value) {
+                    Reflect::set(&new_object, &key, &value).map_err(|err| {
+                        JsError::new(&format!("failed to set key {key:?} of Object: {err:?}"))
+                    })?;
+                } else {
+                    return Err(JsError::new(&format!(
+                        "invalid value with key {key:?} for Object: expected DuperValue, found {value:?}"
+                    )));
+                };
+            }
+            Ok(JsDuperValueInner::Object(new_object.into()))
         } else {
             Err(JsError::new(&format!("unknown inner {inner:?}")))
         }
@@ -230,6 +270,29 @@ impl JsDuperValue {
             JsDuperValueInner::Boolean(inner) => serialize_boolean(inner, identifier),
             JsDuperValueInner::Null => serialize_null(identifier),
         }
+    }
+
+    pub(crate) fn is_duper_value(js: &JsValue) -> bool {
+        if !js.is_object() {
+            false
+        } else {
+            let ctor_name = Object::get_prototype_of(js).constructor().name();
+            ctor_name == "DuperValue"
+        }
+    }
+
+    pub(crate) fn from_jsval(js: &JsValue) -> Result<<Self as RefFromWasmAbi>::Anchor, JsValue> {
+        if !Self::is_duper_value(js) {
+            return Err(js.clone());
+        }
+
+        // Silly pointer hackery until https://github.com/wasm-bindgen/wasm-bindgen/issues/2231 is fixed
+        let ptr = Reflect::get(js, &JsValue::from_str("__wbg_ptr"))?;
+        if ptr.is_undefined() {
+            return Err(js.clone());
+        }
+        let ptr_u32 = ptr.as_f64().ok_or_else(|| js.clone())? as u32;
+        Ok(unsafe { <Self as wasm_bindgen::convert::RefFromWasmAbi>::ref_from_abi(ptr_u32) })
     }
 }
 
@@ -370,5 +433,10 @@ impl JsDuperValue {
                 }
             }
         }
+    }
+
+    #[wasm_bindgen(js_name = toString)]
+    pub fn to_string(&self) -> Result<String, JsValue> {
+        Ok(Serializer::new(false).serialize(self.serialize()?))
     }
 }

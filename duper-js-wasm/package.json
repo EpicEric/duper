@@ -37,7 +37,8 @@
     "build": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen ../target/wasm32-unknown-unknown/release/duper_js_wasm.wasm --out-dir ./pkg --target bundler",
     "optimize": "wasm-opt -Os ./pkg/duper_js_wasm_bg.wasm -o ./pkg/duper_js_wasm_bg.wasm",
     "test": "vitest run",
-    "test:watch": "vitest watch"
+    "test:watch": "vitest watch",
+    "prepublishOnly": "npm run build && npm run optimize"
   },
   "devDependencies": {
     "vite": "^7.1.12",

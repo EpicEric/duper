@@ -5,12 +5,12 @@ use duper::{
     DuperTuple, DuperValue,
 };
 use js_sys::{Array, BigInt, Boolean, Object, Uint8Array, try_iter};
-use wasm_bindgen::{convert::TryFromJsValue, prelude::*};
+use wasm_bindgen::prelude::*;
 
 use crate::repr::JsDuperValue;
 
 pub(crate) fn serialize_jsvalue(value: &JsValue) -> Result<DuperValue<'static>, JsValue> {
-    if let Some(value) = JsDuperValue::try_from_js_value_ref(value) {
+    if let Ok(value) = JsDuperValue::from_jsval(value) {
         value.serialize()
     }
     // Not a Duper deserialized value; detect which type it actually is

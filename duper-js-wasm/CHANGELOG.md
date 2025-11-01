@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Improved conversion of JS values to Duper values.
+
+### Fixed
+
+- Values getting destroyed when calling `stringify`.
+- Floats being cast to integers.
+
 ## 0.2.0 (2025-10-30)
 
 ### Changed
