@@ -32,7 +32,7 @@ features:
 ---
 
 <script setup>
-import DuperEditor from './components/DuperEditor.vue';
+import DuperEditor from "./components/DuperEditor.vue";
 
 const initial = `UserProfile({
   id: Uuid("f111c275-b4ce-4392-8e5b-19067ce39b53"),
@@ -67,16 +67,22 @@ Duper excels in a variety of use cases:
 
 ## Comparison
 
-| Feature         | Duper | JSON | JSON5 | TOML | YAML |
-| --------------- | ----- | ---- | ----- | ---- | ---- |
-| Comments        | ✅    | ❌   | ✅    | ✅   | ✅   |
-| Trailing commas | ✅    | ❌   | ✅    | ✅   | ✅   |
-| Unquoted keys   | ✅    | ❌   | ✅    | ✅   | ✅   |
-| Integers        | ✅    | ❌   | ❌    | ✅   | ✅   |
-| Tuples          | ✅    | ❌   | ❌    | ❌   | ❌   |
-| Bytes           | ✅    | ❌   | ❌    | ❌   | ⚠️   |
-| Raw strings     | ✅    | ❌   | ❌    | ✅   | ✅   |
-| Identifiers     | ✅    | ❌   | ❌    | ❌   | ❌   |
-| Unambiguous     | ✅    | ✅   | ✅    | ⚠️   | ❌   |
-| Simple          | ✅    | ✅   | ✅    | ✅   | ❌   |
-| Popular         | ❌    | ✅   | ❌    | ✅   | ✅   |
+| Feature         | Duper | JSON | JSON5 | YAML              | TOML              |
+| --------------- | ----- | ---- | ----- | ----------------- | ----------------- |
+| Comments        | ✅    | ❌   | ✅    | ✅                | ✅                |
+| Trailing commas | ✅    | ❌   | ✅    | ✅                | ✅                |
+| Unquoted keys   | ✅    | ❌   | ✅    | ✅                | ✅                |
+| Integers        | ✅    | ❌   | ❌    | ✅                | ✅                |
+| Tuples          | ✅    | ❌   | ❌    | ❌                | ❌                |
+| Bytes           | ✅    | ❌   | ❌    | ✅<sup>\[1]</sup> | ❌                |
+| Date and time   | ❌    | ❌   | ❌    | ✅                | ✅                |
+| Raw strings     | ✅    | ❌   | ❌    | ✅                | ✅                |
+| Identifiers     | ✅    | ❌   | ❌    | ❌                | ❌                |
+| Unambiguous     | ✅    | ✅   | ✅    | ❌<sup>\[2]</sup> | ⚠️<sup>\[3]</sup> |
+| Simple          | ✅    | ✅   | ✅    | ❌                | ✅                |
+| JSON-compatible | ✅    | ✅   | ✅    | ✅                | ❌                |
+| Popular         | ❌    | ✅   | ⚠️    | ✅                | ✅                |
+
+- <sup>[1]</sup> Using the [`!!binary` scalar type](https://yaml.org/type/binary.html) and base64 text; limited support in implementations.
+- <sup>[2]</sup> Unquoted strings can get confused with other scalars and [vice-versa](https://www.bram.us/2022/01/11/yaml-the-norway-problem/).
+- <sup>[3]</sup> Tabs in [strings](https://toml.io/en/v1.0.0#string).

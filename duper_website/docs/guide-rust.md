@@ -72,7 +72,7 @@ struct User {
 let user: User = from_string(duper_data)?;
 ```
 
-## Using identifiers
+## Working with identifiers
 
 `serde_duper` has special support for identifiers with Serde. Add or modify type hints to your serialized models:
 
@@ -123,3 +123,7 @@ struct ImageData {
 ```
 
 Also, tuples are first-class values in `serde_duper`.
+
+---
+
+See the [docs](https://docs.rs/serde_duper/latest/serde_duper/) for more information.

@@ -83,6 +83,10 @@ export default async () => {
         message: `Released under the <a href="https://github.com/EpicEric/duper/blob/main/LICENSE">MIT License</a>.`,
         copyright: "Copyright © 2025 Eric Rodrigues Pires",
       },
+
+      search: {
+        provider: "local",
+      },
     },
 
     vite: {

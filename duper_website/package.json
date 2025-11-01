@@ -20,6 +20,7 @@
     "wasm:optimize": "wasm-opt -Os ./pkg/duper_website_bg.wasm -o ./pkg/duper_website_bg.wasm"
   },
   "dependencies": {
+    "@floating-ui/vue": "^1.1.9",
     "@shikijs/langs": "^3.14.0",
     "@shikijs/monaco": "^3.14.0",
     "@shikijs/themes": "^3.14.0",

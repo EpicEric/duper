@@ -156,7 +156,7 @@ Defining a key multiple times is invalid. Note that plain keys, quoted keys, and
 
 A string may be either quoted or raw.
 
-**Quoted strings** are surrounded by quotation marks `"`. Any Unicode character may be used, except those that must be escaped: quotation mark `"`, backslash `\`, and the control characters including tabs (U+0000 to U+0009, U+000A to U+001F, U+007F).
+**Quoted strings** are surrounded by quotation marks `"`. Any Unicode character may be used, except those that must be escaped: quotation mark `"`, backslash `\`, and the control characters including tab (U+0000 to U+0009, U+000A to U+001F, U+007F).
 
 ```duper
 {
@@ -172,16 +172,18 @@ For convenience, some characters have a compact escape sequence:
 
 ```duper
 [
-  r#" \0     - null            (U+0000) "#,
-  r#" \b     - backspace       (U+0008) "#,
-  r#" \t     - tab             (U+0009) "#,
-  r#" \n     - line feed       (U+000A) "#,
-  r#" \f     - form feed       (U+000C) "#,
-  r#" \r     - carriage return (U+000D) "#,
-  r#" \"     - quote           (U+0022) "#,
-  r#" \\     - backslash       (U+005C) "#,
-  r#" \xHH   - arbitrary byte  (U+00HH) "#,
-  r#" \uHHHH - unicode         (U+HHHH) "#,
+  r#"| Sequence | Character       | Value  |"#,
+  r#"| -------- | --------------- | ------ |"#,
+  r#"| \0       | null            | U+0000 |"#,
+  r#"| \b       | backspace       | U+0008 |"#,
+  r#"| \t       | tab             | U+0009 |"#,
+  r#"| \n       | line feed       | U+000A |"#,
+  r#"| \f       | form feed       | U+000C |"#,
+  r#"| \r       | carriage return | U+000D |"#,
+  r#"| \"       | quote           | U+0022 |"#,
+  r#"| \\       | backslash       | U+005C |"#,
+  r#"| \xHH     | arbitrary byte  | U+00HH |"#,
+  r#"| \uHHHH   | unicode         | U+HHHH |"#,
 ]
 ```
 
@@ -215,7 +217,7 @@ The hashtags are required to disambiguate quotes (`"`, or `"#`, or `"##`, etc.) 
 }
 ```
 
-Control characters, including tabs, are not permitted in a raw string.
+Control characters, including tab, are not permitted in a raw string.
 
 ## Byte strings
 
