@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 (2025-11-01)
+
+### Added
+
+- Duper icon for .duper files.
+
 ## 0.3.0 (2025-10-30)
 
 ### Changed
