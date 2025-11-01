@@ -15,26 +15,13 @@
     "keywords": {
       "patterns": [
         {
-          "name": "keyword.control.duper",
+          "name": "keyword.keyword.duper",
           "match": "\\b(true|false|null)\\b"
         }
       ]
     },
     "strings": {
       "patterns": [
-        {
-          "name": "string.quoted.double.duper",
-          "begin": "b?\"",
-          "end": "\"",
-          "patterns": [
-            {
-              "include": "#stringescapes"
-            },
-            {
-              "include": "#stringcontent"
-            }
-          ]
-        },
         {
           "name": "string.quoted.double.raw_one.duper",
           "begin": "b?r(#*)\"",
@@ -49,6 +36,39 @@
               "name": "punctuation.definition.string.raw.duper"
             }
           }
+        },
+        {
+          "name": "string.quoted.double.duper",
+          "begin": "b?\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "include": "#stringescapes"
+            },
+            {
+              "include": "#stringcontent"
+            }
+          ]
+        }
+      ]
+    },
+    "stringcontent": {
+      "patterns": [
+        {
+          "match": ".",
+          "name": "string.quoted.double.duper"
+        }
+      ]
+    },
+    "stringescapes": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.duper",
+          "match": "\\\\([\\\\\"\\/bfnrt0]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4})"
+        },
+        {
+          "name": "invalid.illegal.unrecognized-string-escape.duper",
+          "match": "\\\\."
         }
       ]
     },
@@ -97,14 +117,6 @@
               "include": "#values"
             }
           ]
-        }
-      ]
-    },
-    "plainkeys": {
-      "patterns": [
-        {
-          "name": "string.unquoted.duper",
-          "match": "(_[A-Za-z0-9]?|[A-Za-z])([_-]?[A-Za-z0-9])*"
         }
       ]
     },
@@ -259,24 +271,57 @@
       ]
     },
     "objectkeys": {
-      "patterns": [{ "include": "#strings" }, { "include": "#plainkeys" }]
-    },
-    "stringcontent": {
       "patterns": [
         {
-          "match": ".",
-          "name": "string.quoted.double.duper"
+          "name": "variable.name.rawkeys.duper",
+          "begin": "r(#*)\"",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.objectkeys.raw.duper"
+            }
+          },
+          "end": "\"(\\1)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.objectkeys.raw.duper"
+            }
+          }
+        },
+        {
+          "name": "variable.name.quotedkeys.duper",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "include": "#keyescapes"
+            },
+            {
+              "include": "#keycontent"
+            }
+          ]
+        },
+        {
+          "name": "variable.name.plainkeys.duper",
+          "match": "(_[A-Za-z0-9]|[A-Za-z])([_-]?[A-Za-z0-9])*"
         }
       ]
     },
-    "stringescapes": {
+    "keycontent": {
       "patterns": [
         {
-          "name": "constant.character.escape.duper",
+          "match": ".",
+          "name": "variable.name.keycontent.duper"
+        }
+      ]
+    },
+    "keyescapes": {
+      "patterns": [
+        {
+          "name": "variable.name.key-escape.duper",
           "match": "\\\\([\\\\\"\\/bfnrt0]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4})"
         },
         {
-          "name": "invalid.illegal.unrecognized-string-escape.duper",
+          "name": "invalid.illegal.unrecognized-key-escape.duper",
           "match": "\\\\."
         }
       ]
