@@ -1,0 +1,325 @@
+TextMateGrammar({
+  "$schema": JsonSchema("https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json"),
+  name: "Duper",
+  scopeName: "source.duper",
+  aliases: [
+    "duper",
+  ],
+  patterns: [
+    {
+      include: "#values",
+    },
+    {
+      include: "#identifiers",
+    },
+  ],
+  repository: {
+    keywords: {
+      patterns: [
+        {
+          name: "keyword.control.duper",
+          match: Regex(r"\b(true|false|null)\b"),
+        },
+      ],
+    },
+    strings: {
+      patterns: [
+        {
+          name: "string.quoted.double.duper",
+          begin: Regex("b?\""),
+          end: Regex("\""),
+          patterns: [
+            {
+              include: "#stringescapes",
+            },
+            {
+              include: "#stringcontent",
+            },
+          ],
+        },
+        {
+          name: "string.quoted.double.raw_one.duper",
+          begin: Regex("b?r(#*)\""),
+          beginCaptures: {
+            "1": {
+              name: "punctuation.definition.string.raw.duper",
+            },
+          },
+          end: Regex(r#""(\1)"#),
+          endCaptures: {
+            "1": {
+              name: "punctuation.definition.string.raw.duper",
+            },
+          },
+        },
+      ],
+    },
+    identifiers: {
+      patterns: [
+        {
+          begin: Regex(r"([A-Z](?:[_-]?[A-Za-z0-9])*)(\()"),
+          beginCaptures: {
+            "1": {
+              name: "entity.name.type.duper",
+            },
+            "2": {
+              name: "punctuation.definition.identifiers.duper",
+            },
+          },
+          end: Regex(r"(\))"),
+          endCaptures: {
+            "1": {
+              name: "punctuation.definition.identifiers.duper",
+            },
+          },
+          patterns: [
+            {
+              begin: Regex(r"([A-Z](?:[_-]?[A-Za-z0-9])*)(\()"),
+              beginCaptures: {
+                "1": {
+                  name: "invalid.illegal.nested-identifier.duper",
+                },
+                "2": {
+                  name: "invalid.illegal.nested-identifier.duper",
+                },
+              },
+              end: Regex(r"(\))"),
+              endCaptures: {
+                "1": {
+                  name: "invalid.illegal.nested-identifier.duper",
+                },
+              },
+              patterns: [
+                {
+                  include: "#values",
+                },
+              ],
+            },
+            {
+              include: "#values",
+            },
+          ],
+        },
+      ],
+    },
+    plainkeys: {
+      patterns: [
+        {
+          name: "string.unquoted.duper",
+          match: Regex("(_[A-Za-z0-9]?|[A-Za-z])([_-]?[A-Za-z0-9])*"),
+        },
+      ],
+    },
+    numbers: {
+      patterns: [
+        {
+          name: "constant.numeric.duper",
+          match: Regex(r"0x[0-9a-fA-F](_?[0-9a-fA-F])*|0o[0-7](_?[0-7])*|0b[0-7](_?[0-1])*|[+-]?(0|[1-9](_?[0-9])*)(\.[0-9](_?[0-9])*)?(([eE][+-]?[0-9](_?[0-9])*)?)?"),
+        },
+      ],
+    },
+    comments: {
+      patterns: [
+        {
+          name: "comment.line.duper",
+          match: Regex(r"(//).*$\n?"),
+        },
+      ],
+    },
+    multilinecomments: {
+      patterns: [
+        {
+          name: "comment.block.duper",
+          begin: Regex(r"(/\*)(?:\s*((@)internal)(?=\s|(\*/)))?"),
+          end: Regex(r"\*/"),
+          patterns: [
+            {
+              include: "#multilinecomments",
+            },
+          ],
+        },
+      ],
+    },
+    arrays: {
+      begin: Regex(r"\["),
+      beginCaptures: {
+        "0": {
+          name: "punctuation.definition.arrays.duper",
+        },
+      },
+      end: Regex(r"\]"),
+      endCaptures: {
+        "0": {
+          name: "punctuation.definition.arrays.duper",
+        },
+      },
+      patterns: [
+        {
+          include: "#values",
+        },
+        {
+          include: "#comments",
+        },
+        {
+          include: "#multilinecomments",
+        },
+        {
+          match: Regex(","),
+          name: "punctuation.separator.arrays.duper",
+        },
+        {
+          match: Regex(r"[^\s\]]"),
+          name: "invalid.illegal.expected-arrays-separator.duper",
+        },
+      ],
+    },
+    tuples: {
+      begin: Regex(r"\("),
+      beginCaptures: {
+        "0": {
+          name: "punctuation.definition.tuple.duper",
+        },
+      },
+      end: Regex(r"\)"),
+      endCaptures: {
+        "0": {
+          name: "punctuation.definition.tuple.duper",
+        },
+      },
+      name: "meta.structure.tuple.duper",
+      patterns: [
+        {
+          include: "#values",
+        },
+        {
+          include: "#comments",
+        },
+        {
+          include: "#multilinecomments",
+        },
+        {
+          match: Regex(","),
+          name: "punctuation.separator.tuple.duper",
+        },
+        {
+          match: Regex(r"[^\s\)]"),
+          name: "invalid.illegal.expected-tuple-separator.duper",
+        },
+      ],
+    },
+    objects: {
+      begin: Regex(r"\{"),
+      beginCaptures: {
+        "0": {
+          name: "punctuation.definition.dictionary.duper",
+        },
+      },
+      end: Regex(r"\}"),
+      endCaptures: {
+        "0": {
+          name: "punctuation.definition.dictionary.duper",
+        },
+      },
+      patterns: [
+        {
+          include: "#objectkeys",
+        },
+        {
+          include: "#comments",
+        },
+        {
+          include: "#multilinecomments",
+        },
+        {
+          begin: Regex(":"),
+          beginCaptures: {
+            "0": {
+              name: "punctuation.separator.dictionary.key.duper",
+            },
+          },
+          end: Regex(r"(,)|(?=\})"),
+          endCaptures: {
+            "1": {
+              name: "punctuation.separator.dictionary.pair.duper",
+            },
+          },
+          name: "meta.structure.dictionary.value.duper",
+          patterns: [
+            {
+              include: "#values",
+            },
+            {
+              match: Regex(r"[^\s,]"),
+              name: "invalid.illegal.expected-dictionary-separator.duper",
+            },
+          ],
+        },
+        {
+          match: Regex(r"[^\s\}]"),
+          name: "invalid.illegal.expected-dictionary-separator.duper",
+        },
+      ],
+    },
+    objectkeys: {
+      patterns: [
+        {
+          include: "#strings",
+        },
+        {
+          include: "#plainkeys",
+        },
+      ],
+    },
+    stringcontent: {
+      patterns: [
+        {
+          match: Regex("."),
+          name: "string.quoted.double.duper",
+        },
+      ],
+    },
+    stringescapes: {
+      patterns: [
+        {
+          name: "constant.character.escape.duper",
+          match: Regex(r#"\\([\\"\/bfnrt0]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4})"#),
+        },
+        {
+          name: "invalid.illegal.unrecognized-string-escape.duper",
+          match: Regex(r"\\."),
+        },
+      ],
+    },
+    values: {
+      patterns: [
+        {
+          include: "#keywords",
+        },
+        {
+          include: "#numbers",
+        },
+        {
+          include: "#identifiers",
+        },
+        {
+          include: "#strings",
+        },
+        {
+          include: "#objects",
+        },
+        {
+          include: "#arrays",
+        },
+        {
+          include: "#tuples",
+        },
+        {
+          include: "#comments",
+        },
+        {
+          include: "#multilinecomments",
+        },
+      ],
+    },
+  },
+})

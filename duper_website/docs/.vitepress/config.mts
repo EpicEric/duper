@@ -1,7 +1,15 @@
+import { parse } from "@duper-js/wasm";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { globalConst } from "vite-plugin-global-const";
 import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
 import { defineConfig } from "vitepress";
+
+const DUPER_GRAMMAR = parse(
+  readFileSync(resolve(__dirname, "../../duper.tmLanguage.duper"), "utf-8"),
+  true
+);
 
 export default defineConfig({
   title: "Duper",
@@ -18,7 +26,7 @@ export default defineConfig({
   ],
 
   markdown: {
-    languages: [JSON.parse(readFileSync("duper.tmLanguage.json", "utf-8"))],
+    languages: [DUPER_GRAMMAR],
   },
 
   themeConfig: {
@@ -77,9 +85,20 @@ export default defineConfig({
   },
 
   vite: {
-    plugins: [wasm(), topLevelAwait()],
+    plugins: [
+      wasm(),
+      topLevelAwait(),
+      globalConst({
+        DUPER_GRAMMAR,
+      }),
+    ],
     ssr: {
       noExternal: ["monaco-editor"],
+    },
+    resolve: {
+      alias: {
+        "@": resolve(__dirname, "../.."),
+      },
     },
   },
 });

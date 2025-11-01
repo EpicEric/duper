@@ -1,5 +1,5 @@
 ---
-version: "0.3.0"
+version: "0.3.1"
 ---
 
 <p align="center">
@@ -43,7 +43,7 @@ The area delimited by a forward slash immediately followed by an asterisk `/*`, 
      */
   key: "value",
   another: "/* This is not a comment,
-despite spanning multiple lines */"
+               despite spanning multiple lines */"
 }
 ```
 
@@ -64,7 +64,7 @@ Keys are on the left of the colon `:`, and values are on the right. Whitespace i
 }
 ```
 
-There must be a comma `,` between key/value pairs.
+There must be a comma `,` between key-value pairs.
 
 ```duper
 {
@@ -98,15 +98,24 @@ Values must have one of the following types:
 
 A key may be either plain, quoted, or raw.
 
-**Plain keys** may only contain ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. They must start with an ASCII letter or an underscore. Sequences of underscores and hyphens are not allowed, and bare keys must not end with them.
+**Plain keys** may only contain ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. They must start with an ASCII letter, or an underscore followed by a letter or digit. Sequences of underscores and hyphens are not allowed, and plain keys must not end with them.
 
 ```duper
 {
+  // Allowed
   key: "value",
-  bare_key: "value",
-  b4re-k3y: "value",
+  plain_key: "value",
+  pla1n-k3y: "value",
   _1234: "value",
-  _: "value",
+
+  // Allowed but discouraged
+  Capitalized: "value",
+
+  // Not allowed
+  _: "value",               // INVALID
+  útf8: "value",            // INVALID
+  : "value",                // INVALID
+  kebabest--case: "value",  // INVALID
 }
 ```
 
@@ -116,7 +125,8 @@ A key may be either plain, quoted, or raw.
 {
   "127.0.0.1": "value",
   "character encoding": "value",
-  "ʎǝʞ": "value",
+  "maçã": "value",
+  "_": "value",
   "": "value",
 }
 ```
@@ -130,16 +140,15 @@ A key may be either plain, quoted, or raw.
 }
 ```
 
-Indentation is treated as whitespace and ignored.
+Indentation around keys is treated as whitespace and ignored.
 
 Defining a key multiple times is invalid. Note that plain keys, quoted keys, and raw keys are equivalent.
 
 ```duper
 {
   name: "Eric",
-  name: "Erick",      // INVALID
   "n\x61me": "Erik",  // INVALID
-  r"name": "Heryk",   // INVALID
+  r"name": "Erick",   // INVALID
 }
 ```
 
@@ -151,11 +160,15 @@ A string may be either quoted or raw.
 
 ```duper
 {
-  str: "I'm a string. \"You can quote me\". Name\tJos\xE9\nLocation\tBR.",
+  str1: "I'm a string.",
+  str2: "\"You can quote me\"",
+  str3: "Name\tJos\xE9\nLocation\tBR.",
+  str4: "  padded  ",
+  str5: "ඞ",  // U+0D9E  SINHALA LETTER KANTAJA NAASIKYAYA
 }
 ```
 
-For convenience, some popular characters have a compact escape sequence:
+For convenience, some characters have a compact escape sequence:
 
 ```duper
 [
@@ -172,11 +185,11 @@ For convenience, some popular characters have a compact escape sequence:
 ]
 ```
 
-Any Unicode character may be escaped with `\uHHHH` or a sequence of one or more `\xHH`. The escape codes must be valid Unicode [scalar values](https://unicode.org/glossary/#unicode_scalar_value).
+Any Unicode character may be escaped with `\uHHHH` or a sequence of one or more `\xHH`, where `H` is a hexadecimal digit. The escape codes must be valid Unicode [scalar values](https://unicode.org/glossary/#unicode_scalar_value).
 
-Keep in mind that Duper strings are sequences of Unicode characters, _not_ byte sequences. Parsers should raise an error if a string contains invalid Unicode. For binary data, use [byte strings](#byte-strings).
+Keep in mind that Duper strings are sequences of Unicode characters, _not_ byte sequences. Parsers should raise an error if a string decodes into invalid Unicode. For binary data, use [byte strings](#byte-strings).
 
-**Raw strings** start with the lowercase letter R `r`, immediately followed by zero or more hash symbols `#`, immediately followed by a quotation mark `"`. They end with a quotation mark, followed by the same number of starting hash symbols. They allow newlines and have no escaping whatsoever.
+**Raw strings** start with the lowercase letter R, immediately followed by zero or more hash symbols `#`, immediately followed by a quotation mark `"`. They end with a quotation mark, followed by the same number of starting hash symbols. (for example: `r"..."`, `r#"..."#`, `r##"..."##`, and so on.). They allow newlines and have no escaping whatsoever.
 
 ```duper
 {
@@ -187,7 +200,18 @@ Keep in mind that Duper strings are sequences of Unicode characters, _not_ byte 
   lines: r"
 The first newline is not trimmed.
   All whitespace is
-    preserved.",
+    preserved in here.   ",
+}
+```
+
+The hashtags are required to disambiguate quotes (`"`, or `"#`, or `"##`, etc.) which are part of the value from the raw string terminator.
+
+```duper
+{
+  inner_quotes: r"Well, "that" just happened.",      // INVALID
+  too_few_ending_hashes: r#"",                       // INVALID
+  too_many_ending_hashes: r#""##,                    // INVALID
+  not_enough_hashes: r#"will "# close the string"#,  // INVALID
 }
 ```
 
@@ -197,7 +221,7 @@ Control characters, including tabs, are not permitted in a raw string.
 
 Byte strings are similar to strings, but represent binary data. Like strings, they come in quoted or raw variants.
 
-**Quoted byte strings** start with the lowercase letter B immediately followed by a quotation mark `b"`, and end with a quotation mark `"`. The escape sequences are the same as quoted strings, although they are not required to form valid UTF-8 codepoints.
+**Quoted byte strings** start with the lowercase letter B immediately followed by a quotation mark `b"`, and end with a quotation mark `"`. The escape sequences are the same as in quoted strings, although they are not required to form valid UTF-8 codepoints.
 
 ```duper
 {
@@ -212,8 +236,8 @@ Byte strings are similar to strings, but represent binary data. Like strings, th
 ```duper
 {
   path: br"C:\Windows\System32",
-  special_characters: br#"/\*"#,
-  binary_data: br##"Raw bytes with "# symbol"##,
+  shrug: br#" "Whatever." ¯\_(ツ)_/¯ "#,
+  rust_expression: br##"{ let str = r#"meta string"#; }"##,
 }
 ```
 
@@ -234,19 +258,22 @@ For large numbers, you may use underscores between digits to enhance readability
 
 ```duper
 {
+  // Allowed
   int5: 1_000,
   int6: 5_349_221,
   int7: 53_49_221,
   int8: 1_2_3_4_5,
-  INVALID1: 1__2,
-  INVALID2: _12,
-  INVALID3: 12_,
+
+  // Not allowed
+  wrong1: 1__2,  // INVALID
+  wrong2: _12,   // INVALID
+  wrong3: 12_,   // INVALID
 }
 ```
 
 Leading zeros are not allowed. Integer values `-0` and `+0` are valid and identical to an unprefixed zero.
 
-Non-negative integer values may also be expressed in hexadecimal, octal, or binary. In these formats, leading `+` is not allowed and leading zeros are allowed (after the prefix). Hex values are case-insensitive. Underscores are allowed between digits (but not between the prefix and the value).
+Non-negative integer values may also be expressed in hexadecimal (`0x...`), octal (`0o...`), or binary (`0b...`). In these formats, plus or minus signs `+` or `-` are not allowed, but leading zeros (after the prefix) are allowed. Hexadecimal values are case-insensitive. Underscores are allowed between digits (but not between the prefix and the value).
 
 ```duper
 {
@@ -259,12 +286,12 @@ Non-negative integer values may also be expressed in hexadecimal, octal, or bina
   oct2: 0o01_234_567,
 
   // Binary with prefix `0b`
-  bin1: 0b11010110,
+  bin1: 0b1101,
   bin2: 0b0101_0101,
 }
 ```
 
-Implementations are free to support any integer size. It's recommended that at least 64-bit signed integers (i.e. long integers, from −2^63 to 2^63−1) are accepted and handled losslessly. If an integer cannot be represented in the chosen integer size, implementations may convert it losslessly into a float or a string, using an appropriate [identifier](#identifiers) for its original type in both cases.
+Implementations are free to support any integer size. It's recommended that at least 64-bit signed integers (i.e. long integers, from −2^63 to 2^63−1) are accepted and handled losslessly. If an integer cannot be represented in the chosen integer size, implementations may raise an error or convert it losslessly into a float or a string, using an appropriate [identifier](#identifiers) for its original type in both cases.
 
 ## Floats
 
@@ -289,7 +316,7 @@ A float consists of an integer part (which follows the same rules as decimal int
 
 A fractional part is a decimal point followed by one or more digits.
 
-An exponent part is an E (upper or lower case) followed by an integer part (which follows the same rules as decimal integer values but may include leading zeros).
+An exponent part is an `e` (upper or lower case) followed by an integer part (which follows the same rules as decimal integer values, but may include leading zeros).
 
 The decimal point, if used, must be surrounded by at least one digit on each side.
 
@@ -298,7 +325,6 @@ The decimal point, if used, must be surrounded by at least one digit on each sid
   invalid_float_1: .7,      // INVALID
   invalid_float_2: 7.,      // INVALID
   invalid_float_3: 3.e+20,  // INVALID
-
 }
 ```
 
@@ -307,10 +333,11 @@ Similar to integers, you may use underscores to enhance readability. Each unders
 ```duper
 {
   float8: 224_617.445_991_228,
+  float9: 1e2_00,
 }
 ```
 
-Float values `-0.0` and `+0.0` are valid and should map according to IEEE 754. Infinity and NaN are invalid values.
+Float values `-0.0` and `+0.0` are valid and should map according to IEEE 754. Infinity and NaN are not allowed.
 
 Implementations are free to support any precision level. It's recommended that at least IEEE 754 64-bit floating point values (i.e. doubles) are supported.
 
@@ -320,8 +347,8 @@ Booleans are one of `true` or `false`.
 
 ```duper
 {
-  truthyBool: true,
-  falsyBool: false,
+  tis: true,
+  nah: false,
 }
 ```
 
@@ -331,7 +358,7 @@ Null is always `null`.
 
 ```duper
 {
-  nullValue: null,
+  nuclear_launch_code: null,
 }
 ```
 
@@ -341,19 +368,22 @@ Arrays are ordered values surrounded by square brackets `[` and `]`. Whitespace 
 
 ```duper
 {
-  empty: [],
-  another_empty: [,],
+  empty_array: [],
+  another_empty_array: [,],
   integers: [1, 2, 3],
-  colors: ["red", "yellow", "green"],
-  nested_arrays_of_ints: [[1, 2], [3, 4, 5]],
-  nested_mixed_array: [[1, 2], ["a", "b", "c"]],
-  string_array: ["all strings", r"are the", r#"same type"#],
+  colors: ["red", "yellow", r"green"],
+  unflattened_ints: [[1, 2], [3, 4, 5]],
 
   // Mixed-type arrays are allowed
   numbers: [0.1, 0.2, 0.5, 1, 2, 5],
+  nested_mixed_array: [[1, "a"], [2, "b", {}]],
   contributors: [
     "Foo Bar <foo@example.com>",
-    {name: "Baz Qux", email: "bazqux@example.com", url: "https://example.com/bazqux"},
+    {
+      name: "Baz Qux",
+      email: "bazqux@example.com",
+      url: "https://example.com/bazqux",
+    },
   ],
 }
 ```
@@ -369,16 +399,21 @@ Arrays can span multiple lines. A terminating comma (also called a trailing comm
 
 ## Tuples
 
-Tuples are similar to arrays, although parsers may choose to handle them differently. They are surrounded by parenthesis `(` and `)`. Unlike arrays, empty tuples must be represented with joined parenthesis `()`, or with a comma optionally surrounded by whitespace and comments.
+Tuples are similar to arrays, although parsers may choose to handle them differently. They are surrounded by parenthesis `(` and `)`.
 
 ```duper
 {
-  empty: (),
-  another_empty: (,),
-  single: (1),
-  another_single: (1,),
-  tuple_of_arrays: ([1, 2], [3, 4, 5]),
-  array_of_tuples: [(true, 1.0), ("x", "y", "z")],
+  empty_tuple: (),
+  another_empty_tuple: (,),
+  single_element: (1),
+  another_single_element: (1,),
+  tuple_of_arrays: ([true, 1.0], ["x", "y", "z"]),
+  array_of_tuples: [(1, null), (3, 4.0, 5)],
+  multiline_tuple: (
+    "Vec",
+    "Cow",
+    "Arc",
+  ),
 }
 ```
 
@@ -388,13 +423,13 @@ Any parenthesized expression must be interpreted as a tuple by parsers.
 
 Identifiers are optional type-like annotations that wrap any kind of value, providing semantic meaning or hinting at special handling during parsing/validation. Identified values are composed of the identifier name, followed by the value wrapped in parenthesis `(` and `)`.
 
-The first character must be an ASCII uppercase letter, followed by ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. Sequences of underscores and hyphens are not allowed in the identifier, and identifiers may not start or end with either of them.
+The first character must be an ASCII uppercase letter, followed by zero or more ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. Sequences of underscores and hyphens are not allowed in the identifier, and identifiers may not start or end with either of them.
 
 ```duper
 {
   user_id: Uuid("550e8400-e29b-41d4-a716-446655440000"),
   created: DateTime("2024-01-15T10:30:00Z"),
-  birthday: ISO-8601("1990-05-20"),
+  birthday: ISO-8601("2025-10-20"),
   price: Decimal("19.99"),
   weight: Kilograms(2.5),
   color: RGB((255, 0, 128)),  // Two sets of parenthesis for tuples
@@ -403,6 +438,7 @@ The first character must be an ASCII uppercase letter, followed by ASCII letters
     version: Version("1.2.3"),
     hash: SHA_256(b"\xde\xad\xbe\xef"),
   }),
+  minimal: A(null),
 }
 ```
 
@@ -419,13 +455,13 @@ Values may not contain more than one identifier.
 
 ```duper
 {
-  many: IpAddress(Ipv4Address("192.168.0.1"))  // INVALID
+  too_many: IpAddress(Ipv4Address("192.168.0.1"))  // INVALID
 }
 ```
 
 Parsers should preserve identifier information on a best-effort basis. Deserializers may ignore identifiers, or use them for validation. Serializers may choose to output or omit identifiers by the user's request.
 
-Implementations are free to define their own identifiers with specific semantics. For example, in strongly-typed or OOP languages, they may use them as annotations for the underlying types, handling any (potentially lossy) conversion between Duper identifiers and type names.
+Implementations are free to define their own identifiers with specific semantics. For example, in strongly-typed or OOP languages, serializers may use them as annotations for the underlying types.
 
 ## Filename extension
 
@@ -434,3 +470,5 @@ Duper files should use the extension `.duper`.
 ## MIME type
 
 When transferring Duper files over the internet, the appropriate MIME type is `application/duper`.
+
+Webservers should also accept the `application/x-duper` MIME type.

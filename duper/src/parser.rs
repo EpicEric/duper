@@ -607,9 +607,9 @@ mod duper_parser_tests {
         assert!(matches!(duper.inner, DuperInner::Tuple(_)));
 
         let input = r#"
-            {duper: 1337}
+            {duper: 1337, _123: b"bar"}
         "#;
-        let duper = DuperParser::parse_duper_trunk(input).unwrap();
+        let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(duper.inner, DuperInner::Object(_)));
 
         let input = r#"
@@ -694,7 +694,9 @@ mod duper_parser_tests {
         assert!(matches!(duper.inner, DuperInner::Tuple(_)));
 
         let input = r#"
-            {duper: 1337}
+            {duper: 1337, _123: b"bar", _a-b_c
+            :
+            true, "_": false, "": null}
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(duper.inner, DuperInner::Object(_)));
@@ -1021,6 +1023,18 @@ mod duper_parser_tests {
         assert!(DuperParser::parse_duper_value(input).is_err());
         let input = r#"
             {a-_b: "no hyphen followed by underscore in key"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {_-a: "no starting underscore followed by hyphen in key"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {__a: "no starting double underscore in key"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {_: "no singular underscore in key"}
         "#;
         assert!(DuperParser::parse_duper_value(input).is_err());
         let input = r#"

@@ -28,9 +28,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.1",
+    "@duper-js/wasm": "../duper-js-wasm",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.9.1",
     "vite": "^7.1.12",
+    "vite-plugin-global-const": "^0.0.6",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.5.0",
     "vitepress": "^2.0.0-alpha.12",

@@ -40,8 +40,7 @@ import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 import shikiWasm from "shiki/wasm";
 import { useData } from 'vitepress'
 import { onMounted, onUnmounted, ref, watch } from "vue";
-import duperGrammar from "../../duper.tmLanguage.json" with { type: "json" };
-import { convertDuper } from "../../pkg/duper_website";
+import { convertDuper } from "@/pkg/duper_website";
 
 const props = defineProps<{
   initial?: string;
@@ -61,7 +60,7 @@ onMounted(async () => {
 
   const highlighter = await createHighlighterCore({
     themes: [githubDarkTheme, githubLightTheme],
-    langs: [jsonGrammar, yamlGrammar, tomlGrammar, duperGrammar],
+    langs: [jsonGrammar, yamlGrammar, tomlGrammar, import.meta.env.DUPER_GRAMMAR],
     engine: createOnigurumaEngine(shikiWasm),
   });
 

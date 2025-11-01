@@ -128,3 +128,7 @@ Product({
 ```
 
 Finally, Duper has the notion of _identifiers_: optional type-like annotations (`MyIdentifier(...)`) to help with readability, or to suggest that the parser validates the data in a specific manner.
+
+---
+
+Want to learn more? [Check out the specification](/spec).
