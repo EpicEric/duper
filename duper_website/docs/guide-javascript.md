@@ -4,6 +4,12 @@ Get started with Duper in JavaScript/TypeScript with the [`@duper-js/wasm`](http
 
 ## Installation
 
+### Node.js
+
+```bash
+npm install --save @duper-js/wasm
+```
+
 ### Vite
 
 ```bash
@@ -27,7 +33,7 @@ export default defineConfig({
 });
 ```
 
-Now you can use Duper:
+## Usage
 
 ```javascript
 import { parse, stringify } from "@duper-js/wasm";
@@ -48,7 +54,7 @@ const restored_data = parse(duper_string);
 console.log(restored_data);
 ```
 
-You can also manipulate Duper values:
+You can also manipulate parsed Duper values directly:
 
 ```javascript
 import { parse, stringify, DuperValue } from "@duper-js/wasm";
