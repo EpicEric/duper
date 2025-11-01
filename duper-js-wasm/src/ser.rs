@@ -132,7 +132,7 @@ pub(crate) fn serialize_integer(
                 bigint
                     .to_string(10)?
                     .as_string()
-                    .ok_or_else(|| "failed to convert BigInt to string")?,
+                    .ok_or("failed to convert BigInt to string")?,
             ))),
         }),
     }

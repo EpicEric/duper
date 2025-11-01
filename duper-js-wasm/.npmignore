@@ -1,5 +1,7 @@
 Cargo.toml
 Cargo.lock
+vitest.config.ts
 src/
 examples/
+tests/
 .gitignore

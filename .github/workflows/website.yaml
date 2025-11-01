@@ -51,7 +51,7 @@ jobs:
         id: pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
       - name: Install Node dependencies and build
-        working-directory: duper_website
+        working-directory: ./duper_website
         run: |
           npm install
           npm run wasm:build

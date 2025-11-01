@@ -169,7 +169,10 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
                 self.buf.push_str("(())");
             } else if tuple.len() == 1 {
                 self.buf.push_str("((");
-                tuple.get(0).unwrap().accept(self);
+                tuple
+                    .get(0)
+                    .expect("tuple contains one element")
+                    .accept(self);
                 self.buf.push_str("))");
             } else {
                 self.buf.push_str("((\n");
@@ -187,7 +190,10 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
             self.buf.push_str("()");
         } else if tuple.len() == 1 {
             self.buf.push('(');
-            tuple.get(0).unwrap().accept(self);
+            tuple
+                .get(0)
+                .expect("tuple contains one element")
+                .accept(self);
             self.buf.push(')');
         } else {
             self.buf.push_str("(\n");

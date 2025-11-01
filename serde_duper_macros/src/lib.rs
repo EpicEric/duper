@@ -62,7 +62,7 @@ fn expand_struct(mut s: ItemStruct) -> proc_macro2::TokenStream {
                     format_ident!(
                         "__serde_duper_{}_{}",
                         struct_ident,
-                        field.ident.as_ref().unwrap()
+                        field.ident.as_ref().expect("named field")
                     ),
                     &mut modules,
                     has_serialize,

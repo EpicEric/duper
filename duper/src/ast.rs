@@ -101,18 +101,22 @@ impl<'a> DuperIdentifier<'a> {
         if value.is_empty() {
             return Err(DuperIdentifierTryFromError::EmptyIdentifier);
         }
+        // Eagerly try the non-lossy version first.
+        // This might lead to an extra allocation if the Cow is owned...
+        if let Ok(identifier) = DuperIdentifier::try_from(value.clone()) {
+            return Ok(identifier);
+        }
         let invalid_char_pos = match parser::identifier_lossy()
             .parse(value.as_ref())
             .into_result()
         {
-            Err(errs) => Some(errs[0].span().start),
-            Ok(None) => None,
-            Ok(Some(identifier)) => return Ok(DuperIdentifier(Cow::Owned(identifier))),
+            Err(errs) => errs[0].span().start,
+            Ok(identifier) => return Ok(DuperIdentifier(Cow::Owned(identifier))),
         };
-        match invalid_char_pos {
-            Some(pos) => Err(DuperIdentifierTryFromError::InvalidChar(value, pos)),
-            None => Ok(Self(value)),
-        }
+        Err(DuperIdentifierTryFromError::InvalidChar(
+            value,
+            invalid_char_pos,
+        ))
     }
 
     /// Create a clone of this DuperIdentifier with a static lifetime.
@@ -454,4 +458,170 @@ impl<'a> AsRef<[u8]> for DuperBytes<'a> {
 }
 
 #[cfg(test)]
-mod ast_tests {}
+mod ast_tests {
+    use std::borrow::Cow;
+
+    use crate::DuperIdentifier;
+
+    #[test]
+    fn valid_identifiers() {
+        let input = "Regular";
+        assert!(
+            matches!(DuperIdentifier::try_from(Cow::Borrowed(input)).unwrap(),
+                DuperIdentifier(Cow::Borrowed(str)) if str == input
+            )
+        );
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Borrowed(str)) if str == input
+        ));
+
+        let input = "ConcatWords";
+        assert!(
+            matches!(DuperIdentifier::try_from(Cow::Borrowed(input)).unwrap(),
+                DuperIdentifier(Cow::Borrowed(str)) if str == input
+            )
+        );
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Borrowed(str)) if str == input
+        ));
+
+        let input = "SCREAMING";
+        assert!(
+            matches!(DuperIdentifier::try_from(Cow::Borrowed(input)).unwrap(),
+                DuperIdentifier(Cow::Borrowed(str)) if str == input
+            )
+        );
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Borrowed(str)) if str == input
+        ));
+
+        let input = "Numbered123";
+        assert!(
+            matches!(DuperIdentifier::try_from(Cow::Borrowed(input)).unwrap(),
+                DuperIdentifier(Cow::Borrowed(str)) if str == input
+            )
+        );
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Borrowed(str)) if str == input
+        ));
+
+        let input = "Upper_Snake_case";
+        assert!(
+            matches!(DuperIdentifier::try_from(Cow::Borrowed(input)).unwrap(),
+                DuperIdentifier(Cow::Borrowed(str)) if str == input
+            )
+        );
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Borrowed(str)) if str == input
+        ));
+
+        let input = "Upper-Kebab-case";
+        assert!(
+            matches!(DuperIdentifier::try_from(Cow::Borrowed(input)).unwrap(),
+                DuperIdentifier(Cow::Borrowed(str)) if str == input
+            )
+        );
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Borrowed(str)) if str == input
+        ));
+
+        let input = "IPv4Address";
+        assert!(
+            matches!(DuperIdentifier::try_from(Cow::Borrowed(input)).unwrap(),
+                DuperIdentifier(Cow::Borrowed(str)) if str == input
+            )
+        );
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Borrowed(str)) if str == input
+        ));
+
+        let input = "ISO639-3";
+        assert!(
+            matches!(DuperIdentifier::try_from(Cow::Borrowed(input)).unwrap(),
+                DuperIdentifier(Cow::Borrowed(str)) if str == input
+            )
+        );
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Borrowed(str)) if str == input
+        ));
+    }
+
+    #[test]
+    fn lossy_identifiers() {
+        let input = "NoÜnicodeÇharacters";
+        assert!(DuperIdentifier::try_from(Cow::Borrowed(input)).is_err());
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Owned(str)) if str == "Nonicodeharacters"
+        ));
+
+        let input = "noStartingLowercase";
+        assert!(DuperIdentifier::try_from(Cow::Borrowed(input)).is_err());
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Owned(str)) if str == "NoStartingLowercase"
+        ));
+
+        let input = "No Space";
+        assert!(DuperIdentifier::try_from(Cow::Borrowed(input)).is_err());
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Owned(str)) if str == "NoSpace"
+        ));
+
+        let input = "NoEndingHyphen-";
+        assert!(DuperIdentifier::try_from(Cow::Borrowed(input)).is_err());
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Owned(str)) if str == "NoEndingHyphen"
+        ));
+
+        let input = "NoEndingUnderscore_";
+        assert!(DuperIdentifier::try_from(Cow::Borrowed(input)).is_err());
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Owned(str)) if str == "NoEndingUnderscore"
+        ));
+
+        let input = "No-_HyphenThenUnderscore";
+        assert!(DuperIdentifier::try_from(Cow::Borrowed(input)).is_err());
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Owned(str)) if str == "No-HyphenThenUnderscore"
+        ));
+
+        let input = "No_-UnderscoreThenHyphen";
+        assert!(DuperIdentifier::try_from(Cow::Borrowed(input)).is_err());
+        assert!(matches!(
+            DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).unwrap(),
+            DuperIdentifier(Cow::Owned(str)) if str == "No_UnderscoreThenHyphen"
+        ));
+    }
+
+    #[test]
+    fn invalid_identifiers() {
+        let input = "";
+        assert!(DuperIdentifier::try_from(Cow::Borrowed(input)).is_err());
+        assert!(DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).is_err());
+
+        let input = "1NoStartingNumber";
+        assert!(DuperIdentifier::try_from(Cow::Borrowed(input)).is_err());
+        assert!(DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).is_err());
+
+        let input = "-NoStartingHyphen";
+        assert!(DuperIdentifier::try_from(Cow::Borrowed(input)).is_err());
+        assert!(DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).is_err());
+
+        let input = "_NoStartingUnderscore";
+        assert!(DuperIdentifier::try_from(Cow::Borrowed(input)).is_err());
+        assert!(DuperIdentifier::try_from_lossy(Cow::Borrowed(input)).is_err());
+    }
+}

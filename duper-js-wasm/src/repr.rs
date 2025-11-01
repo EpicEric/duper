@@ -114,7 +114,7 @@ impl JsDuperValueInner {
                     if Uint8Array::is_type_of(&inner) {
                         Ok(JsDuperValueInner::Bytes(inner))
                     } else if Array::is_array(&inner) {
-                        let array: Array = inner.dyn_into().unwrap();
+                        let array: Array = inner.dyn_into().expect("checked conversion");
                         let bytes = Uint8Array::new_with_length(array.length());
                         for (index, element) in array.into_iter().enumerate() {
                             bytes.set(&element, index as u32);
@@ -132,7 +132,13 @@ impl JsDuperValueInner {
                     } else if inner.as_f64().is_some() {
                         Ok(JsDuperValueInner::Integer(
                             BigInt::new(&inner)
-                                .map_err(|err| JsError::new(&err.to_string().as_string().unwrap()))?
+                                .map_err(|err| {
+                                    JsError::new(
+                                        &err.to_string()
+                                            .as_string()
+                                            .expect("JsString to String conversion"),
+                                    )
+                                })?
                                 .into(),
                         ))
                     } else {

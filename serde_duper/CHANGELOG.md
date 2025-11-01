@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 (2025-10-30)
+
+### Changed
+
+- **Breaking:** Bump `duper` to 0.3.0.
+
 ## 0.2.2 (2025-10-28)
 
 ### Changed
@@ -16,7 +22,7 @@
 
 ### Changed
 
-- Bump `duper` to 0.2.0.
+- **Breaking:** Bump `duper` to 0.2.0.
 
 ## 0.1.2 (2025-10-22)
 

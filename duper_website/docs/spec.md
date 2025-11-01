@@ -425,7 +425,7 @@ Values may not contain more than one identifier.
 
 Parsers should preserve identifier information on a best-effort basis. Deserializers may ignore identifiers, or use them for validation. Serializers may choose to output or omit identifiers by the user's request.
 
-Implementations are free to define their own identifiers with specific semantics.
+Implementations are free to define their own identifiers with specific semantics. For example, in strongly-typed or OOP languages, they may use them as annotations for the underlying types, handling any (potentially lossy) conversion between Duper identifiers and type names.
 
 ## Filename extension
 

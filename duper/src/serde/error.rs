@@ -61,7 +61,7 @@ impl Error {
         let message = DuperParser::prettify_error(src, &err_vec, None);
         Self::new(
             ErrorKind::ParseError(err_vec.into_iter().map(|err| err.into_owned()).collect()),
-            message,
+            message.unwrap_or_else(|_| "failed to generate parse error".into()),
         )
     }
 

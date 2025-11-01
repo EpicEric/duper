@@ -45,7 +45,7 @@ pub fn convert_duper(value: &str, to: Option<ConvertDuperTo>) -> Result<String, 
         .unwrap_or(Ok(ConvertTo::Json))?;
 
     let duper = DuperParser::parse_duper_value(value).map_err(|err| {
-        let err = err.first().unwrap();
+        let err = err.first().expect("at least one error");
         let mut line = 1;
         let mut column = 1;
         for char in value.chars().take(err.span().start) {

@@ -14,6 +14,7 @@ env:
   CARGO_INCREMENTAL: "0"
   CARGO_PROFILE_TEST_DEBUG: "0"
   PYTHON_MINIMUM_VERSION: "3.10"
+  NODE_VERSION: "20"
 
 jobs:
   rustfmt:
@@ -24,13 +25,13 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - name: Fetch MSRV
+      - name: Fetch MSRV and add rustfmt
         run: |
           rustup toolchain install ${RUST_MSRV}-x86_64-unknown-linux-gnu
           rustup override set ${RUST_MSRV}-x86_64-unknown-linux-gnu
+          rustup component add rustfmt
       - name: Run rustfmt
         run: |
-          rustup component add rustfmt
           cargo fmt --check --all
   ruff:
     name: Check Ruff formatting on minimum Python version
@@ -44,9 +45,7 @@ jobs:
         uses: astral-sh/ruff-action@57714a7c8a2e59f32539362ba31877a1957dded1 # v3.5.1
         with:
           src: >-
-            duper-python/examples
-            duper-python/tests
-            duper-python/python/duper
+            duper-python/
   build-rust:
     name: Build on MSRV
     runs-on: ubuntu-latest
@@ -117,7 +116,39 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
       - name: Test Python
-        working-directory: duper-python
+        working-directory: ./duper-python
         run: |
           uv run maturin develop
           uv run pytest -vv
+  test-wasm:
+    name: Run WASM tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Fetch MSRV and install target
+        run: |
+          rustup toolchain install ${RUST_MSRV}-x86_64-unknown-linux-gnu
+          rustup override set ${RUST_MSRV}-x86_64-unknown-linux-gnu
+          rustup target add wasm32-unknown-unknown
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: Install wasm-bindgen
+        uses: taiki-e/install-action@a24ba45235ed716ff76646268742990dc9458860 # v2.62.42
+        with:
+          tool: wasm-bindgen
+      - name: Install Node dependencies and build WASM
+        working-directory: ./duper-js-wasm
+        run: |
+          npm install
+          npm run build
+      - name: Test with Vitest
+        working-directory: ./duper-js-wasm
+        run: |
+          npm run test

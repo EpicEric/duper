@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2025-10-30)
 
 ### Changed
 
-- Swap `pest` parser for `chumsky`.
+- **Breaking**: Swap `pest` parser for `chumsky`.
+- **Breaking:** Implement changes from specification 0.3.0.
 
 ## 0.2.2 (2025-10-28)
 
@@ -32,7 +33,7 @@
 
 ### Changed
 
-- Implement changes from specification 0.2.0.
+- **Breaking**: Implement changes from specification 0.2.0.
 
 ### Fixed
 
@@ -40,7 +41,7 @@
 
 ### Removed
 
-- Unused `serde` feature.
+- **Breaking**: Unused `serde` feature.
 
 ## 0.1.1 (2025-10-22)
 

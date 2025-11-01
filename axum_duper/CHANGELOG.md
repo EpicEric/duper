@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 (2025-10-30)
+
+### Changed
+
+- **Breaking:** Depend directly on `duper` instead of `serde_duper`.
+
 ## 0.2.2 (2025-10-23)
 
 ### Changed

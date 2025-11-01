@@ -12,6 +12,26 @@ Duper aims to be a human-friendly extension of JSON with quality-of-life improve
 
 [Check out the official website](https://duper.dev.br) for examples, quick start guides, and more.
 
+```duper
+UserProfile({
+  id: Uuid("f111c275-b4ce-4392-8e5b-19067ce39b53"),
+  username: "EpicEric",
+  email: EmailAddress("eric@duper.dev.br"),
+  settings: {
+    "dark mode": true,
+    language: Locale("pt-BR"),
+    metadata: null,
+  },
+  score: 120.25,
+  // Support for bytes, woohoo!
+  avatar: Png(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"),
+  bio: r#"Hello! I'm a super "duper" user!"#,
+  last_logins: [
+    (IPv4Address("192.168.1.100"), DateTime("2024-03-20T14:30:00Z")),
+  ],
+})
+```
+
 ## Why Duper?
 
 Duper excels in a variety of use cases:
@@ -20,6 +40,6 @@ Duper excels in a variety of use cases:
 - Thanks to its self-documenting identifiers, Duper feels right at home in REST APIs.
 - With support for bytes and raw data, minimal syntax, and compatibility with JSON, Duper is also a great choice for data interchange.
 
-## A formal specification for implementers
+## For implementers
 
-See [the specification](https://duper.dev.br/spec.html) and the [official Chumsky parser](duper/src/parser.rs) for more details.
+See [the specification](https://duper.dev.br/spec.html) for more details.

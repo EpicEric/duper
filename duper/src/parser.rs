@@ -35,7 +35,7 @@ impl DuperParser {
         input: &'a str,
         errors: &[Rich<'a, char>],
         filename: Option<&str>,
-    ) -> String {
+    ) -> std::io::Result<String> {
         let filename = filename.unwrap_or("input");
         let mut message = Vec::new();
         for rich in errors.iter() {
@@ -53,11 +53,11 @@ impl DuperParser {
                     .with_color(ariadne::Color::Red),
             )
             .finish()
-            .write(ariadne::sources([(filename, input)]), &mut message)
-            .unwrap();
+            .write(ariadne::sources([(filename, input)]), &mut message)?;
         }
-        // String::from_utf8(message).unwrap()
-        String::from_utf8_lossy(&message).into_owned()
+        String::try_from(message).map_err(|_| {
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "generated invalid UTF-8")
+        })
     }
 }
 
@@ -89,18 +89,32 @@ pub(crate) fn whitespace_and_comments<'a>()
 }
 
 pub(crate) fn identifier_lossy<'a>()
--> impl Parser<'a, &'a str, Option<String>, extra::Err<Rich<'a, char>>> + Clone {
-    let subsequent_characters = one_of("-_")
-        .then_ignore(one_of("-_").repeated())
-        .or_not()
-        .then(
-            any()
-                .filter(|c: &char| c.is_ascii_alphanumeric())
-                .labelled("ASCII alphanumeric"),
+-> impl Parser<'a, &'a str, String, extra::Err<Rich<'a, char>>> + Clone {
+    let skippable_characters = none_of("-_")
+        .and_is(any().filter(|c: &char| !c.is_ascii_alphanumeric()))
+        .labelled("non-ASCII alphanumeric")
+        .repeated()
+        .ignored();
+
+    let subsequent_characters = skippable_characters
+        .ignore_then(
+            one_of("-_")
+                .or_not()
+                .then_ignore(
+                    any()
+                        .filter(|c: &char| !c.is_ascii_alphanumeric())
+                        .repeated(),
+                )
+                .then(
+                    any()
+                        .filter(|c: &char| c.is_ascii_alphanumeric())
+                        .labelled("ASCII alphanumeric"),
+                )
+                .padded_by(skippable_characters),
         )
         .repeated();
 
-    identifier().to(None).or(one_of('A'..='Z')
+    one_of('A'..='Z')
         .or(one_of('a'..='z'))
         .labelled("ASCII letter")
         .map(|c: char| c.to_ascii_uppercase().to_string())
@@ -114,7 +128,7 @@ pub(crate) fn identifier_lossy<'a>()
                 acc
             },
         )
-        .map(Some))
+        .then_ignore(one_of("-_").repeated().then(end()))
 }
 
 pub(crate) fn identifier<'a>()
@@ -978,7 +992,35 @@ mod duper_parser_tests {
         "#;
         assert!(DuperParser::parse_duper_value(input).is_err());
         let input = r#"
-            {1234: "invalid key"}
+            {1a: "no starting digit in key"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {-a: "no starting hyphen in key"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {a-: "no ending hyphen in key"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {a_: "no ending underscore in key"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {a--b: "no consecutive hyphens in key"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {a__b: "no consecutive underscores in key"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {a_-b: "no underscore followed by hyphen in key"}
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            {a-_b: "no hyphen followed by underscore in key"}
         "#;
         assert!(DuperParser::parse_duper_value(input).is_err());
         let input = r#"
@@ -1013,7 +1055,43 @@ mod duper_parser_tests {
 
         // Identifiers and values
         let input = r#"
-            ÑInvalidIdentifier({})
+            NoÜnicodeÇharacters({})
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            1NoStartingNumber({})
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            noStartingLowercase({})
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            No Space({})
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            -NoStartingHyphen({})
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            _NoStartingUnderscore({})
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            NoEndingHyphen-({})
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            NoEndingUnderscore_({})
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            No-_HyphenThenUnderscore({})
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            No_-UnderscoreThenHyphen({})
         "#;
         assert!(DuperParser::parse_duper_value(input).is_err());
         let input = r#"

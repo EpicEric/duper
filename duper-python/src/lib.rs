@@ -141,7 +141,9 @@ mod duper_py {
             false => DuperParser::parse_duper_trunk(s),
         }
         .map_err(|err| {
-            PyErr::new::<PyValueError, String>(DuperParser::prettify_error(s, &err, None))
+            PyErr::new::<PyValueError, String>(
+                DuperParser::prettify_error(s, &err, None).unwrap_or_else(|_| format!("{err:?}")),
+            )
         })?;
         value
             .accept(&mut Visitor { py })
@@ -162,7 +164,9 @@ mod duper_py {
             false => DuperParser::parse_duper_trunk(s),
         }
         .map_err(|err| {
-            PyErr::new::<PyValueError, String>(DuperParser::prettify_error(s, &err, None))
+            PyErr::new::<PyValueError, String>(
+                DuperParser::prettify_error(s, &err, None).unwrap_or_else(|_| format!("{err:?}")),
+            )
         })?;
         value
             .accept(&mut Visitor { py })
