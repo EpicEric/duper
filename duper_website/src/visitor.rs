@@ -1,12 +1,13 @@
+use base64::{Engine, prelude::BASE64_STANDARD};
 use duper::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
     DuperTuple, DuperValue, visitor::DuperVisitor,
 };
 
 // A visitor that transforms bytes into an array of integers.
-pub(crate) struct RemoveBytesVisitor;
+pub(crate) struct EncodeBytesVisitor;
 
-impl DuperVisitor for RemoveBytesVisitor {
+impl DuperVisitor for EncodeBytesVisitor {
     type Value = DuperValue<'static>;
 
     fn visit_object<'a>(
@@ -72,16 +73,9 @@ impl DuperVisitor for RemoveBytesVisitor {
         identifier: Option<&DuperIdentifier<'a>>,
         bytes: &DuperBytes<'a>,
     ) -> Self::Value {
-        let mut new_array = Vec::with_capacity(bytes.as_ref().len());
-        for value in bytes.as_ref().iter() {
-            new_array.push(DuperValue {
-                identifier: None,
-                inner: DuperInner::Integer((*value).into()),
-            });
-        }
         DuperValue {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::Array(DuperArray::from(new_array)),
+            inner: DuperInner::String(DuperString::from(BASE64_STANDARD.encode(bytes.as_ref()))),
         }
     }
 

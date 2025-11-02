@@ -64,13 +64,14 @@ pub fn convert_duper(value: &str, to: Option<ConvertDuperTo>) -> Result<String, 
         ))
     })?;
 
+    let duper = duper.accept(&mut visitor::EncodeBytesVisitor {});
+
     match target {
         ConvertTo::Json => {
             serde_json::to_string_pretty(&duper).map_err(|err| JsError::new(&err.to_string()))
         }
         ConvertTo::Yaml => {
-            serde_yaml_ng::to_string(&duper.accept(&mut visitor::RemoveBytesVisitor {}))
-                .map_err(|err| JsError::new(&err.to_string()))
+            serde_yaml_ng::to_string(&duper).map_err(|err| JsError::new(&err.to_string()))
         }
         ConvertTo::Toml => {
             toml::to_string_pretty(&duper).map_err(|err| JsError::new(&err.to_string()))

@@ -17,17 +17,17 @@ hero:
       link: https://github.com/EpicEric/duper
 
 features:
-  - title: Ergonomic
-    details: Optional quotes for keys, trailing commas, comments, and clean syntax.
-    icon: 🎨
+  - title: Hand-writing ergonomics
+    details: Trailing commas, comments, and optional quotes for keys.
+    icon: 🦾
   - title: Rich types
-    details: Tuples, bytes, raw strings, and more beyond basic JSON.
-    icon: 🔧
+    details: Tuples, bytes, raw strings, and proper integer support.
+    icon: 🧰
   - title: JSON-compatible
     details: Every valid JSON file is automatically valid Duper.
-    icon: 🔄
+    icon: 🧩
   - title: Self-documenting
-    details: Identifiers provide guidance, readability, and validation.
+    details: Identifiers provide readability, debuggability, and optional validation.
     icon: 📝
 ---
 
@@ -58,8 +58,8 @@ const initial = `UserProfile({
 Duper excels in a variety of use cases:
 
 - **Configuration files**: Duper's explicit types and identifiers serve as helpful guides when users need to modify values.
-- **REST APIs**: Self-documenting identifiers make Duper feel natural in API payloads and responses.
-- **Data interchange**: With support for bytes, raw data, minimal syntax, and JSON compatibility, Duper is ideal for data exchange between systems.
+- **REST APIs**: Self-documenting identifiers make Duper a natural fit for API responses.
+- **Data interchange**: With support for bytes, raw data, JSON compatibility, and identifiers that can be turned on for debugging-only, Duper is ideal for data exchange between systems.
 
 ## Playground
 
@@ -67,22 +67,22 @@ Duper excels in a variety of use cases:
 
 ## Comparison
 
-| Feature         | Duper | JSON | JSON5 | YAML              | TOML              |
-| --------------- | ----- | ---- | ----- | ----------------- | ----------------- |
-| Comments        | ✅    | ❌   | ✅    | ✅                | ✅                |
-| Trailing commas | ✅    | ❌   | ✅    | ✅                | ✅                |
-| Unquoted keys   | ✅    | ❌   | ✅    | ✅                | ✅                |
-| Integers        | ✅    | ❌   | ❌    | ✅                | ✅                |
-| Tuples          | ✅    | ❌   | ❌    | ❌                | ❌                |
-| Bytes           | ✅    | ❌   | ❌    | ✅<sup>\[1]</sup> | ❌                |
-| Date and time   | ❌    | ❌   | ❌    | ✅                | ✅                |
-| Raw strings     | ✅    | ❌   | ❌    | ✅                | ✅                |
-| Identifiers     | ✅    | ❌   | ❌    | ❌                | ❌                |
-| Unambiguous     | ✅    | ✅   | ✅    | ❌<sup>\[2]</sup> | ⚠️<sup>\[3]</sup> |
-| Simple          | ✅    | ✅   | ✅    | ❌                | ✅                |
-| JSON-compatible | ✅    | ✅   | ✅    | ✅                | ❌                |
-| Popular         | ❌    | ✅   | ⚠️    | ✅                | ✅                |
+| Feature          | Duper | JSON | JSON5 | YAML              | TOML              | RON |
+| ---------------- | ----- | ---- | ----- | ----------------- | ----------------- | --- |
+| Comments         | ✅    | ❌   | ✅    | ✅                | ✅                | ✅  |
+| Trailing commas  | ✅    | ❌   | ✅    | ✅                | ✅                | ✅  |
+| Unquoted keys    | ✅    | ❌   | ✅    | ✅                | ✅                | ✅  |
+| Integers         | ✅    | ❌   | ❌    | ✅                | ✅                | ✅  |
+| Tuples           | ✅    | ❌   | ❌    | ❌                | ❌                | ✅  |
+| Bytes            | ✅    | ❌   | ❌    | ✅<sup>\[1]</sup> | ❌                | ✅  |
+| Date and time    | ❌    | ❌   | ❌    | ✅                | ✅                | ❌  |
+| Raw strings      | ✅    | ❌   | ❌    | ✅                | ✅                | ✅  |
+| Identifiers/tags | ✅    | ❌   | ❌    | ✅                | ❌                | ✅  |
+| Unambiguous      | ✅    | ✅   | ✅    | ❌<sup>\[2]</sup> | ⚠️<sup>\[3]</sup> | ✅  |
+| Simple           | ✅    | ✅   | ✅    | ❌                | ✅                | ✅  |
+| JSON-compatible  | ✅    | ✅   | ✅    | ✅                | ❌                | ❌  |
+| Popular          | ❌    | ✅   | ⚠️    | ✅                | ✅                | ⚠️  |
 
 - <sup>[1]</sup> Using the [`!!binary` scalar type](https://yaml.org/type/binary.html) and base64 text; limited support in implementations.
 - <sup>[2]</sup> Unquoted strings can get confused with other scalars and [vice-versa](https://www.bram.us/2022/01/11/yaml-the-norway-problem/).
-- <sup>[3]</sup> Tabs in [strings](https://toml.io/en/v1.0.0#string).
+- <sup>[3]</sup> Tabs allowed in [strings](https://toml.io/en/v1.0.0#string).

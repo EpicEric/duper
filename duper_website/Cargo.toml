@@ -13,6 +13,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
+base64 = "0.22.1"
 duper = { path = "../duper", features = ["serde"] }
 js-sys = "0.3.81"
 serde = "1.0.228"
