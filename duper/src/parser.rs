@@ -90,7 +90,7 @@ pub(crate) fn whitespace_and_comments<'a>()
 }
 
 pub(crate) fn identifier_lossy<'a>()
--> impl Parser<'a, &'a str, String, extra::Err<Rich<'a, char>>> + Clone {
+-> impl Parser<'a, &'a str, DuperIdentifier<'static>, extra::Err<Rich<'a, char>>> + Clone {
     let skippable_characters = none_of("-_")
         .and_is(any().filter(|c: &char| !c.is_ascii_alphanumeric()))
         .labelled("non-ASCII alphanumeric")
@@ -130,6 +130,7 @@ pub(crate) fn identifier_lossy<'a>()
             },
         )
         .then_ignore(one_of("-_").repeated().then(end()))
+        .map(|string| DuperIdentifier(Cow::Owned(string)))
 }
 
 pub(crate) fn identifier<'a>()

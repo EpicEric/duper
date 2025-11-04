@@ -102,16 +102,15 @@ impl<'a> DuperIdentifier<'a> {
             return Err(DuperIdentifierTryFromError::EmptyIdentifier);
         }
         // Eagerly try the non-lossy version first.
-        // This might lead to an extra allocation if the Cow is owned...
-        if let Ok(identifier) = DuperIdentifier::try_from(value.clone()) {
-            return Ok(identifier);
+        if DuperIdentifier::try_from(value.as_ref()).is_ok() {
+            return Ok(DuperIdentifier(value));
         }
         let invalid_char_pos = match parser::identifier_lossy()
             .parse(value.as_ref())
             .into_result()
         {
             Err(errs) => errs[0].span().start,
-            Ok(identifier) => return Ok(DuperIdentifier(Cow::Owned(identifier))),
+            Ok(identifier) => return Ok(identifier),
         };
         Err(DuperIdentifierTryFromError::InvalidChar(
             value,
@@ -302,7 +301,7 @@ impl<'a> PartialEq for DuperObject<'a> {
         if self.0.len() != other.0.len() {
             return false;
         }
-        let other_map: HashMap<_, _> = other.0.iter().map(|(k, v)| (k.clone(), v)).collect();
+        let other_map: HashMap<_, _> = other.0.iter().map(|(k, v)| (k, v)).collect();
         for (k, v) in self.0.iter() {
             match other_map.get(k) {
                 Some(v2) => {
