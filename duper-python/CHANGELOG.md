@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add `minify` option to `dump`/`dumps`.
+
 ## 0.2.2 (2025-10-28)
 
 ### Changed

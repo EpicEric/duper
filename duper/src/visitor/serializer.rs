@@ -16,14 +16,16 @@ use crate::{
 pub struct Serializer {
     buf: String,
     strip_identifiers: bool,
+    minify: bool,
 }
 
 impl Serializer {
-    /// Create a new [`Serializer`] visitor with the provided option.
-    pub fn new(strip_identifiers: bool) -> Self {
+    /// Create a new [`Serializer`] visitor with the provided options.
+    pub fn new(strip_identifiers: bool, minify: bool) -> Self {
         Self {
             buf: String::new(),
             strip_identifiers,
+            minify,
         }
     }
 
@@ -52,10 +54,18 @@ impl DuperVisitor for Serializer {
             self.buf.push_str("({");
             for (i, (key, value)) in object.iter().enumerate() {
                 self.buf.push_str(&format_key(key));
-                self.buf.push_str(": ");
+                if self.minify {
+                    self.buf.push(':');
+                } else {
+                    self.buf.push_str(": ");
+                }
                 value.accept(self);
                 if i < len - 1 {
-                    self.buf.push_str(", ");
+                    if self.minify {
+                        self.buf.push(',');
+                    } else {
+                        self.buf.push_str(", ");
+                    }
                 }
             }
             self.buf.push_str("})");
@@ -63,10 +73,18 @@ impl DuperVisitor for Serializer {
             self.buf.push('{');
             for (i, (key, value)) in object.iter().enumerate() {
                 self.buf.push_str(&format_key(key));
-                self.buf.push_str(": ");
+                if self.minify {
+                    self.buf.push(':');
+                } else {
+                    self.buf.push_str(": ");
+                }
                 value.accept(self);
                 if i < len - 1 {
-                    self.buf.push_str(", ");
+                    if self.minify {
+                        self.buf.push(',');
+                    } else {
+                        self.buf.push_str(", ");
+                    }
                 }
             }
             self.buf.push('}');
@@ -88,7 +106,11 @@ impl DuperVisitor for Serializer {
             for (i, value) in array.iter().enumerate() {
                 value.accept(self);
                 if i < len - 1 {
-                    self.buf.push_str(", ");
+                    if self.minify {
+                        self.buf.push(',');
+                    } else {
+                        self.buf.push_str(", ");
+                    }
                 }
             }
             self.buf.push_str("])");
@@ -97,7 +119,11 @@ impl DuperVisitor for Serializer {
             for (i, value) in array.iter().enumerate() {
                 value.accept(self);
                 if i < len - 1 {
-                    self.buf.push_str(", ");
+                    if self.minify {
+                        self.buf.push(',');
+                    } else {
+                        self.buf.push_str(", ");
+                    }
                 }
             }
             self.buf.push(']');
@@ -119,7 +145,11 @@ impl DuperVisitor for Serializer {
             for (i, value) in tuple.iter().enumerate() {
                 value.accept(self);
                 if i < len - 1 {
-                    self.buf.push_str(", ");
+                    if self.minify {
+                        self.buf.push(',');
+                    } else {
+                        self.buf.push_str(", ");
+                    }
                 }
             }
             self.buf.push_str("))");
@@ -128,7 +158,11 @@ impl DuperVisitor for Serializer {
             for (i, value) in tuple.iter().enumerate() {
                 value.accept(self);
                 if i < len - 1 {
-                    self.buf.push_str(", ");
+                    if self.minify {
+                        self.buf.push(',');
+                    } else {
+                        self.buf.push_str(", ");
+                    }
                 }
             }
             self.buf.push(')');

@@ -437,6 +437,6 @@ impl JsDuperValue {
 
     #[wasm_bindgen(js_name = toString)]
     pub fn to_string(&self) -> Result<String, JsValue> {
-        Ok(Serializer::new(false).serialize(self.serialize()?))
+        Ok(Serializer::new(false, false).serialize(self.serialize()?))
     }
 }

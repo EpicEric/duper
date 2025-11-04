@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add `minify` option to `stringify`.
+
 ## 0.2.1 (2025-11-01)
 
 ### Changed

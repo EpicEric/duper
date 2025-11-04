@@ -45,7 +45,7 @@ pub fn to_string<T>(value: &T) -> Result<String, Error>
 where
     T: Serialize,
 {
-    Ok(DuperSerializer::new(false).serialize(to_duper(value)?))
+    Ok(DuperSerializer::new(false, false).serialize(to_duper(value)?))
 }
 
 /// Serialize the given data structure as a [`String`] of a Duper value, stripping
@@ -59,7 +59,7 @@ pub fn to_string_minified<T>(value: &T) -> Result<String, Error>
 where
     T: Serialize,
 {
-    Ok(DuperSerializer::new(true).serialize(to_duper(value)?))
+    Ok(DuperSerializer::new(true, true).serialize(to_duper(value)?))
 }
 
 /// Serialize the given data structure as a [`String`] of a Duper value,

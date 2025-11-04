@@ -4,6 +4,8 @@ exports[`parse then stringify > doesn't modify original object 1`] = `"Product({
 
 exports[`parse then stringify > inserts object entry 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Kilograms(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"], test: {foo: "bar"}})"`;
 
+exports[`parse then stringify > minifies output 1`] = `"{dimensions:(18.5,15.2,7.8),weight:0.285,image_thumbnail:b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=",tags:["electronics","audio","wireless"]}"`;
+
 exports[`parse then stringify > pretty-prints output 1`] = `
 "Product({
   dimensions: (

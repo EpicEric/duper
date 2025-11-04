@@ -43,6 +43,7 @@ def dumps(
     *,
     indent: str | int | None = None,
     strip_identifiers: bool = False,
+    minify: bool = False,
 ) -> str:
     """Serialize ``obj`` to a Duper value formatted ``str``.
 
@@ -52,7 +53,10 @@ def dumps(
     tabs. ``None`` is the most compact representation.
 
     If ``strip_identifiers`` is ``True``, then this function will strip
-    all identifiers from the serialized value."""
+    all identifiers from the serialized value.
+
+    If ``minify`` is ``True``, then this function will remove any extra
+    whitespace. This is incompatible with the ``indent`` option."""
 
 def dump(
     obj: Any,  # pyright: ignore[reportExplicitAny, reportAny]
@@ -60,6 +64,7 @@ def dump(
     *,
     indent: str | int | None = None,
     strip_identifiers: bool = False,
+    minify: bool = False,
 ) -> None:
     """Serialize ``obj`` as a Duper value formatted stream to ``fp`` (a
     ``.write()``-supporting file-like object).
@@ -70,39 +75,42 @@ def dump(
     tabs. ``None`` is the most compact representation.
 
     If ``strip_identifiers`` is ``True``, then this function will strip
-    all identifiers from the serialized value."""
+    all identifiers from the serialized value.
+
+    If ``minify`` is ``True``, then this function will remove any extra
+    whitespace. This is incompatible with the ``indent`` option."""
 
 @overload
 def loads(
     s: str, *, parse_any: Literal[False] = False
-) -> BaseModel | list[DuperType]: ...
+) -> BaseModel | list[DuperType] | tuple[DuperType, ...]: ...
 @overload
 def loads(
     s: str, *, parse_any: Literal[True]
-) -> BaseModel | list[DuperType] | DuperType: ...
+) -> BaseModel | list[DuperType] | tuple[DuperType, ...] | DuperType: ...
 def loads(
     s: str, *, parse_any: bool = False
-) -> BaseModel | list[DuperType] | DuperType:
+) -> BaseModel | list[DuperType] | tuple[DuperType, ...] | DuperType:
     """Deserialize ``s`` (a ``str`` instance containing a Duper object or
     array) to a Pydantic model.
 
     If ``parse_any`` is ``True``, then this function will also deserialize
-    types other than objects and arrays.
+    types other than objects, arrays, and tuples.
     """
 
 @overload
 def load(
     fp: TextIOBase, *, parse_any: Literal[False] = False
-) -> BaseModel | list[DuperType]: ...
+) -> BaseModel | list[DuperType] | tuple[DuperType, ...]: ...
 @overload
 def load(
     fp: TextIOBase, *, parse_any: Literal[True]
-) -> BaseModel | list[DuperType] | DuperType: ...
+) -> BaseModel | list[DuperType] | tuple[DuperType, ...] | DuperType: ...
 def load(
     fp: TextIOBase, *, parse_any: bool = False
-) -> BaseModel | list[DuperType] | DuperType:
+) -> BaseModel | list[DuperType] | tuple[DuperType, ...] | DuperType:
     """Deserialize ``fp`` (a ``.read()``-supporting file-like object
     containing a Duper object or array) to a Pydantic model.
 
     If ``parse_any`` is ``True``, then this function will also deserialize
-    types other than objects and arrays."""
+    types other than objects, arrays, and tuples."""

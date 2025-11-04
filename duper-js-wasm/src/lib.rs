@@ -11,6 +11,7 @@ mod ser;
 struct StringifyOptions {
     indent: Option<String>,
     strip_identifiers: bool,
+    minify: bool,
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -19,10 +20,12 @@ const I_STRINGIFY_OPTIONS: &'static str = r#"
  * @property {string | number} [indent] - Whitespace string to use as indentation, or the number of
  * spaces to use as indentation.
  * @property {boolean} [stripIdentifiers] - Whether Duper identifiers should be removed from the stringified value.
+ * @property {boolean} [minify] - Whether stringify should minify the value. Not compatible with `indent`.
  */
 interface IStringifyOptions {
     indent?: string | number;
     stripIdentifiers?: boolean;
+    minify?: boolean;
 }"#;
 
 #[wasm_bindgen]
@@ -40,6 +43,7 @@ pub fn stringify(value: &JsValue, options: Option<IStringifyOptions>) -> Result<
     let StringifyOptions {
         indent,
         strip_identifiers,
+        minify,
     } = if options.is_truthy() {
         let indent = Reflect::get(&options, &JsValue::from_str("indent"))
             .map_err(|e| JsError::new(&format!("Failed to get property indent: {:?}", e)))?;
@@ -47,6 +51,8 @@ pub fn stringify(value: &JsValue, options: Option<IStringifyOptions>) -> Result<
             .map_err(|e| {
                 JsError::new(&format!("Failed to get property stripIdentifiers: {:?}", e))
             })?;
+        let minify = Reflect::get(&options, &JsValue::from_str("minify"))
+            .map_err(|e| JsError::new(&format!("Failed to get property minify: {:?}", e)))?;
         StringifyOptions {
             indent: if let Some(indent) = indent.as_f64() {
                 Some((0..indent as u32).map(|_| ' ').collect())
@@ -54,19 +60,27 @@ pub fn stringify(value: &JsValue, options: Option<IStringifyOptions>) -> Result<
                 indent.as_string()
             },
             strip_identifiers: strip_identifiers.is_truthy(),
+            minify: minify.is_truthy(),
         }
     } else {
         StringifyOptions {
             indent: None,
             strip_identifiers: false,
+            minify: false,
         }
     };
     if let Some(indent) = indent {
-        Ok(PrettyPrinter::new(strip_identifiers, &indent)
-            .map_err(|e| JsError::new(&format!("Failed to pretty print Duper: {:?}", e)))?
-            .pretty_print(value))
+        if minify {
+            Err(JsError::new(
+                "Cannot stringify with both indent and minify options",
+            ))
+        } else {
+            Ok(PrettyPrinter::new(strip_identifiers, &indent)
+                .map_err(|e| JsError::new(&format!("Failed to pretty print Duper: {:?}", e)))?
+                .pretty_print(value))
+        }
     } else {
-        Ok(Serializer::new(strip_identifiers).serialize(value))
+        Ok(Serializer::new(strip_identifiers, minify).serialize(value))
     }
 }
 

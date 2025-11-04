@@ -65,15 +65,20 @@ mod duper_py {
     use crate::{de::Visitor, ser::serialize_pyany};
 
     #[pyfunction]
-    #[pyo3(signature = (obj, *, indent=None, strip_identifiers=false))]
+    #[pyo3(signature = (obj, *, indent=None, strip_identifiers=false, minify=false))]
     fn dumps<'py>(
         obj: Bound<'py, PyAny>,
         indent: Option<Bound<'py, PyAny>>,
         strip_identifiers: bool,
+        minify: bool,
     ) -> PyResult<String> {
         let value: DuperValue = serialize_pyany(obj)?;
         if let Some(indent) = indent {
-            if indent.is_instance_of::<PyInt>() {
+            if minify {
+                Err(PyValueError::new_err(
+                    "cannot stringify with both indent and minify options",
+                ))
+            } else if indent.is_instance_of::<PyInt>() {
                 let indent: usize = indent.extract()?;
                 Ok(PrettyPrinter::new(
                     strip_identifiers,
@@ -92,23 +97,28 @@ mod duper_py {
                 )))
             }
         } else {
-            Ok(Serializer::new(strip_identifiers).serialize(value))
+            Ok(Serializer::new(strip_identifiers, minify).serialize(value))
         }
     }
 
     #[pyfunction]
-    #[pyo3(signature = (obj, fp, *, indent=None, strip_identifiers=false))]
+    #[pyo3(signature = (obj, fp, *, indent=None, strip_identifiers=false, minify=false))]
     fn dump<'py>(
         obj: Bound<'py, PyAny>,
         fp: Bound<'py, PyAny>,
         indent: Option<Bound<'py, PyAny>>,
         strip_identifiers: bool,
+        minify: bool,
     ) -> PyResult<()> {
         let value: DuperValue = serialize_pyany(obj)?;
         fp.call_method1(
             "write",
             (if let Some(indent) = indent {
-                if indent.is_instance_of::<PyInt>() {
+                if minify {
+                    return Err(PyValueError::new_err(
+                        "cannot stringify with both indent and minify options",
+                    ));
+                } else if indent.is_instance_of::<PyInt>() {
                     let indent: usize = indent.extract()?;
                     PrettyPrinter::new(
                         strip_identifiers,
@@ -122,12 +132,12 @@ mod duper_py {
                         .map_err(|error| PyErr::new::<PyValueError, String>(error.into()))?
                         .pretty_print(value)
                 } else {
-                    Err(PyErr::new::<PyValueError, String>(format!(
+                    return Err(PyErr::new::<PyValueError, String>(format!(
                         "expect indent to be string or int, found {indent:?}"
-                    )))?
+                    )));
                 }
             } else {
-                Serializer::new(strip_identifiers).serialize(value)
+                Serializer::new(strip_identifiers, minify).serialize(value)
             },),
         )?;
         Ok(())

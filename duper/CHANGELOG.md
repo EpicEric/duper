@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add `minify` option to `Serializer`.
+
 ## 0.3.0 (2025-10-30)
 
 ### Changed

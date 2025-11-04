@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { assert, describe, expect, it } from "vitest";
 import { parse, stringify, DuperValue } from "..";
 
 describe("parse then stringify", () => {
@@ -58,6 +58,18 @@ describe("parse then stringify", () => {
   it("pretty-prints output", () => {
     const duper = parse(input);
     expect(stringify(duper, { indent: "  " })).toMatchSnapshot();
+  });
+
+  it("minifies output", () => {
+    const duper = parse(input);
+    expect(
+      stringify(duper, { stripIdentifiers: true, minify: true })
+    ).toMatchSnapshot();
+  });
+
+  it("fails on both minify and indent", () => {
+    const duper = parse(input);
+    assert.throws(() => stringify(duper, { indent: 2, minify: true }));
   });
 });
 
