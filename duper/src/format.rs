@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use base64::{Engine, prelude::BASE64_STANDARD};
+
 use crate::{
     ast::{DuperBytes, DuperKey, DuperString},
     escape::{escape_bytes, escape_str, is_invisible_unicode},
@@ -85,6 +87,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
     } else {
         // Check if it's benefic to turn into raw bytes
         let mut bytes_to_escape = 0usize;
+        let mut escaped_bytes_length = 0usize;
         let mut was_quotes = false;
         let mut was_hashtag = false;
         let mut curr_hashtags = 0usize;
@@ -96,6 +99,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
                     was_hashtag = false;
                     was_quotes = true;
                     bytes_to_escape += 1;
+                    escaped_bytes_length += 1;
                 }
                 b'#' if was_hashtag => {
                     curr_hashtags += 1;
@@ -115,10 +119,21 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
                     was_hashtag = false;
                     was_quotes = false;
                     bytes_to_escape += 1;
+                    escaped_bytes_length += 1;
+                }
+                b'\0' | b'\n' | b'\r' | b'\t' => {
+                    has_char_that_should_be_escaped = true;
+                    bytes_to_escape += 1;
+                    escaped_bytes_length += 1;
+                    was_hashtag = false;
+                    was_quotes = false;
                 }
                 byte if byte.is_ascii_control() || byte.is_ascii_whitespace() => {
                     has_char_that_should_be_escaped = true;
-                    break;
+                    bytes_to_escape += 1;
+                    escaped_bytes_length += 3;
+                    was_hashtag = false;
+                    was_quotes = false;
                 }
                 _ => {
                     was_hashtag = false;
@@ -131,6 +146,10 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
             let hashtags: String = (0..max_hashtags).map(|_| '#').collect();
             let unesecaped_bytes: String = bytes.0.iter().copied().map(|b| b as char).collect();
             Cow::Owned(format!(r#"br{hashtags}"{unesecaped_bytes}"{hashtags}"#))
+        } else if 3 * (escaped_bytes_length + bytes.len()) > 4 * bytes.len() + 5 {
+            // Base64 bytes
+            let base64_bytes = BASE64_STANDARD.encode(bytes.as_ref());
+            Cow::Owned(format!(r#"b64"{base64_bytes}""#))
         } else {
             // Regular bytes with escaping
             let escaped_bytes = escape_bytes(&bytes.0);

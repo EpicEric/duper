@@ -1,6 +1,17 @@
 ---
-version: "0.3.1"
+version: "0.4.0-alpha.1"
 ---
+
+<script setup lang="ts">
+import { computed } from "vue";
+import { useData } from "vitepress";
+
+const { frontmatter } = useData();
+
+const formattedVersion = computed(() => {
+  return frontmatter.value.version.replaceAll("-", "--").replaceAll("_", "__").replaceAll(" ", "_");
+})
+</script>
 
 <p align="center">
     <img src="/logos/duper-400.png" alt="The Duper logo, with a confident spectacled mole wearing a flailing blue cape." /> <br>
@@ -8,7 +19,7 @@ version: "0.3.1"
 <h1 align="center">Duper: The format that's super!</h1>
 
 <p align="center">
-    <img :alt="`Specification version ${$frontmatter.version}`" :src="`https://img.shields.io/badge/spec_version-${$frontmatter.version}-3868c7?style=for-the-badge`">
+    <img :alt="`Specification version ${$frontmatter.version}`" :src="`https://img.shields.io/badge/spec_version-${formattedVersion}-3868c7?style=for-the-badge`">
 </p>
 
 Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
@@ -240,6 +251,19 @@ Byte strings are similar to strings, but represent binary data. Like strings, th
   path: br"C:\Windows\System32",
   shrug: br#" "Whatever." ¯\_(ツ)_/¯ "#,
   rust_expression: br##"{ let str = r#"meta string"#; }"##,
+}
+```
+
+**Base64 byte strings** use the `b64` (all lowercase) prefix, and must contain only valid Base64 characters (ASCII lowercase, ASCII uppercase, ASCII digits, plus sign `+`, forward slash `/`) within quotes `"` as per [RFC 4648 section 4](https://datatracker.ietf.org/doc/html/rfc4648#section-4). Whitespace inside of the Base64 byte string is allowed and ignored. Parsers should allow for missing pad characters, while encoders must emit valid padding.
+
+```duper
+{
+  duper: b64"ZHVwZXI=",
+  duper_no_padding: b64"ZHVwZXI",
+  with_whitespace: b64"  ABC+ZA==  ",
+
+  too_much_padding: b64"ZHVwZXI===",  // INVALID
+  invalid_characters: b64"QUFB-Q==",  // INVALID
 }
 ```
 

@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use base64::Engine;
 use chumsky::prelude::*;
 
 use crate::{
@@ -178,10 +179,11 @@ pub(crate) fn identified_value<'a>()
             object(identified_value.clone()).map(DuperInner::Object),
             array(identified_value.clone()).map(DuperInner::Array),
             tuple(identified_value).map(DuperInner::Tuple),
-            quoted_string().map(|cow_str| DuperInner::String(DuperString(cow_str))),
-            raw_string().map(|str| DuperInner::String(DuperString(Cow::Borrowed(str)))),
+            base64_bytes().map(|bytes| DuperInner::Bytes(DuperBytes(Cow::Owned(bytes)))),
             quoted_bytes().map(|cow_bytes| DuperInner::Bytes(DuperBytes(cow_bytes))),
             raw_bytes().map(|bytes| DuperInner::Bytes(DuperBytes(Cow::Borrowed(bytes)))),
+            quoted_string().map(|cow_str| DuperInner::String(DuperString(cow_str))),
+            raw_string().map(|str| DuperInner::String(DuperString(Cow::Borrowed(str)))),
             float().map(DuperInner::Float),
             integer().map(DuperInner::Integer),
             boolean().map(DuperInner::Boolean),
@@ -330,15 +332,37 @@ pub(crate) fn value_recovery<'a>()
 pub(crate) fn quoted_string<'a>()
 -> impl Parser<'a, &'a str, Cow<'a, str>, extra::Err<Rich<'a, char>>> + Clone {
     quoted_inner()
-        .delimited_by(just('"'), just('"'))
         .try_map(|str, span| unescape_str(str).map_err(|err| Rich::custom(span, err)))
+        .delimited_by(just('"'), just('"'))
+}
+
+pub(crate) fn base64_bytes<'a>()
+-> impl Parser<'a, &'a str, Vec<u8>, extra::Err<Rich<'a, char>>> + Clone {
+    any()
+        .filter(|char: &char| {
+            char.is_ascii_alphanumeric() || *char == '+' || *char == '/' || *char == '='
+        })
+        .labelled("a Base64 digit")
+        .padded()
+        .repeated()
+        .collect::<String>()
+        .try_map(|bytes, span| {
+            base64::engine::GeneralPurpose::new(
+                &base64::alphabet::STANDARD,
+                base64::engine::GeneralPurposeConfig::new()
+                    .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent),
+            )
+            .decode(bytes)
+            .map_err(|err| Rich::custom(span, err))
+        })
+        .delimited_by(just("b64\""), just('"'))
 }
 
 pub(crate) fn quoted_bytes<'a>()
 -> impl Parser<'a, &'a str, Cow<'a, [u8]>, extra::Err<Rich<'a, char>>> + Clone {
     quoted_inner()
-        .delimited_by(just("b\""), just('"'))
         .try_map(|bytes, span| unescape_bytes(bytes).map_err(|err| Rich::custom(span, err)))
+        .delimited_by(just("b\""), just('"'))
 }
 
 pub(crate) fn quoted_inner<'a>()
@@ -628,7 +652,19 @@ mod duper_parser_tests {
         assert!(matches!(duper.inner, DuperInner::String(_)));
 
         let input = r#"
+            b"\x1b\t\x00"
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Bytes(_)));
+
+        let input = r#"
             br"¯\_(ツ)_/¯"
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Bytes(_)));
+
+        let input = r#"
+            b64"RHVwZXI"
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(duper.inner, DuperInner::Bytes(_)));
@@ -755,6 +791,14 @@ mod duper_parser_tests {
         assert!(DuperParser::parse_duper_value(input).is_err());
         let input = r#"
             "unknown escape \e"
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            b64"RHVwZXI=="  // Too much padding
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            b64"ABC-"  // Invalid character
         "#;
         assert!(DuperParser::parse_duper_value(input).is_err());
 
@@ -1148,7 +1192,7 @@ mod duper_parser_tests {
                     noise_cancellation: true,
                     connectivity: ["Bluetooth 5.0", "3.5mm Jack"],
                 },
-                image_thumbnail: Png(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x64"),
+                image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
                 tags: ["electronics", "audio", "wireless"],
                 release_date: Date("2023-11-15"),
                 /* Warranty is optional */

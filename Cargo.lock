@@ -300,6 +300,7 @@ name = "duper"
 version = "0.3.0"
 dependencies = [
  "ariadne",
+ "base64",
  "chumsky",
  "insta",
  "owo-colors",

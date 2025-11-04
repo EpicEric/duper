@@ -19,7 +19,7 @@ TextMateGrammar({
     strings: {
       patterns: [
         {
-          name: "string.quoted.double.raw_one.duper",
+          name: "string.quoted.double.raw.duper",
           begin: Regex("b?r(#*)\""),
           beginCaptures: {
             "1": { name: "punctuation.definition.string.raw.duper" },
@@ -28,6 +28,17 @@ TextMateGrammar({
           endCaptures: {
             "1": { name: "punctuation.definition.string.raw.duper" },
           },
+        },
+        {
+          name: "string.quoted.base64.duper",
+          begin: Regex("b64\""),
+          end: Regex("\""),
+          patterns: [
+            {
+              name: "string.quoted.base64content.duper",
+              match: Regex(r#"\s*[A-Za-z0-9+/=]*\s*"#),
+            },
+          ],
         },
         {
           name: "string.quoted.double.duper",

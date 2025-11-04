@@ -74,7 +74,7 @@ const input = `
       noise_cancellation: true,
       connectivity: ["Bluetooth 5.0", "3.5mm Jack"],
     },
-    image_thumbnail: Png(b"\\x89PNG\\r\\n\\x1a\\n\\x00\\x00\\x00\\rIHDR\\x00\\x00\\x00\\x64"),
+    image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
     tags: ["electronics", "audio", "wireless"],
     release_date: Date("2023-11-15"),
     /* Warranty is optional */

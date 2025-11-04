@@ -81,7 +81,7 @@ We can get rid of the quotes for simple keys, use trailing commas, and include c
     noise_cancellation: true,
     connectivity: ["Bluetooth 5.0", "3.5mm Jack"],
   },
-  image_thumbnail: b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x64",
+  image_thumbnail: b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=",
   tags: ["electronics", "audio", "wireless"],
   release_date: "2023-11-15",
   /* Warranty is optional */
@@ -113,7 +113,7 @@ Product({
     noise_cancellation: true,
     connectivity: ["Bluetooth 5.0", "3.5mm Jack"],
   },
-  image_thumbnail: Png(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x64"),
+  image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
   tags: ["electronics", "audio", "wireless"],
   release_date: Date("2023-11-15"),
   /* Warranty is optional */
