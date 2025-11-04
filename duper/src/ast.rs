@@ -431,6 +431,11 @@ impl<'a> DuperBytes<'a> {
     pub fn into_inner(self) -> Cow<'a, [u8]> {
         self.0
     }
+
+    /// Returns the amount of bytes in this value's slice.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 impl<'a> From<Cow<'a, [u8]>> for DuperBytes<'a> {

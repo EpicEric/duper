@@ -24,6 +24,7 @@ serde_core = { version = "1", optional = true }
 unicode-general-category = "1"
 chumsky = "0.11"
 ariadne = { version = "0.6", features = ["auto-color"] }
+base64 = "0.22.1"
 
 [dev-dependencies]
 insta = "1.43.2"

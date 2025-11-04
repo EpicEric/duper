@@ -1,8 +1,8 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`parse then stringify > doesn't modify original object 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Kilograms(0.285), image_thumbnail: Png(b"\\x89PNG\\r\\n\\x1a\\n\\x00\\x00\\x00\\rIHDR\\x00\\x00\\x00d"), tags: ["electronics", "audio", "wireless"]})"`;
+exports[`parse then stringify > doesn't modify original object 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Kilograms(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"]})"`;
 
-exports[`parse then stringify > inserts object entry 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Kilograms(0.285), image_thumbnail: Png(b"\\x89PNG\\r\\n\\x1a\\n\\x00\\x00\\x00\\rIHDR\\x00\\x00\\x00d"), tags: ["electronics", "audio", "wireless"], test: {foo: "bar"}})"`;
+exports[`parse then stringify > inserts object entry 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Kilograms(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"], test: {foo: "bar"}})"`;
 
 exports[`parse then stringify > pretty-prints output 1`] = `
 "Product({
@@ -12,7 +12,7 @@ exports[`parse then stringify > pretty-prints output 1`] = `
     7.8,
   ),
   weight: Kilograms(0.285),
-  image_thumbnail: Png(b"\\x89PNG\\r\\n\\x1a\\n\\x00\\x00\\x00\\rIHDR\\x00\\x00\\x00d"),
+  image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
   tags: [
     "electronics",
     "audio",
@@ -21,15 +21,15 @@ exports[`parse then stringify > pretty-prints output 1`] = `
 })"
 `;
 
-exports[`parse then stringify > removes identifier 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Kilograms(0.285), image_thumbnail: b"\\x89PNG\\r\\n\\x1a\\n\\x00\\x00\\x00\\rIHDR\\x00\\x00\\x00d", tags: ["electronics", "audio", "wireless"]})"`;
+exports[`parse then stringify > removes identifier 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Kilograms(0.285), image_thumbnail: b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=", tags: ["electronics", "audio", "wireless"]})"`;
 
-exports[`parse then stringify > removes value 1`] = `"Product({weight: Kilograms(0.285), image_thumbnail: Png(b"\\x89PNG\\r\\n\\x1a\\n\\x00\\x00\\x00\\rIHDR\\x00\\x00\\x00d"), tags: ["electronics", "audio", "wireless"]})"`;
+exports[`parse then stringify > removes value 1`] = `"Product({weight: Kilograms(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"]})"`;
 
-exports[`parse then stringify > strips identifiers 1`] = `"{dimensions: (18.5, 15.2, 7.8), weight: 0.285, image_thumbnail: b"\\x89PNG\\r\\n\\x1a\\n\\x00\\x00\\x00\\rIHDR\\x00\\x00\\x00d", tags: ["electronics", "audio", "wireless"]}"`;
+exports[`parse then stringify > strips identifiers 1`] = `"{dimensions: (18.5, 15.2, 7.8), weight: 0.285, image_thumbnail: b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=", tags: ["electronics", "audio", "wireless"]}"`;
 
-exports[`parse then stringify > swaps identifier 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Pounds(0.285), image_thumbnail: Png(b"\\x89PNG\\r\\n\\x1a\\n\\x00\\x00\\x00\\rIHDR\\x00\\x00\\x00d"), tags: ["electronics", "audio", "wireless"]})"`;
+exports[`parse then stringify > swaps identifier 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Pounds(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"]})"`;
 
-exports[`parse then stringify > swaps value 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Kilograms(0.285), image_thumbnail: Png(b"\\x89PNG\\r\\n\\x1a\\n\\x00\\x00\\x00\\rIHDR\\x00\\x00\\x00d"), tags: ("music", DeprecatedTag("hi-fi"))})"`;
+exports[`parse then stringify > swaps value 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Kilograms(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ("music", DeprecatedTag("hi-fi"))})"`;
 
 exports[`stringify then parse > properly serializes then deserializes to Duper 1`] = `"Tcp({chunk: Stream(b""), port: 5173, connections: [IPv4Socket("192.168.0.50:12345"), IPv46ocket("[2001:1d8::1]:29876")]})"`;
 

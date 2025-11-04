@@ -6,7 +6,7 @@ describe("parse then stringify", () => {
     Product({
       dimensions: (18.5, 15.2, 7.8),  // In centimeters
       weight: Kilograms(0.285),
-      image_thumbnail: Png(b"\\x89PNG\\r\\n\\x1a\\n\\x00\\x00\\x00\\rIHDR\\x00\\x00\\x00\\x64"),
+      image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
       tags: ["electronics", "audio", "wireless"],
     })
   `;

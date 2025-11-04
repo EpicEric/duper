@@ -8,13 +8,22 @@
 
       <div class="code-editor">
         <div class="editor-tabs">
-          <button :class="{ active: activeTab === 'json' }" @click="switchTab('json')">
+          <button
+            :class="{ active: activeTab === 'json' }"
+            @click="switchTab('json')"
+          >
             JSON
           </button>
-          <button :class="{ active: activeTab === 'yaml' }" @click="switchTab('yaml')">
+          <button
+            :class="{ active: activeTab === 'yaml' }"
+            @click="switchTab('yaml')"
+          >
             YAML
           </button>
-          <button :class="{ active: activeTab === 'toml' }" @click="switchTab('toml')">
+          <button
+            :class="{ active: activeTab === 'toml' }"
+            @click="switchTab('toml')"
+          >
             TOML
           </button>
         </div>
@@ -38,7 +47,7 @@ import githubLightTheme from "@shikijs/themes/github-light";
 import { createHighlighterCore } from "shiki/core";
 import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 import shikiWasm from "shiki/wasm";
-import { useData } from 'vitepress'
+import { useData } from "vitepress";
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import { convertDuper } from "@/pkg/duper_website";
 
@@ -60,7 +69,12 @@ onMounted(async () => {
 
   const highlighter = await createHighlighterCore({
     themes: [githubDarkTheme, githubLightTheme],
-    langs: [jsonGrammar, yamlGrammar, tomlGrammar, import.meta.env.DUPER_GRAMMAR],
+    langs: [
+      jsonGrammar,
+      yamlGrammar,
+      tomlGrammar,
+      import.meta.env.DUPER_GRAMMAR,
+    ],
     engine: createOnigurumaEngine(shikiWasm),
   });
 
@@ -86,7 +100,7 @@ onMounted(async () => {
   duperEditor.getModel().onDidChangeContent(handleDuperInput);
 
   otherEditor = monaco.editor.create(otherMonaco.value!, {
-    ...editorOptions as any,
+    ...(editorOptions as any),
     value: props.initial ? convertDuper(props.initial, "json") : "",
     language: "json",
     readOnly: true,
@@ -115,9 +129,13 @@ function switchTab(tab: "json" | "yaml" | "toml") {
 }
 
 watch(isDark, (newIsDark) => {
-  duperEditor?.updateOptions({ theme: newIsDark ? "github-dark" : "github-light" });
-  otherEditor?.updateOptions({ theme: newIsDark ? "github-dark" : "github-light" });
-})
+  duperEditor?.updateOptions({
+    theme: newIsDark ? "github-dark" : "github-light",
+  });
+  otherEditor?.updateOptions({
+    theme: newIsDark ? "github-dark" : "github-light",
+  });
+});
 </script>
 
 <style scoped>

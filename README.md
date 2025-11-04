@@ -24,7 +24,7 @@ UserProfile({
   },
   score: 120.25,
   // Support for bytes, woohoo!
-  avatar: Png(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"),
+  avatar: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
   bio: r#"Hello! I'm a super "duper" user!"#,
   last_logins: [
     (IPv4Address("192.168.1.100"), DateTime("2024-03-20T14:30:00Z")),
