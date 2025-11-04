@@ -62,6 +62,8 @@ impl DuperParser {
     }
 }
 
+// Base rules
+
 pub(crate) fn duper_trunk<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> {
     identified_trunk().then_ignore(end())
@@ -72,45 +74,23 @@ pub(crate) fn duper_value<'a>()
     identified_value().then_ignore(end())
 }
 
-pub(crate) fn whitespace_and_comments<'a>()
--> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
-    choice((
-        just("//")
-            .then(none_of("\r\n").repeated())
-            .padded()
-            .ignored(),
-        just("/*")
-            .then(any().and_is(just("*/").not()).repeated())
-            .then(just("*/"))
-            .padded()
-            .ignored(),
-        text::whitespace().ignored(),
-    ))
-    .ignored()
-}
+// Semantic rules
 
 pub(crate) fn identifier_lossy<'a>()
 -> impl Parser<'a, &'a str, DuperIdentifier<'static>, extra::Err<Rich<'a, char>>> + Clone {
     let skippable_characters = none_of("-_")
-        .and_is(any().filter(|c: &char| !c.is_ascii_alphanumeric()))
+        .and_is(ascii_alphanumeric().not())
         .labelled("non-ASCII alphanumeric")
         .repeated()
         .ignored();
 
     let subsequent_characters = skippable_characters
+        .clone()
         .ignore_then(
             one_of("-_")
                 .or_not()
-                .then_ignore(
-                    any()
-                        .filter(|c: &char| !c.is_ascii_alphanumeric())
-                        .repeated(),
-                )
-                .then(
-                    any()
-                        .filter(|c: &char| c.is_ascii_alphanumeric())
-                        .labelled("ASCII alphanumeric"),
-                )
+                .then_ignore(any().and_is(ascii_alphanumeric().not()).repeated())
+                .then(ascii_alphanumeric())
                 .padded_by(skippable_characters),
         )
         .repeated();
@@ -137,16 +117,7 @@ pub(crate) fn identifier<'a>()
 -> impl Parser<'a, &'a str, DuperIdentifier<'a>, extra::Err<Rich<'a, char>>> + Clone {
     one_of('A'..='Z')
         .labelled("ASCII uppercase letter")
-        .then(
-            one_of("-_")
-                .or_not()
-                .then(
-                    any()
-                        .filter(|c: &char| c.is_ascii_alphanumeric())
-                        .labelled("ASCII alphanumeric"),
-                )
-                .repeated(),
-        )
+        .then(one_of("-_").or_not().then(ascii_alphanumeric()).repeated())
         .to_slice()
         .map(|identifier| DuperIdentifier(Cow::Borrowed(identifier)))
 }
@@ -237,27 +208,10 @@ pub(crate) fn object<'a>(
 
 pub(crate) fn object_key<'a>()
 -> impl Parser<'a, &'a str, DuperKey<'a>, extra::Err<Rich<'a, char>>> + Clone {
-    let plain_key = any()
-        .filter(|c: &char| c.is_ascii_alphabetic())
-        .labelled("ASCII letter")
+    let plain_key = ascii_alphabetic()
         .to_slice()
-        .or(just('_')
-            .then(
-                any()
-                    .filter(|c: &char| c.is_ascii_alphanumeric())
-                    .labelled("ASCII alphanumeric"),
-            )
-            .to_slice())
-        .then(
-            one_of("-_")
-                .or_not()
-                .then(
-                    any()
-                        .filter(|c: &char| c.is_ascii_alphanumeric())
-                        .labelled("ASCII alphanumeric"),
-                )
-                .repeated(),
-        )
+        .or(just('_').then(ascii_alphanumeric()).to_slice())
+        .then(one_of("-_").or_not().then(ascii_alphanumeric()).repeated())
         .to_slice()
         .map(|str| DuperKey(Cow::Borrowed(str)));
 
@@ -315,21 +269,6 @@ pub(crate) fn tuple<'a>(
             .map(|_| DuperTuple(vec![])))
 }
 
-pub(crate) fn key_recovery<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
-{
-    choice((one_of('a'..='z'), one_of('A'..='Z'), one_of("_\""))).ignored()
-}
-
-pub(crate) fn value_recovery<'a>()
--> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
-    choice((
-        one_of('0'..='9'),
-        one_of('A'..='Z'),
-        one_of(r#"_"brntf-+{[("#),
-    ))
-    .ignored()
-}
-
 pub(crate) fn quoted_string<'a>()
 -> impl Parser<'a, &'a str, Cow<'a, str>, extra::Err<Rich<'a, char>>> + Clone {
     quoted_inner()
@@ -339,13 +278,10 @@ pub(crate) fn quoted_string<'a>()
 
 pub(crate) fn base64_bytes<'a>()
 -> impl Parser<'a, &'a str, Vec<u8>, extra::Err<Rich<'a, char>>> + Clone {
-    any()
-        .filter(|char: &char| {
-            char.is_ascii_alphanumeric() || *char == '+' || *char == '/' || *char == '='
-        })
-        .labelled("a Base64 digit")
+    base64_digit()
         .padded()
         .repeated()
+        .then(just('=').repeated())
         .collect::<String>()
         .try_map(|bytes, span| {
             base64::engine::GeneralPurpose::new(
@@ -371,24 +307,8 @@ pub(crate) fn quoted_inner<'a>()
     let escaped_characters = just('\\')
         .then(choice((
             one_of("\"\\/bfnrt0").to_slice(),
-            just('x')
-                .then(
-                    any()
-                        .filter(|char: &char| char.is_ascii_hexdigit())
-                        .labelled("a hexadecimal digit")
-                        .repeated()
-                        .exactly(2),
-                )
-                .to_slice(),
-            just('u')
-                .then(
-                    any()
-                        .filter(|char: &char| char.is_ascii_hexdigit())
-                        .labelled("a hexadecimal digit")
-                        .repeated()
-                        .exactly(4),
-                )
-                .to_slice(),
+            just('x').then(hex_digit().repeated().exactly(2)).to_slice(),
+            just('u').then(hex_digit().repeated().exactly(4)).to_slice(),
         )))
         .to_slice();
 
@@ -461,20 +381,6 @@ pub(crate) fn raw_bytes<'a>()
     )
 }
 
-pub(crate) fn integer_digits<'a>()
--> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
-    one_of('1'..='9')
-        .labelled("a digit 1 through 9")
-        .then(
-            just('_')
-                .or_not()
-                .then(one_of('0'..='9').labelled("a digit"))
-                .repeated(),
-        )
-        .to_slice()
-        .or(one_of('0'..='9').labelled("a digit").to_slice())
-}
-
 pub(crate) fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, char>>> + Clone {
     let decimal = one_of("+-").or_not().then(integer_digits()).to_slice();
 
@@ -524,19 +430,8 @@ pub(crate) fn integer<'a>() -> impl Parser<'a, &'a str, i64, extra::Err<Rich<'a,
 
     let hex_integer = just("0x")
         .ignore_then(
-            any()
-                .filter(|char: &char| char.is_ascii_hexdigit())
-                .labelled("a hexadecimal digit")
-                .then(
-                    just('_')
-                        .or_not()
-                        .then(
-                            any()
-                                .filter(|char: &char| char.is_ascii_hexdigit())
-                                .labelled("a hexadecimal digit"),
-                        )
-                        .repeated(),
-                )
+            hex_digit()
+                .then(just('_').or_not().then(hex_digit()).repeated())
                 .to_slice(),
         )
         .try_map(|integer: &str, span| {
@@ -546,19 +441,8 @@ pub(crate) fn integer<'a>() -> impl Parser<'a, &'a str, i64, extra::Err<Rich<'a,
 
     let octal_integer = just("0o")
         .ignore_then(
-            any()
-                .filter(|char: &char| char.is_digit(8))
-                .labelled("an octal digit")
-                .then(
-                    just('_')
-                        .or_not()
-                        .then(
-                            any()
-                                .filter(|char: &char| char.is_digit(8))
-                                .labelled("an octal digit"),
-                        )
-                        .repeated(),
-                )
+            octal_digit()
+                .then(just('_').or_not().then(octal_digit()).repeated())
                 .to_slice(),
         )
         .try_map(|integer: &str, span| {
@@ -584,6 +468,92 @@ pub(crate) fn boolean<'a>() -> impl Parser<'a, &'a str, bool, extra::Err<Rich<'a
 
 pub(crate) fn null<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     just("null").to(())
+}
+
+// Atoms
+
+pub(crate) fn whitespace_and_comments<'a>()
+-> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+    choice((
+        just("//")
+            .then(none_of("\r\n").repeated())
+            .padded()
+            .ignored(),
+        just("/*")
+            .then(any().and_is(just("*/").not()).repeated())
+            .then(just("*/"))
+            .padded()
+            .ignored(),
+        text::whitespace().ignored(),
+    ))
+    .ignored()
+}
+
+pub(crate) fn base64_digit<'a>()
+-> impl Parser<'a, &'a str, char, extra::Err<Rich<'a, char>>> + Clone {
+    choice((
+        one_of('a'..='z'),
+        one_of('A'..='Z'),
+        one_of('0'..='9'),
+        just('+'),
+        just('/'),
+    ))
+    .labelled("a Base64 digit")
+}
+
+pub(crate) fn ascii_alphabetic<'a>()
+-> impl Parser<'a, &'a str, char, extra::Err<Rich<'a, char>>> + Clone {
+    one_of('a'..='z')
+        .or(one_of('A'..='Z'))
+        .labelled("an ASCII letter")
+}
+
+pub(crate) fn ascii_alphanumeric<'a>()
+-> impl Parser<'a, &'a str, char, extra::Err<Rich<'a, char>>> + Clone {
+    choice((one_of('a'..='z'), one_of('A'..='Z'), one_of('0'..='9')))
+        .labelled("an ASCII alphanumeric")
+}
+
+pub(crate) fn integer_digits<'a>()
+-> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
+    one_of('1'..='9')
+        .labelled("a digit 1 through 9")
+        .then(
+            just('_')
+                .or_not()
+                .then(one_of('0'..='9').labelled("a digit"))
+                .repeated(),
+        )
+        .to_slice()
+        .or(one_of('0'..='9').labelled("a digit").to_slice())
+}
+
+pub(crate) fn hex_digit<'a>() -> impl Parser<'a, &'a str, char, extra::Err<Rich<'a, char>>> + Clone
+{
+    choice((one_of('0'..='9'), one_of('a'..='f'), one_of('A'..='F')))
+        .labelled("a hexadecimal digit")
+}
+
+pub(crate) fn octal_digit<'a>() -> impl Parser<'a, &'a str, char, extra::Err<Rich<'a, char>>> + Clone
+{
+    one_of('0'..='7').labelled("an octal digit")
+}
+
+// Recovery rules
+
+pub(crate) fn key_recovery<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
+{
+    choice((one_of('a'..='z'), one_of('A'..='Z'), one_of("_\""))).ignored()
+}
+
+pub(crate) fn value_recovery<'a>()
+-> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+    choice((
+        one_of('0'..='9'),
+        one_of('A'..='Z'),
+        one_of(r#"_"brntf-+{[("#),
+    ))
+    .ignored()
 }
 
 #[cfg(test)]
@@ -796,6 +766,10 @@ mod duper_parser_tests {
         assert!(DuperParser::parse_duper_value(input).is_err());
         let input = r#"
             b64"RHVwZXI=="  // Too much padding
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            b64"RHV=wZXI"  // Padding character in incorrect position
         "#;
         assert!(DuperParser::parse_duper_value(input).is_err());
         let input = r#"

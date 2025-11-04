@@ -146,7 +146,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
             let hashtags: String = (0..max_hashtags).map(|_| '#').collect();
             let unesecaped_bytes: String = bytes.0.iter().copied().map(|b| b as char).collect();
             Cow::Owned(format!(r#"br{hashtags}"{unesecaped_bytes}"{hashtags}"#))
-        } else if 3 * (escaped_bytes_length + bytes.len()) > 4 * bytes.len() + 5 {
+        } else if 3 * (escaped_bytes_length + bytes.len()) > (bytes.len() << 2) + 5 {
             // Base64 bytes
             let base64_bytes = BASE64_STANDARD.encode(bytes.as_ref());
             Cow::Owned(format!(r#"b64"{base64_bytes}""#))
