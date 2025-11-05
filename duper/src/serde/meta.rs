@@ -8,7 +8,7 @@ use serde_core::{
 
 use crate::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTemporal, DuperTuple, DuperValue, serde::error::DuperSerdeError,
+    DuperTemporal, DuperTemporalInner, DuperTuple, DuperValue, serde::error::DuperSerdeError,
 };
 
 impl<'a> DuperValue<'a> {
@@ -18,48 +18,71 @@ impl<'a> DuperValue<'a> {
     where
         S: serde_core::Serializer,
     {
-        let mut state = serializer.serialize_struct("DuperValue", 3)?;
+        let mut state = serializer.serialize_struct("DuperValue", 4)?;
         state.serialize_field("identifier", &self.identifier)?;
         match &self.inner {
             DuperInner::Object(object) => {
                 state.serialize_field("inner", &SerDuperObject(object))?;
                 state.serialize_field("type", "object")?;
+                state.serialize_field("variant", &Option::<&'static str>::None);
             }
             DuperInner::Array(array) => {
                 state.serialize_field("inner", &SerDuperArray(array))?;
                 state.serialize_field("type", "array")?;
+                state.serialize_field("variant", &Option::<&'static str>::None);
             }
             DuperInner::Tuple(tuple) => {
                 state.serialize_field("inner", &SerDuperTuple(tuple))?;
                 state.serialize_field("type", "tuple")?;
+                state.serialize_field("variant", &Option::<&'static str>::None);
             }
             DuperInner::String(_) => {
                 state.serialize_field("inner", &self.inner)?;
                 state.serialize_field("type", "string")?;
+                state.serialize_field("variant", &Option::<&'static str>::None);
             }
             DuperInner::Bytes(_) => {
                 state.serialize_field("inner", &self.inner)?;
                 state.serialize_field("type", "bytes")?;
+                state.serialize_field("variant", &Option::<&'static str>::None);
             }
-            DuperInner::Temporal(_) => {
+            DuperInner::Temporal(temporal) => {
                 state.serialize_field("inner", &self.inner)?;
                 state.serialize_field("type", "temporal")?;
+                state.serialize_field(
+                    "variant",
+                    &Some(match temporal {
+                        DuperTemporal::Instant(_) => "Instant",
+                        DuperTemporal::ZonedDateTime(_) => "ZonedDateTime",
+                        DuperTemporal::PlainDate(_) => "PlainDate",
+                        DuperTemporal::PlainTime(_) => "PlainTime",
+                        DuperTemporal::PlainDateTime(_) => "PlainDateTime",
+                        DuperTemporal::PlainYearMonth(_) => "PlainYearMonth",
+                        DuperTemporal::PlainMonthDay(_) => "PlainMonthDay",
+                        DuperTemporal::Duration(_) => "Duration",
+                        DuperTemporal::Unspecified(_) => "Unspecified",
+                    }),
+                )?;
             }
             DuperInner::Integer(_) => {
                 state.serialize_field("inner", &self.inner)?;
                 state.serialize_field("type", "integer")?;
+                state.serialize_field("variant", &Option::<&'static str>::None);
             }
             DuperInner::Float(_) => {
                 state.serialize_field("inner", &self.inner)?;
                 state.serialize_field("type", "float")?;
+                state.serialize_field("variant", &Option::<&'static str>::None);
             }
             DuperInner::Boolean(_) => {
                 state.serialize_field("inner", &self.inner)?;
                 state.serialize_field("type", "boolean")?;
+                state.serialize_field("variant", &Option::<&'static str>::None);
             }
             DuperInner::Null => {
                 state.serialize_field("inner", &self.inner)?;
                 state.serialize_field("type", "null")?;
+                state.serialize_field("variant", &Option::<&'static str>::None);
             }
         }
         state.end()
@@ -156,6 +179,7 @@ impl<'b> TryFrom<DeDuperValue<'b>> for DuperValue<'b> {
 struct DeDuperObject<'b>(Vec<(DuperKey<'b>, DeDuperValue<'b>)>);
 struct DeDuperArray<'b>(Vec<DeDuperValue<'b>>);
 struct DeDuperTuple<'b>(Vec<DeDuperValue<'b>>);
+struct DeDuperTemporal<'b>(Cow<'b, str>);
 
 enum DeDuperInner<'b> {
     Object(DeDuperObject<'b>),
@@ -163,7 +187,7 @@ enum DeDuperInner<'b> {
     Tuple(DeDuperTuple<'b>),
     String(DuperString<'b>),
     Bytes(DuperBytes<'b>),
-    Temporal(DuperTemporal<'b>),
+    Temporal(DeDuperTemporal<'b>),
     Integer(i64),
     Float(f64),
     Boolean(bool),
@@ -215,9 +239,7 @@ impl<'b> TryFrom<DeDuperInner<'b>> for DuperInner<'b> {
             ))),
             DeDuperInner::String(string) => Ok(DuperInner::String(string)),
             DeDuperInner::Bytes(bytes) => Ok(DuperInner::Bytes(bytes)),
-            DeDuperInner::Temporal(temporal) => Ok(DuperInner::Temporal(DuperTemporal::try_from(
-                temporal.into_inner(),
-            )?)),
+            DeDuperInner::Temporal(temporal) => Ok(DuperInner::Temporal(temporal)),
             DeDuperInner::Integer(integet) => Ok(DuperInner::Integer(integet)),
             DeDuperInner::Float(float) => Ok(DuperInner::Float(float)),
             DeDuperInner::Boolean(boolean) => Ok(DuperInner::Boolean(boolean)),
@@ -497,6 +519,7 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
         let mut identifier: Option<DuperIdentifier<'de>> = None;
         let mut inner: Option<DeDuperInner<'de>> = None;
         let mut typ: Option<DeDuperType> = None;
+        let mut variant: Option<String> = None;
 
         while let Some(key) = map.next_key::<String>()? {
             match key.as_str() {
@@ -525,10 +548,17 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
                                 &"one of: object, array, tuple, string, bytes, temporal, integer, float, boolean, null",
                             ))?);
                 }
+                "variant" => {
+                    if variant.is_some() {
+                        return Err(Error::duplicate_field("variant"));
+                    }
+                    let wrapper: Option<String> = map.next_value()?;
+                    variant = wrapper;
+                }
                 _ => {
                     return Err(Error::unknown_field(
                         key.as_str(),
-                        &["identifier", "inner", "type"],
+                        &["identifier", "inner", "type", "variant"],
                     ));
                 }
             }
@@ -581,9 +611,18 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
             }
             // Temporal from string
             (DeDuperInner::String(string), DeDuperType::Temporal) => {
-                DeDuperInner::Temporal(DuperTemporal::try_from(string.into_inner()).map_err(
-                    |err| Error::custom(format!("failed to parse Temporal value: {err}")),
-                )?)
+                DeDuperInner::Temporal(match variant.as_ref().map(|string| string.as_str()) {
+                    Some("Instant") => DuperTemporal::Instant(
+                        DuperTemporalInner::try_from(string.into_inner()).map_err(|err| {
+                            Error::custom(format!("failed to parse Temporal value: {err}"))
+                        })?,
+                    ),
+                    Some(_) | None => {
+                        return Err(Error::custom(format!(
+                            "invalid variant '{variant:?}'for Temporal value"
+                        )));
+                    }
+                })
             }
             // Fallback
             (inner, typ) => {
@@ -604,7 +643,7 @@ impl<'de> Deserialize<'de> for DeDuperValue<'de> {
     {
         deserializer.deserialize_struct(
             "DuperValue",
-            &["identifier", "inner", "type"],
+            &["identifier", "inner", "type", "variant"],
             DeDuperValueVisitor,
         )
     }
@@ -618,7 +657,7 @@ mod serde_meta_tests {
 
     use crate::{
         DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-        DuperTemporal, DuperTuple, DuperValue, PrettyPrinter,
+        DuperTemporal, DuperTemporalInner, DuperTuple, DuperValue, PrettyPrinter,
         serde::{de::Deserializer, ser::Serializer},
     };
 
@@ -747,12 +786,12 @@ mod serde_meta_tests {
                     DuperKey::from("temporal"),
                     DuperValue {
                         identifier: None,
-                        inner: DuperInner::Temporal(
-                            DuperTemporal::try_from(Cow::Borrowed(
+                        inner: DuperInner::Temporal(DuperTemporal::Instant(
+                            DuperTemporalInner::try_from(Cow::Borrowed(
                                 "2022-02-28T03:06:00.092121729Z",
                             ))
                             .unwrap(),
-                        ),
+                        )),
                     },
                 ),
                 (
@@ -810,10 +849,12 @@ mod serde_meta_tests {
                     identifier: Some(
                         DuperIdentifier::try_from("MyTemporal").expect("valid identifier"),
                     ),
-                    inner: DuperInner::Temporal(
-                        DuperTemporal::try_from(Cow::Borrowed("2022-02-28T03:06:00.092121729Z"))
-                            .unwrap(),
-                    ),
+                    inner: DuperInner::Temporal(DuperTemporal::Instant(
+                        DuperTemporalInner::try_from(Cow::Borrowed(
+                            "2022-02-28T03:06:00.092121729Z",
+                        ))
+                        .unwrap(),
+                    )),
                 },
                 DuperValue {
                     identifier: Some(DuperIdentifier::try_from("MyInt").expect("valid identifier")),

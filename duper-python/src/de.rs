@@ -126,7 +126,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         identifier: Option<&duper::DuperIdentifier<'a>>,
         temporal: &duper::DuperTemporal<'a>,
     ) -> Self::Value {
-        // TO-DO: Temporal - Use a special value, to indicate this should be serialized back into a Temporal value
+        // TO-DO: Temporal - Use the appropriate temporal-python type for the DuperTemporal value
         Ok(VisitorValue {
             value: PyString::new(self.py, &temporal.clone().into_inner()).into_any(),
             duper: identifier

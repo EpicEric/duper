@@ -38,7 +38,7 @@ APIResponse({
         email: Email("alice@example.com"),
         roles: ["admin", "user"],
         metadata: {
-          last_login: DateTime("2024-01-15T10:30:00Z"),
+          last_login: Instant('2024-01-15T10:30:00Z'),
           ip: IPV4("173.255.230.79"),
         },
       }),

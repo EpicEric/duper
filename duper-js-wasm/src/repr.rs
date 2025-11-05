@@ -1,6 +1,6 @@
-use std::fmt::Display;
+use std::{borrow::Cow, fmt::Display};
 
-use duper::{DuperIdentifier, DuperValue, Serializer};
+use duper::{DuperIdentifier, DuperTemporal, DuperValue, Serializer};
 use js_sys::{Array, BigInt, Boolean, Function, Object, Reflect, Uint8Array};
 use wasm_bindgen::{convert::RefFromWasmAbi, prelude::*};
 
@@ -129,6 +129,19 @@ impl JsDuperValueInner {
                         )))
                     }
                 }
+                "temporal" => {
+                    if inner.is_string() {
+                        DuperTemporal::try_from(Cow::Owned(
+                            inner.as_string().expect("checked conversion"),
+                        ))
+                        .map_err(|err| {
+                            JsError::new(&format!("string is not a valid Temporal value: {err}"))
+                        })?;
+                        Ok(JsDuperValueInner::Temporal(inner))
+                    } else {
+                        Err(JsError::new(&format!("expected string, found {inner:?}")))
+                    }
+                }
                 "integer" => {
                     if inner.is_bigint() {
                         Ok(JsDuperValueInner::Integer(inner))
@@ -185,7 +198,7 @@ impl JsDuperValueInner {
             Ok(JsDuperValueInner::Float(inner))
         } else if Uint8Array::is_type_of(&inner) {
             Ok(JsDuperValueInner::Bytes(inner))
-        } else if inner.as_string().is_some() {
+        } else if inner.is_string() {
             Ok(JsDuperValueInner::String(inner))
         } else if Array::is_array(&inner) {
             let array = inner

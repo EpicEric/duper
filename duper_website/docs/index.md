@@ -21,7 +21,7 @@ features:
     details: Trailing commas, comments, and optional quotes for keys.
     icon: 🦾
   - title: Rich types
-    details: Tuples, bytes, raw strings, and proper integer support.
+    details: Tuples, bytes, raw strings, Temporal, and proper integer support.
     icon: 🧰
   - title: JSON-compatible
     details: Every valid JSON file is automatically valid Duper.
@@ -48,7 +48,7 @@ const initial = `UserProfile({
   avatar: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ"),
   bio: r#"Hello! I'm a super "duper" user!"#,
   last_logins: [
-    (IPv4Address("192.168.1.100"), DateTime("2024-03-20T14:30:00Z")),
+    (IPv4Address("192.168.1.100"), Instant('2024-03-20T14:30:00Z')),
   ],
 })`;
 </script>
@@ -67,22 +67,23 @@ Duper excels in a variety of use cases:
 
 ## Comparison
 
-| Feature          | Duper | JSON | JSON5 | YAML              | TOML              | RON |
-| ---------------- | ----- | ---- | ----- | ----------------- | ----------------- | --- |
-| Comments         | ✅    | ❌   | ✅    | ✅                | ✅                | ✅  |
-| Trailing commas  | ✅    | ❌   | ✅    | ✅                | ✅                | ✅  |
-| Unquoted keys    | ✅    | ❌   | ✅    | ✅                | ✅                | ✅  |
-| Integers         | ✅    | ❌   | ❌    | ✅                | ✅                | ✅  |
-| Tuples           | ✅    | ❌   | ❌    | ❌                | ❌                | ✅  |
-| Bytes            | ✅    | ❌   | ❌    | ✅<sup>\[1]</sup> | ❌                | ✅  |
-| Date and time    | ❌    | ❌   | ❌    | ✅                | ✅                | ❌  |
-| Raw strings      | ✅    | ❌   | ❌    | ✅                | ✅                | ✅  |
-| Identifiers/tags | ✅    | ❌   | ❌    | ✅                | ❌                | ✅  |
-| Unambiguous      | ✅    | ✅   | ✅    | ❌<sup>\[2]</sup> | ⚠️<sup>\[3]</sup> | ✅  |
-| Simple           | ✅    | ✅   | ✅    | ❌                | ✅                | ✅  |
-| JSON-compatible  | ✅    | ✅   | ✅    | ✅                | ❌                | ❌  |
-| Popular          | ❌    | ✅   | ⚠️    | ✅                | ✅                | ⚠️  |
+| Feature          | Duper             | JSON | JSON5 | YAML              | TOML              | RON |
+| ---------------- | ----------------- | ---- | ----- | ----------------- | ----------------- | --- |
+| Comments         | ✅                | ❌   | ✅    | ✅                | ✅                | ✅  |
+| Trailing commas  | ✅                | ❌   | ✅    | ✅                | ✅                | ✅  |
+| Unquoted keys    | ✅                | ❌   | ✅    | ✅                | ✅                | ✅  |
+| Integers         | ✅                | ❌   | ❌    | ✅                | ✅                | ✅  |
+| Tuples           | ✅                | ❌   | ❌    | ❌                | ❌                | ✅  |
+| Bytes            | ✅                | ❌   | ❌    | ✅<sup>\[1]</sup> | ❌                | ✅  |
+| Date and time    | ✅<sup>\[2]</sup> | ❌   | ❌    | ✅                | ✅                | ❌  |
+| Raw strings      | ✅                | ❌   | ❌    | ✅                | ✅                | ✅  |
+| Identifiers/tags | ✅                | ❌   | ❌    | ✅                | ❌                | ✅  |
+| Unambiguous      | ✅                | ✅   | ✅    | ❌<sup>\[3]</sup> | ⚠️<sup>\[4]</sup> | ✅  |
+| Simple           | ✅                | ✅   | ✅    | ❌                | ✅                | ✅  |
+| JSON-compatible  | ✅                | ✅   | ✅    | ✅                | ❌                | ❌  |
+| Popular          | ❌                | ✅   | ⚠️    | ✅                | ✅                | ⚠️  |
 
 - <sup>[1]</sup> Using the [`!!binary` scalar type](https://yaml.org/type/binary.html) and base64 text; limited support in implementations.
-- <sup>[2]</sup> Unquoted strings can get confused with other scalars and [vice-versa](https://www.bram.us/2022/01/11/yaml-the-norway-problem/).
-- <sup>[3]</sup> Tabs allowed in [strings](https://toml.io/en/v1.0.0#string).
+- <sup>[2]</sup> Compliant with the [Temporal specification](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal).
+- <sup>[3]</sup> Unquoted strings can get confused with other scalars and [vice-versa](https://www.bram.us/2022/01/11/yaml-the-norway-problem/).
+- <sup>[4]</sup> Tabs allowed in [strings](https://toml.io/en/v1.0.0#string).

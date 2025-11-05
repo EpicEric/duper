@@ -3,13 +3,13 @@ use std::borrow::Cow;
 use base64::Engine;
 use chumsky::prelude::*;
 
+pub(crate) mod temporal;
+
 use crate::{
-    DuperBytes, DuperString,
-    ast::{
-        DuperArray, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperTemporal, DuperTuple,
-        DuperValue,
-    },
+    DuperBytes, DuperString, DuperTemporal,
+    ast::{DuperArray, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperTuple, DuperValue},
     escape::{unescape_bytes, unescape_str},
+    parser::temporal::{temporal_specified, temporal_unspecified},
 };
 
 pub struct DuperParser;
@@ -159,7 +159,6 @@ pub(crate) fn identified_value<'a>()
             raw_bytes().map(|bytes| DuperInner::Bytes(DuperBytes(Cow::Borrowed(bytes)))),
             quoted_string().map(|cow_str| DuperInner::String(DuperString(cow_str))),
             raw_string().map(|str| DuperInner::String(DuperString(Cow::Borrowed(str)))),
-            temporal().map(|str| DuperInner::Temporal(DuperTemporal(Cow::Borrowed(str)))),
             float().map(DuperInner::Float),
             integer().map(DuperInner::Integer),
             boolean().map(DuperInner::Boolean),
@@ -167,17 +166,59 @@ pub(crate) fn identified_value<'a>()
         ))
         .padded_by(whitespace_and_comments());
 
-        identifier()
-            .then(inner_value.clone().delimited_by(just('('), just(')')))
-            .map(|(identifier, inner)| DuperValue {
-                identifier: Some(identifier),
-                inner,
-            })
-            .or(inner_value.map(|inner| DuperValue {
+        choice((
+            temporal_specified().map(|temporal| {
+                let identifier = match &temporal {
+                    DuperTemporal::Instant(_) => "Instant",
+                    DuperTemporal::ZonedDateTime(_) => "ZonedDateTime",
+                    DuperTemporal::PlainDate(_) => "PlainDate",
+                    DuperTemporal::PlainTime(_) => "PlainTime",
+                    DuperTemporal::PlainDateTime(_) => "PlainDateTime",
+                    DuperTemporal::PlainYearMonth(_) => "PlainYearMonth",
+                    DuperTemporal::PlainMonthDay(_) => "PlainMonthDay",
+                    DuperTemporal::Duration(_) => "Duration",
+                    DuperTemporal::Unspecified(_) => unreachable!(),
+                };
+                DuperValue {
+                    identifier: Some(DuperIdentifier(Cow::Borrowed(identifier))),
+                    inner: DuperInner::Temporal(temporal),
+                }
+            }),
+            identifier()
+                .and_is(
+                    choice((
+                        just("Instant"),
+                        just("ZonedDateTime"),
+                        just("PlainDate"),
+                        just("PlainTime"),
+                        just("PlainDateTime"),
+                        just("PlainYearMonth"),
+                        just("PlainMonthDay"),
+                        just("Duration"),
+                    ))
+                    .not(),
+                )
+                .then(temporal_unspecified().delimited_by(just('('), just(')')))
+                .map(|(identifier, temporal)| DuperValue {
+                    identifier: Some(identifier),
+                    inner: DuperInner::Temporal(temporal),
+                }),
+            identifier()
+                .then(inner_value.clone().delimited_by(just('('), just(')')))
+                .map(|(identifier, inner)| DuperValue {
+                    identifier: Some(identifier),
+                    inner,
+                }),
+            temporal_unspecified().map(|temporal| DuperValue {
+                identifier: None,
+                inner: DuperInner::Temporal(temporal),
+            }),
+            inner_value.map(|inner| DuperValue {
                 identifier: None,
                 inner,
-            }))
-            .padded_by(whitespace_and_comments())
+            }),
+        ))
+        .padded_by(whitespace_and_comments())
     })
 }
 
@@ -385,17 +426,6 @@ pub(crate) fn raw_bytes<'a>()
     )
 }
 
-pub(crate) fn temporal<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone
-{
-    temporal_inner().delimited_by(just('\''), just('\''))
-}
-
-pub(crate) fn temporal_inner<'a>()
--> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
-    // TO-DO: Temporal - Actual parsing
-    any().and_is(just('\'').not()).repeated().to_slice()
-}
-
 pub(crate) fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, char>>> + Clone {
     let decimal = one_of("+-").or_not().then(integer_digits()).to_slice();
 
@@ -575,7 +605,7 @@ pub(crate) fn value_recovery<'a>()
 mod duper_parser_tests {
     use crate::{
         DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperParser,
-        DuperString, DuperTuple, DuperValue, ast::DuperTemporal,
+        DuperString, DuperTemporal, DuperTemporalInner, DuperTuple, DuperValue,
     };
 
     #[test]
@@ -1412,9 +1442,9 @@ mod duper_parser_tests {
                         DuperKey(Cow::Borrowed("created_at")),
                         DuperValue {
                             identifier: Some(DuperIdentifier(Cow::Borrowed("Instant"))),
-                            inner: DuperInner::Temporal(DuperTemporal(Cow::Borrowed(
-                                "2023-11-17T21:50:43+00:00"
-                            ))),
+                            inner: DuperInner::Temporal(DuperTemporal::Instant(
+                                DuperTemporalInner(Cow::Borrowed("2023-11-17T21:50:43+00:00"))
+                            )),
                         }
                     ),
                 ])),

@@ -1,6 +1,7 @@
 pub mod de;
 pub mod error;
-pub mod meta;
+// TO-DO: Temporal - Support meta-serde
+// pub mod meta;
 pub mod ser;
 
 use std::borrow::Cow;
@@ -13,7 +14,7 @@ use serde_core::{
 
 use crate::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTuple, DuperValue,
+    DuperTemporal, DuperTuple, DuperValue,
 };
 
 impl<'a> Serialize for DuperValue<'a> {
@@ -63,7 +64,62 @@ impl<'a> Serialize for DuperInner<'a> {
             }
             DuperInner::String(string) => serializer.serialize_str(string.as_ref()),
             DuperInner::Bytes(bytes) => serializer.serialize_bytes(bytes.as_ref()),
-            DuperInner::Temporal(temporal) => serializer.serialize_str(temporal.as_ref()),
+            DuperInner::Temporal(temporal) => match temporal {
+                DuperTemporal::Instant(inner) => serializer.serialize_newtype_variant(
+                    "DuperTemporal",
+                    0,
+                    "Instant",
+                    inner.as_ref(),
+                ),
+                DuperTemporal::ZonedDateTime(inner) => serializer.serialize_newtype_variant(
+                    "DuperTemporal",
+                    1,
+                    "ZonedDateTime",
+                    inner.as_ref(),
+                ),
+                DuperTemporal::PlainDate(inner) => serializer.serialize_newtype_variant(
+                    "DuperTemporal",
+                    2,
+                    "PlainDate",
+                    inner.as_ref(),
+                ),
+                DuperTemporal::PlainTime(inner) => serializer.serialize_newtype_variant(
+                    "DuperTemporal",
+                    3,
+                    "PlainTime",
+                    inner.as_ref(),
+                ),
+                DuperTemporal::PlainDateTime(inner) => serializer.serialize_newtype_variant(
+                    "DuperTemporal",
+                    4,
+                    "PlainDateTime",
+                    inner.as_ref(),
+                ),
+                DuperTemporal::PlainYearMonth(inner) => serializer.serialize_newtype_variant(
+                    "DuperTemporal",
+                    5,
+                    "PlainYearMonth",
+                    inner.as_ref(),
+                ),
+                DuperTemporal::PlainMonthDay(inner) => serializer.serialize_newtype_variant(
+                    "DuperTemporal",
+                    6,
+                    "PlainMonthDay",
+                    inner.as_ref(),
+                ),
+                DuperTemporal::Duration(inner) => serializer.serialize_newtype_variant(
+                    "DuperTemporal",
+                    7,
+                    "Duration",
+                    inner.as_ref(),
+                ),
+                DuperTemporal::Unspecified(inner) => serializer.serialize_newtype_variant(
+                    "DuperTemporal",
+                    8,
+                    "Unspecified",
+                    inner.as_ref(),
+                ),
+            },
             DuperInner::Integer(integer) => serializer.serialize_i64(*integer),
             DuperInner::Float(float) => serializer.serialize_f64(*float),
             DuperInner::Boolean(boolean) => serializer.serialize_bool(*boolean),

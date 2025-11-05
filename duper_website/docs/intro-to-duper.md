@@ -91,11 +91,11 @@ We can get rid of the quotes for simple keys, use trailing commas, and include c
     average: 4.5,
     count: 127,
   },
-  created_at: "2023-11-17T21:50:43+00:00",
+  created_at: '2023-11-17T21:50:43+00:00',
 }
 ```
 
-Duper also adds supports for tuples (`(-23.561384, -46.655891)`), bytes (`b"\x1b[1mDuper\x1b[0m"`), raw strings (`r#"I can use "quotes" in here!"#`), and raw bytes (`br"/\ Check this out! #wombo_combo"`). Also, integers are a separate type from floats.
+Duper also adds supports for tuples (`(-23.561384, -46.655891)`), bytes (`b"\x1b[1mDuper\x1b[0m"`), raw strings (`r#"I can use "quotes" in here!"#`), raw bytes (`br"/\ Check this out! #wombo_combo"`), and Temporal (`'2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'`). Also, integers are a separate type from floats.
 
 ## Level 4
 
@@ -123,7 +123,7 @@ Product({
     average: 4.5,
     count: 127,
   },
-  created_at: DateTime("2023-11-17T21:50:43+00:00"),
+  created_at: Instant('2023-11-17T21:50:43+00:00'),
 })
 ```
 

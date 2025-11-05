@@ -36,7 +36,7 @@ TextMateGrammar({
           patterns: [
             {
               name: "string.quoted.base64content.duper",
-              match: Regex(r#"\s*[A-Za-z0-9+/=]*\s*"#),
+              match: Regex(r"\s*[A-Za-z0-9+/=]+\s*"),
             },
           ],
         },
@@ -46,16 +46,22 @@ TextMateGrammar({
           end: Regex("\""),
           patterns: [
             { include: "#stringescapes" },
-            { include: "#stringcontent" },
+            {
+              match: Regex("."),
+              name: "string.quoted.content.duper",
+            },
           ],
         },
-      ],
-    },
-    stringcontent: {
-      patterns: [
         {
-          match: Regex("."),
-          name: "string.quoted.double.duper",
+          name: "string.single.temporal.duper",
+          begin: Regex("'"),
+          end: Regex("'"),
+          patterns: [
+            {
+              match: Regex("."),
+              name: "string.single.content.duper",
+            },
+          ],
         },
       ],
     },

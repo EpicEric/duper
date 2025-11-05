@@ -27,7 +27,7 @@ UserProfile({
   avatar: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
   bio: r#"Hello! I'm a super "duper" user!"#,
   last_logins: [
-    (IPv4Address("192.168.1.100"), DateTime("2024-03-20T14:30:00Z")),
+    (IPv4Address("192.168.1.100"), Instant('2024-03-20T14:30:00Z')),
   ],
 })
 ```
