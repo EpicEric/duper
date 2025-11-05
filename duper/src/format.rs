@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use base64::{Engine, prelude::BASE64_STANDARD};
 
 use crate::{
-    ast::{DuperBytes, DuperKey, DuperString},
+    ast::{DuperBytes, DuperKey, DuperString, DuperTemporal},
     escape::{escape_bytes, escape_str, is_invisible_unicode},
 };
 
@@ -156,6 +156,11 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
             Cow::Owned(format!(r#"b"{escaped_bytes}""#))
         }
     }
+}
+
+pub(crate) fn format_temporal<'a>(temporal: &'a DuperTemporal<'a>) -> String {
+    let value = temporal.as_ref();
+    format!("'{value}'")
 }
 
 pub(crate) fn format_integer(integer: i64) -> String {

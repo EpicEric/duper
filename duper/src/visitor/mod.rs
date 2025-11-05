@@ -5,7 +5,9 @@ pub mod ansi;
 pub mod pretty_printer;
 pub mod serializer;
 
-use crate::ast::{DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTuple};
+use crate::ast::{
+    DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTemporal, DuperTuple,
+};
 
 /// A trait for implementing a Duper visitor. You can visit a `DuperValue`
 /// with `value.accept(&mut visitor)`.
@@ -15,7 +17,7 @@ use crate::ast::{DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperStri
 /// ```
 /// use duper::{
 ///     DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString,
-///     DuperTuple, visitor::DuperVisitor,
+///     DuperTemporal, DuperTuple, visitor::DuperVisitor,
 /// };
 ///
 /// struct MyVisitor;
@@ -65,6 +67,12 @@ use crate::ast::{DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperStri
 ///     #     &mut self,
 ///     #     identifier: Option<&DuperIdentifier<'a>>,
 ///     #     bytes: &DuperBytes<'a>,
+///     # ) -> Self::Value {}
+///     #
+///     # fn visit_temporal<'a>(
+///     #     &mut self,
+///     #     identifier: Option<&DuperIdentifier<'a>>,
+///     #     temporal: &DuperTemporal<'a>,
 ///     # ) -> Self::Value {}
 ///     #
 ///     # fn visit_integer<'a>(
@@ -132,6 +140,14 @@ pub trait DuperVisitor {
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
         bytes: &DuperBytes<'a>,
+    ) -> Self::Value;
+
+    /// Visits a Temporal value. You can access a `&str` by calling
+    /// `temporal.as_ref()`.
+    fn visit_temporal<'a>(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'a>>,
+        temporal: &DuperTemporal<'a>,
     ) -> Self::Value;
 
     /// Visits an integer.

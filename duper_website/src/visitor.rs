@@ -1,7 +1,9 @@
+use std::borrow::Cow;
+
 use base64::{Engine, prelude::BASE64_STANDARD};
 use duper::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTuple, DuperValue, visitor::DuperVisitor,
+    DuperTemporal, DuperTuple, DuperValue, visitor::DuperVisitor,
 };
 
 // A visitor that transforms bytes into an array of integers.
@@ -76,6 +78,20 @@ impl DuperVisitor for EncodeBytesVisitor {
         DuperValue {
             identifier: identifier.map(|identifier| identifier.static_clone()),
             inner: DuperInner::String(DuperString::from(BASE64_STANDARD.encode(bytes.as_ref()))),
+        }
+    }
+
+    fn visit_temporal<'a>(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'a>>,
+        temporal: &DuperTemporal<'a>,
+    ) -> Self::Value {
+        DuperValue {
+            identifier: identifier.map(|identifier| identifier.static_clone()),
+            inner: DuperInner::Temporal(
+                DuperTemporal::try_from(Cow::Owned(temporal.as_ref().to_owned()))
+                    .expect("valid Temporal value"),
+            ),
         }
     }
 

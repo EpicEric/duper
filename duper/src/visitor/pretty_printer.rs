@@ -2,11 +2,12 @@
 
 use crate::{
     ast::{
-        DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTuple, DuperValue,
+        DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTemporal,
+        DuperTuple, DuperValue,
     },
     format::{
         format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
-        format_key, format_null,
+        format_key, format_null, format_temporal,
     },
     visitor::DuperVisitor,
 };
@@ -259,6 +260,21 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
             }
         } else {
             self.buf.push_str(&format_duper_bytes(bytes));
+        }
+    }
+
+    fn visit_temporal<'a>(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'a>>,
+        temporal: &DuperTemporal<'a>,
+    ) -> Self::Value {
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
+            let value = format_temporal(temporal);
+            self.buf.push_str(&format!("{identifier}({value})"));
+        } else {
+            self.buf.push_str(&format_temporal(temporal));
         }
     }
 

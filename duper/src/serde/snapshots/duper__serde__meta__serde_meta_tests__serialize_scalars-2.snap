@@ -16,6 +16,11 @@ DuperValue({
       type: "bytes",
     }),
     DuperValue({
+      identifier: "MyTemporal",
+      inner: "2022-02-28T03:06:00.092121729Z",
+      type: "temporal",
+    }),
+    DuperValue({
       identifier: "MyInt",
       inner: 1337,
       type: "integer",

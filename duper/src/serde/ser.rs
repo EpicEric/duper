@@ -6,7 +6,7 @@ use crate::{
 };
 use serde_core::{Serialize, ser};
 
-use super::error::Error;
+use super::error::DuperSerdeError;
 
 /// A structure for serializing Rust values into Duper values.
 #[derive(Clone, Default)]
@@ -27,7 +27,7 @@ impl<'a> Serializer<'a> {
 ///
 /// Serialization can fail if `T`'s implementation of [`Serialize`] decides to
 /// fail, or if `T` contains a map with non-string keys.
-pub fn to_duper<'a, T>(value: &'a T) -> Result<DuperValue<'a>, Error>
+pub fn to_duper<'a, T>(value: &'a T) -> Result<DuperValue<'a>, DuperSerdeError>
 where
     T: Serialize,
 {
@@ -41,7 +41,7 @@ where
 ///
 /// Serialization can fail if `T`'s implementation of [`Serialize`] decides to
 /// fail, or if `T` contains a map with non-string keys.
-pub fn to_string<T>(value: &T) -> Result<String, Error>
+pub fn to_string<T>(value: &T) -> Result<String, DuperSerdeError>
 where
     T: Serialize,
 {
@@ -55,7 +55,7 @@ where
 ///
 /// Serialization can fail if `T`'s implementation of [`Serialize`] decides to
 /// fail, or if `T` contains a map with non-string keys.
-pub fn to_string_minified<T>(value: &T) -> Result<String, Error>
+pub fn to_string_minified<T>(value: &T) -> Result<String, DuperSerdeError>
 where
     T: Serialize,
 {
@@ -69,19 +69,19 @@ where
 ///
 /// Serialization can fail if `T`'s implementation of [`Serialize`] decides to
 /// fail, or if `T` contains a map with non-string keys.
-pub fn to_string_pretty<T>(value: &T, indent: &str) -> Result<String, Error>
+pub fn to_string_pretty<T>(value: &T, indent: &str) -> Result<String, DuperSerdeError>
 where
     T: Serialize,
 {
     Ok(DuperPrettyPrinter::new(false, indent)
-        .map_err(Error::invalid_value)?
+        .map_err(DuperSerdeError::invalid_value)?
         .pretty_print(to_duper(value)?))
 }
 
 impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
     type Ok = DuperValue<'a>;
 
-    type Error = Error;
+    type Error = DuperSerdeError;
 
     type SerializeSeq = SerializeSeq<'ser, 'a>;
     type SerializeTuple = SerializeTuple<'ser, 'a>;
@@ -424,7 +424,7 @@ pub struct SerializeSeq<'ser, 'a> {
 
 impl<'ser, 'a> ser::SerializeSeq for SerializeSeq<'ser, 'a> {
     type Ok = DuperValue<'a>;
-    type Error = Error;
+    type Error = DuperSerdeError;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
@@ -450,7 +450,7 @@ pub struct SerializeTuple<'ser, 'a> {
 
 impl<'ser, 'a> ser::SerializeTuple for SerializeTuple<'ser, 'a> {
     type Ok = DuperValue<'a>;
-    type Error = Error;
+    type Error = DuperSerdeError;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
@@ -478,7 +478,7 @@ pub struct SerializeTupleStruct<'ser, 'a> {
 // Serialize struct Rgb(u8, u8, u8) as Rgb((..., ..., ...))
 impl<'ser, 'a> ser::SerializeTupleStruct for SerializeTupleStruct<'ser, 'a> {
     type Ok = DuperValue<'a>;
-    type Error = Error;
+    type Error = DuperSerdeError;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
@@ -508,7 +508,7 @@ pub struct SerializeTupleVariant<'ser, 'b> {
 // Serialize enum E { T(u8, u8) } as E({T: (..., ...)})
 impl<'ser, 'b> ser::SerializeTupleVariant for SerializeTupleVariant<'ser, 'b> {
     type Ok = DuperValue<'b>;
-    type Error = Error;
+    type Error = DuperSerdeError;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
@@ -546,7 +546,7 @@ pub struct SerializeMap<'ser, 'a> {
 
 impl<'ser, 'a> ser::SerializeMap for SerializeMap<'ser, 'a> {
     type Ok = DuperValue<'a>;
-    type Error = Error;
+    type Error = DuperSerdeError;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
     where
@@ -562,7 +562,7 @@ impl<'ser, 'a> ser::SerializeMap for SerializeMap<'ser, 'a> {
                 self.next_key = Some(DuperKey::from(s.into_inner()));
                 Ok(())
             }
-            _ => Err(Error::serialization("map key must be a string")),
+            _ => Err(DuperSerdeError::serialization("map key must be a string")),
         }
     }
 
@@ -575,7 +575,7 @@ impl<'ser, 'a> ser::SerializeMap for SerializeMap<'ser, 'a> {
             self.entries.push((key, value));
             Ok(())
         } else {
-            Err(Error::serialization(
+            Err(DuperSerdeError::serialization(
                 "serialize_value called before serialize_key",
             ))
         }
@@ -598,7 +598,7 @@ pub struct SerializeStruct<'ser, 'a> {
 // Serialize struct Rgb { r: u8, g: u8, b: u8 } as Rgb({r: ..., g: ..., b: ...})
 impl<'ser, 'a> ser::SerializeStruct for SerializeStruct<'ser, 'a> {
     type Ok = DuperValue<'a>;
-    type Error = Error;
+    type Error = DuperSerdeError;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
     where
@@ -629,7 +629,7 @@ pub struct SerializeStructVariant<'ser, 'a> {
 // Serialize enum E { S { x: i32, y: String } } as E({S: {x: ..., y: ...}})
 impl<'ser, 'a> ser::SerializeStructVariant for SerializeStructVariant<'ser, 'a> {
     type Ok = DuperValue<'a>;
-    type Error = Error;
+    type Error = DuperSerdeError;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
     where

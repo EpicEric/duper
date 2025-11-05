@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 
 use duper::{
-    DuperArray, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString, DuperValue,
+    DuperArray, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString, DuperTemporal,
+    DuperValue,
 };
 use pyo3::{exceptions::PyValueError, prelude::*, types::*};
 
@@ -344,9 +345,14 @@ impl<'py> WellKnownType<'py> {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("DateTime")).expect("valid identifier"),
                 ),
-                inner: DuperInner::String(DuperString::from(Cow::Owned(
-                    value.call_method0("isoformat")?.extract()?,
-                ))),
+                inner: DuperInner::Temporal(
+                    DuperTemporal::try_from(Cow::Owned(
+                        value.call_method0("isoformat")?.extract()?,
+                    ))
+                    .map_err(|err| {
+                        PyValueError::new_err(format!("Failed to parse Temporal value: {err}"))
+                    })?,
+                ),
             }),
             WellKnownType::TimeDelta(value) => Ok(DuperValue {
                 identifier: Some(
@@ -359,17 +365,27 @@ impl<'py> WellKnownType<'py> {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("Date")).expect("valid identifier"),
                 ),
-                inner: DuperInner::String(DuperString::from(Cow::Owned(
-                    value.call_method0("isoformat")?.extract()?,
-                ))),
+                inner: DuperInner::Temporal(
+                    DuperTemporal::try_from(Cow::Owned(
+                        value.call_method0("isoformat")?.extract()?,
+                    ))
+                    .map_err(|err| {
+                        PyValueError::new_err(format!("Failed to parse Temporal value: {err}"))
+                    })?,
+                ),
             }),
             WellKnownType::Time(value) => Ok(DuperValue {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("Time")).expect("valid identifier"),
                 ),
-                inner: DuperInner::String(DuperString::from(Cow::Owned(
-                    value.call_method0("isoformat")?.extract()?,
-                ))),
+                inner: DuperInner::Temporal(
+                    DuperTemporal::try_from(Cow::Owned(
+                        value.call_method0("isoformat")?.extract()?,
+                    ))
+                    .map_err(|err| {
+                        PyValueError::new_err(format!("Failed to parse Temporal value: {err}"))
+                    })?,
+                ),
             }),
             // decimal
             WellKnownType::Decimal(value) => Ok(DuperValue {

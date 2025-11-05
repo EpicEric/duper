@@ -7,8 +7,8 @@ use serde_core::{
 };
 
 use crate::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject,
-    DuperObjectTryFromError, DuperString, DuperTuple, DuperValue,
+    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
+    DuperTemporal, DuperTuple, DuperValue, serde::error::DuperSerdeError,
 };
 
 impl<'a> DuperValue<'a> {
@@ -40,6 +40,10 @@ impl<'a> DuperValue<'a> {
             DuperInner::Bytes(_) => {
                 state.serialize_field("inner", &self.inner)?;
                 state.serialize_field("type", "bytes")?;
+            }
+            DuperInner::Temporal(_) => {
+                state.serialize_field("inner", &self.inner)?;
+                state.serialize_field("type", "temporal")?;
             }
             DuperInner::Integer(_) => {
                 state.serialize_field("inner", &self.inner)?;
@@ -139,7 +143,7 @@ struct DeDuperValue<'b> {
 }
 
 impl<'b> TryFrom<DeDuperValue<'b>> for DuperValue<'b> {
-    type Error = DuperObjectTryFromError<'b>;
+    type Error = DuperSerdeError;
 
     fn try_from(value: DeDuperValue<'b>) -> Result<Self, Self::Error> {
         Ok(DuperValue {
@@ -159,6 +163,7 @@ enum DeDuperInner<'b> {
     Tuple(DeDuperTuple<'b>),
     String(DuperString<'b>),
     Bytes(DuperBytes<'b>),
+    Temporal(DuperTemporal<'b>),
     Integer(i64),
     Float(f64),
     Boolean(bool),
@@ -173,6 +178,7 @@ impl Display for DeDuperInner<'_> {
             DeDuperInner::Tuple(_) => "tuple",
             DeDuperInner::String(_) => "string",
             DeDuperInner::Bytes(_) => "bytes",
+            DeDuperInner::Temporal(_) => "temporal",
             DeDuperInner::Integer(_) => "integer",
             DeDuperInner::Float(_) => "float",
             DeDuperInner::Boolean(_) => "boolean",
@@ -182,7 +188,7 @@ impl Display for DeDuperInner<'_> {
 }
 
 impl<'b> TryFrom<DeDuperInner<'b>> for DuperInner<'b> {
-    type Error = DuperObjectTryFromError<'b>;
+    type Error = DuperSerdeError;
 
     fn try_from(value: DeDuperInner<'b>) -> Result<Self, Self::Error> {
         match value {
@@ -209,6 +215,9 @@ impl<'b> TryFrom<DeDuperInner<'b>> for DuperInner<'b> {
             ))),
             DeDuperInner::String(string) => Ok(DuperInner::String(string)),
             DeDuperInner::Bytes(bytes) => Ok(DuperInner::Bytes(bytes)),
+            DeDuperInner::Temporal(temporal) => Ok(DuperInner::Temporal(DuperTemporal::try_from(
+                temporal.into_inner(),
+            )?)),
             DeDuperInner::Integer(integet) => Ok(DuperInner::Integer(integet)),
             DeDuperInner::Float(float) => Ok(DuperInner::Float(float)),
             DeDuperInner::Boolean(boolean) => Ok(DuperInner::Boolean(boolean)),
@@ -429,6 +438,7 @@ enum DeDuperType {
     Tuple,
     String,
     Bytes,
+    Temporal,
     Integer,
     Float,
     Boolean,
@@ -443,6 +453,7 @@ impl Display for DeDuperType {
             DeDuperType::Tuple => "tuple",
             DeDuperType::String => "string",
             DeDuperType::Bytes => "bytes",
+            DeDuperType::Temporal => "temporal",
             DeDuperType::Integer => "integer",
             DeDuperType::Float => "float",
             DeDuperType::Boolean => "boolean",
@@ -461,6 +472,7 @@ impl<'b> TryFrom<&'b str> for DeDuperType {
             "tuple" => Ok(DeDuperType::Tuple),
             "string" => Ok(DeDuperType::String),
             "bytes" => Ok(DeDuperType::Bytes),
+            "temporal" => Ok(DeDuperType::Temporal),
             "integer" => Ok(DeDuperType::Integer),
             "float" => Ok(DeDuperType::Float),
             "boolean" => Ok(DeDuperType::Boolean),
@@ -510,7 +522,7 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
                     typ = Some(DeDuperType::try_from(typ_tag).map_err(|_|
                             Error::invalid_value(
                                 serde_core::de::Unexpected::Str(typ_tag),
-                                &"one of: object, array, tuple, string, bytes, integer, float, boolean, null",
+                                &"one of: object, array, tuple, string, bytes, temporal, integer, float, boolean, null",
                             ))?);
                 }
                 _ => {
@@ -532,6 +544,9 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
             (DeDuperInner::Tuple(tuple), DeDuperType::Tuple) => DeDuperInner::Tuple(tuple),
             (DeDuperInner::String(string), DeDuperType::String) => DeDuperInner::String(string),
             (DeDuperInner::Bytes(bytes), DeDuperType::Bytes) => DeDuperInner::Bytes(bytes),
+            (DeDuperInner::Temporal(temporal), DeDuperType::Temporal) => {
+                DeDuperInner::Temporal(temporal)
+            }
             (DeDuperInner::Integer(integer), DeDuperType::Integer) => {
                 DeDuperInner::Integer(integer)
             }
@@ -563,6 +578,12 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
                 ) =>
             {
                 DeDuperInner::String(string)
+            }
+            // Temporal from string
+            (DeDuperInner::String(string), DeDuperType::Temporal) => {
+                DeDuperInner::Temporal(DuperTemporal::try_from(string.into_inner()).map_err(
+                    |err| Error::custom(format!("failed to parse Temporal value: {err}")),
+                )?)
             }
             // Fallback
             (inner, typ) => {
@@ -597,7 +618,7 @@ mod serde_meta_tests {
 
     use crate::{
         DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-        DuperTuple, DuperValue, PrettyPrinter,
+        DuperTemporal, DuperTuple, DuperValue, PrettyPrinter,
         serde::{de::Deserializer, ser::Serializer},
     };
 
@@ -723,6 +744,18 @@ mod serde_meta_tests {
                     },
                 ),
                 (
+                    DuperKey::from("temporal"),
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_from(Cow::Borrowed(
+                                "2022-02-28T03:06:00.092121729Z",
+                            ))
+                            .unwrap(),
+                        ),
+                    },
+                ),
+                (
                     DuperKey::from("integer"),
                     DuperValue {
                         identifier: None,
@@ -772,6 +805,15 @@ mod serde_meta_tests {
                         DuperIdentifier::try_from("MyBytes").expect("valid identifier"),
                     ),
                     inner: DuperInner::Bytes(DuperBytes::from(&br"/\"[..])),
+                },
+                DuperValue {
+                    identifier: Some(
+                        DuperIdentifier::try_from("MyTemporal").expect("valid identifier"),
+                    ),
+                    inner: DuperInner::Temporal(
+                        DuperTemporal::try_from(Cow::Borrowed("2022-02-28T03:06:00.092121729Z"))
+                            .unwrap(),
+                    ),
                 },
                 DuperValue {
                     identifier: Some(DuperIdentifier::try_from("MyInt").expect("valid identifier")),

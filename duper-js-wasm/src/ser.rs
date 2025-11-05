@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use duper::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTuple, DuperValue,
+    DuperTemporal, DuperTuple, DuperValue,
 };
 use js_sys::{Array, BigInt, Boolean, Object, Uint8Array, try_iter};
 use wasm_bindgen::prelude::*;
@@ -110,6 +110,23 @@ pub(crate) fn serialize_bytes(
     Ok(DuperValue {
         identifier,
         inner: DuperInner::Bytes(DuperBytes::from(Cow::Owned(bytes.to_vec()))),
+    })
+}
+
+pub(crate) fn serialize_temporal(
+    value: &JsValue,
+    identifier: Option<DuperIdentifier<'static>>,
+) -> Result<DuperValue<'static>, JsValue> {
+    let string = value
+        .as_string()
+        .ok_or_else(|| format!("expected string, found {value:?}"))?;
+    Ok(DuperValue {
+        identifier,
+        inner: DuperInner::Temporal(
+            DuperTemporal::try_from(Cow::Owned(string)).map_err(|err| {
+                JsValue::from_str(&format!("failed to parse Temporal value: {err}"))
+            })?,
+        ),
     })
 }
 
