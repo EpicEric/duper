@@ -273,7 +273,16 @@ pub(crate) fn escape_bytes<'a>(input: &'a Cow<'a, [u8]>) -> Cow<'a, str> {
             input
                 .iter()
                 .copied()
-                .flat_map(ascii::escape_default)
+                .flat_map(|byte| match byte {
+                    b'\t' => either::Left(br"\t".iter().copied()),
+                    b'\r' => either::Left(br"\r".iter().copied()),
+                    b'\n' => either::Left(br"\n".iter().copied()),
+                    b'\\' => either::Left(br"\\".iter().copied()),
+                    b'\'' => either::Left(br"\'".iter().copied()),
+                    b'"' => either::Left(b"\\\"".iter().copied()),
+                    b'\0' => either::Left(br"\0".iter().copied()),
+                    _ => either::Right(ascii::escape_default(byte)),
+                })
                 .map(|b| b as char)
                 .collect(),
         )
@@ -320,7 +329,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_visible_unicode() {
+    fn visible_unicode() {
         // Characters that should NOT be escaped
         let input = "Hello 世界 🌍";
         let binding = Cow::Borrowed(input);
@@ -329,7 +338,7 @@ mod tests {
     }
 
     #[test]
-    fn test_invisible_unicode() {
+    fn invisible_unicode() {
         // Characters that should be escaped
         let input = "Hello\u{200B}World";
         let binding = Cow::Borrowed(input);
@@ -338,7 +347,7 @@ mod tests {
     }
 
     #[test]
-    fn test_round_trip() {
+    fn round_trip() {
         let original = "Test\t\n\r\"\\\u{200B}";
         let binding = Cow::Borrowed(original);
         let escaped = escape_str(&binding);
@@ -347,10 +356,18 @@ mod tests {
     }
 
     #[test]
-    fn test_hex_utf8_sequences() {
+    fn hex_utf8_sequences() {
         assert_eq!(unescape_str("\\xc2\\xa2").unwrap(), "¢");
         assert_eq!(unescape_str("\\xe2\\x82\\xac").unwrap(), "€");
         assert_eq!(unescape_str("\\xf0\\x9f\\x98\\x80").unwrap(), "😀");
         assert!(unescape_str("\\xff\\xff").is_err());
+    }
+
+    #[test]
+    fn byte_escapes() {
+        assert_eq!(
+            escape_bytes(&Cow::Borrowed(b"\t\r\n\\\'\"\0\x1b")),
+            r#"\t\r\n\\\'\"\0\x1b"#
+        )
     }
 }

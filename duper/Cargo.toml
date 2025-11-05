@@ -21,6 +21,7 @@ serde = ["dep:serde_core"]
 ariadne = { version = "0.6", features = ["auto-color"] }
 base64 = "0.22"
 chumsky = "0.11"
+either = "1"
 owo-colors = { version = "4", optional = true }
 ryu = "1"
 serde_core = { version = "1", optional = true }
