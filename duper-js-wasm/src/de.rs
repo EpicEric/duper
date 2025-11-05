@@ -98,6 +98,7 @@ impl DuperVisitor for Visitor {
         identifier: Option<&duper::DuperIdentifier<'a>>,
         temporal: &duper::DuperTemporal<'a>,
     ) -> Self::Value {
+        // TO-DO: Temporal - Preserve type
         Ok(JsDuperValue {
             identifier: identifier.map(|identifier| identifier.static_clone()),
             inner: JsDuperValueInner::Temporal(temporal.as_ref().into()),

@@ -84,7 +84,7 @@ const input = `
       average: 4.5,
       count: 127,
     },
-    created_at: DateTime("2023-11-17T21:50:43+00:00"),
+    created_at: Instant('2023-11-17T21:50:43+00:00'),
   })
 `;
 const duper = parse(input);

@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use base64::{Engine, prelude::BASE64_STANDARD};
 use duper::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
@@ -88,10 +86,7 @@ impl DuperVisitor for EncodeBytesVisitor {
     ) -> Self::Value {
         DuperValue {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::Temporal(
-                DuperTemporal::try_from(Cow::Owned(temporal.as_ref().to_owned()))
-                    .expect("valid Temporal value"),
-            ),
+            inner: DuperInner::Temporal(temporal.static_clone()),
         }
     }
 

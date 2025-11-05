@@ -4,7 +4,9 @@
 
 ### Added
 
-- Add `minify` option to `Serializer`.
+- **Breaking**: Add `minify` option to `Serializer`.
+- **Breaking**: Add `b64"..."` syntax for Base64-encoded bytes.
+- **Breaking**: Add `'...'` and `Type('...')` syntax for Temporal values.
 
 ## 0.3.0 (2025-10-30)
 

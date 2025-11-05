@@ -45,8 +45,8 @@ pub mod visitor;
 
 pub use ast::{
     DuperArray, DuperBytes, DuperIdentifier, DuperIdentifierTryFromError, DuperInner, DuperKey,
-    DuperObject, DuperObjectTryFromError, DuperString, DuperTemporal, DuperTemporalTryFromError,
-    DuperTuple, DuperValue,
+    DuperObject, DuperObjectTryFromError, DuperString, DuperTemporal, DuperTemporalInner,
+    DuperTemporalTryFromError, DuperTuple, DuperValue,
 };
 pub use parser::DuperParser;
 #[cfg(feature = "ansi")]

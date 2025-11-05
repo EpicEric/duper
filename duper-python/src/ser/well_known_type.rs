@@ -346,7 +346,7 @@ impl<'py> WellKnownType<'py> {
                     DuperIdentifier::try_from(Cow::Borrowed("DateTime")).expect("valid identifier"),
                 ),
                 inner: DuperInner::Temporal(
-                    DuperTemporal::try_from(Cow::Owned(
+                    DuperTemporal::try_instant_from(Cow::Owned(
                         value.call_method0("isoformat")?.extract()?,
                     ))
                     .map_err(|err| {
@@ -366,7 +366,7 @@ impl<'py> WellKnownType<'py> {
                     DuperIdentifier::try_from(Cow::Borrowed("Date")).expect("valid identifier"),
                 ),
                 inner: DuperInner::Temporal(
-                    DuperTemporal::try_from(Cow::Owned(
+                    DuperTemporal::try_plain_date_from(Cow::Owned(
                         value.call_method0("isoformat")?.extract()?,
                     ))
                     .map_err(|err| {
@@ -379,7 +379,7 @@ impl<'py> WellKnownType<'py> {
                     DuperIdentifier::try_from(Cow::Borrowed("Time")).expect("valid identifier"),
                 ),
                 inner: DuperInner::Temporal(
-                    DuperTemporal::try_from(Cow::Owned(
+                    DuperTemporal::try_plain_time_from(Cow::Owned(
                         value.call_method0("isoformat")?.extract()?,
                     ))
                     .map_err(|err| {

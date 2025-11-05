@@ -1,5 +1,5 @@
 ---
-version: "0.4.0-alpha.1"
+version: "0.4.0-alpha.2"
 ---
 
 <script setup lang="ts">
@@ -244,7 +244,7 @@ Byte strings are similar to strings, but represent binary data. Like strings, th
 }
 ```
 
-**Raw byte strings** are similar to raw strings, using the `br` (all lowercase) prefix instead.
+**Raw byte strings** are similar to raw strings, using the `br"` (all lowercase) prefix instead.
 
 ```duper
 {
@@ -254,7 +254,7 @@ Byte strings are similar to strings, but represent binary data. Like strings, th
 }
 ```
 
-**Base64 byte strings** use the `b64` (all lowercase) prefix, and must contain only valid Base64 characters (ASCII lowercase, ASCII uppercase, ASCII digits, plus sign `+`, forward slash `/`) within quotes `"` as per [RFC 4648 section 4](https://datatracker.ietf.org/doc/html/rfc4648#section-4). Whitespace inside of the Base64 byte string is allowed and ignored. Parsers should allow for missing pad characters, while encoders must emit valid padding.
+**Base64 byte strings** use the `b64"` (all lowercase) prefix. They must contain only valid Base64 characters (ASCII lowercase, ASCII uppercase, ASCII digits, plus sign `+`, forward slash `/`) as per [RFC 4648 section 4](https://datatracker.ietf.org/doc/html/rfc4648#section-4). Whitespace inside of the Base64 byte string is allowed and ignored. Parsers should allow for missing pad characters, while encoders must emit valid padding.
 
 ```duper
 {
@@ -264,6 +264,35 @@ Byte strings are similar to strings, but represent binary data. Like strings, th
 
   too_much_padding: b64"ZHVwZXI===",  // INVALID
   invalid_characters: b64"QUFB-Q==",  // INVALID
+}
+```
+
+## Temporal values
+
+Temporal values are a set of value types, representing a point in time or the difference between two points in time. They are surrounded by single quotes `'` and must follow the [Temporal proposal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal), which uses the format specified in [RFC 9557](https://datatracker.ietf.org/doc/html/rfc9557).
+
+Whitespace between the Temporal value and the single quotes is allowed and ignored. Parsers should validate that the value between single quotes is a valid Temporal value.
+
+```duper
+{
+
+}
+```
+
+These values may or may not contain an [identifier](#identifiers). In the case where the identifier is one of the following, parsers must validate that the contained Temporal value matches its type:
+
+- [`Instant`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/Instant)
+- [`ZonedDateTime`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/ZonedDateTime)
+- [`PlainDate`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainDate)
+- [`PlainTime`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainTime)
+- [`PlainDateTime`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainDateTime)
+- [`PlainYearMonth`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainYearMonth)
+- [`PlainMonthDay`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainMonthDay)
+- [`Duration`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/Duration)
+
+```duper
+{
+
 }
 ```
 
@@ -447,7 +476,7 @@ Any parenthesized expression must be interpreted as a tuple by parsers.
 
 ## Identifiers
 
-Identifiers are optional type-like annotations that wrap any kind of value, providing semantic meaning or hinting at special handling during parsing/validation. Identified values are composed of the identifier name, followed by the value wrapped in parenthesis `(` and `)`.
+Identifiers are type-like annotations that wrap any kind of value, providing semantic meaning or hinting at special handling during parsing/validation. Identified values are composed of the identifier name, followed by the value wrapped in parenthesis `(` and `)`.
 
 The first character must be an ASCII uppercase letter, followed by zero or more ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. Sequences of underscores and hyphens are not allowed in the identifier, and identifiers may not start or end with either of them.
 
@@ -484,6 +513,8 @@ Values may not contain more than one identifier.
   too_many: IpAddress(Ipv4Address("192.168.0.1"))  // INVALID
 }
 ```
+
+Identifiers are optional and may be ignored by parsers, except when specifying one of the expected types for [Temporal values](#temporal-values).
 
 Parsers should preserve identifier information on a best-effort basis. Deserializers may ignore identifiers, or use them for validation. Serializers may choose to output or omit identifiers by the user's request.
 

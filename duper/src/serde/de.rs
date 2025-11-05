@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{DuperArray, DuperInner, DuperKey, DuperParser, DuperValue};
+use crate::{DuperArray, DuperInner, DuperKey, DuperParser, DuperTemporal, DuperValue};
 use serde_core::{
     Deserialize,
     de::{self, DeserializeSeed, IntoDeserializer, Visitor},
@@ -195,9 +195,19 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
             Some(DuperValue {
                 inner: DuperInner::Temporal(temporal),
                 ..
-            }) => match temporal.into_inner() {
-                Cow::Borrowed(t) => visitor.visit_borrowed_str(t),
-                Cow::Owned(t) => visitor.visit_string(t),
+            }) => match temporal {
+                DuperTemporal::Instant(inner)
+                | DuperTemporal::ZonedDateTime(inner)
+                | DuperTemporal::PlainDate(inner)
+                | DuperTemporal::PlainTime(inner)
+                | DuperTemporal::PlainDateTime(inner)
+                | DuperTemporal::PlainYearMonth(inner)
+                | DuperTemporal::PlainMonthDay(inner)
+                | DuperTemporal::Duration(inner)
+                | DuperTemporal::Unspecified(inner) => match inner.into_inner() {
+                    Cow::Borrowed(t) => visitor.visit_borrowed_str(t),
+                    Cow::Owned(t) => visitor.visit_string(t),
+                },
             },
             Some(DuperValue {
                 inner: DuperInner::Integer(integer),

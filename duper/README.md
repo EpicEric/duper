@@ -38,12 +38,12 @@ Product({
     average: 4.5,
     count: 127,
   },
-  created_at: DateTime("2023-11-17T21:50:43+00:00"),
+  created_at: Instant('2023-11-17T21:50:43+00:00'),
 })
 ```
 
 - Similar to JSON, but with support for unquoted keys, trailing commas, and comments.
-- It includes support for extra types: integers, tuples, bytes, raw strings, and raw bytes.
+- It includes support for extra types: integers, tuples, bytes, raw strings, raw bytes, and Temporal.
 - Finally, Duper has the notion of _identifiers_: optional type-like annotations (`MyIdentifier(...)`) to help with readability, or to suggest that the parser handles/validates the data in a specific manner.
 
 ## See also:
