@@ -93,6 +93,17 @@ impl DuperVisitor for Visitor {
         })
     }
 
+    fn visit_temporal<'a>(
+        &mut self,
+        identifier: Option<&duper::DuperIdentifier<'a>>,
+        temporal: &duper::DuperTemporal<'a>,
+    ) -> Self::Value {
+        Ok(JsDuperValue {
+            identifier: identifier.map(|identifier| identifier.static_clone()),
+            inner: JsDuperValueInner::Temporal(temporal.as_ref().into()),
+        })
+    }
+
     fn visit_integer<'a>(
         &mut self,
         identifier: Option<&duper::DuperIdentifier<'a>>,

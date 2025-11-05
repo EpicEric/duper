@@ -4,11 +4,12 @@ use std::io::{Error, Write};
 
 use crate::{
     ast::{
-        DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTuple, DuperValue,
+        DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTemporal,
+        DuperTuple, DuperValue,
     },
     format::{
         format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
-        format_key, format_null,
+        format_key, format_null, format_temporal,
     },
     visitor::DuperVisitor,
 };
@@ -34,6 +35,8 @@ pub struct AnsiTheme<'theme> {
     pub string: DynColors,
     /// Duper bytes: `(b"Hello", br"#world")`
     pub bytes: DynColors,
+    /// Duper Temporal: `'2022-02-28T03:06:00.092121729Z'`
+    pub temporal: DynColors,
     /// Duper integers: `(42, 0xdeadbeef)`
     pub integer: DynColors,
     /// Duper floats: `(2.17, 3.5e50)`
@@ -58,6 +61,7 @@ pub static ANSI_THEME: &AnsiTheme = &AnsiTheme {
     key: DynColors::Ansi(AnsiColors::BrightCyan),
     string: DynColors::Ansi(AnsiColors::BrightRed),
     bytes: DynColors::Ansi(AnsiColors::BrightRed),
+    temporal: DynColors::Ansi(AnsiColors::BrightRed),
     integer: DynColors::Ansi(AnsiColors::BrightGreen),
     float: DynColors::Ansi(AnsiColors::BrightGreen),
     boolean: DynColors::Ansi(AnsiColors::Blue),
@@ -75,6 +79,7 @@ pub static VSCODE_DARK_PLUS_THEME: &AnsiTheme = &AnsiTheme {
     key: DynColors::Rgb(0x9C, 0xDC, 0xFE),
     string: DynColors::Rgb(0xCE, 0x91, 0x78),
     bytes: DynColors::Rgb(0xCE, 0x91, 0x78),
+    temporal: DynColors::Rgb(0xCE, 0x91, 0x78),
     integer: DynColors::Rgb(0xB5, 0xCE, 0xA8),
     float: DynColors::Rgb(0xB5, 0xCE, 0xA8),
     boolean: DynColors::Rgb(0x56, 0x9C, 0xD6),
@@ -85,8 +90,6 @@ pub static VSCODE_DARK_PLUS_THEME: &AnsiTheme = &AnsiTheme {
         DynColors::Rgb(0x17, 0x9F, 0xFF),
     ],
 };
-
-// TO-DO: More ANSI themes
 
 impl Default for Ansi<'static> {
     fn default() -> Self {
@@ -334,6 +337,36 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
             self.buf.write_fmt(format_args!(
                 "{}",
                 format_duper_bytes(bytes).color(self.theme.bytes)
+            ))?;
+        }
+
+        Ok(())
+    }
+
+    fn visit_temporal<'a>(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'a>>,
+        temporal: &DuperTemporal<'a>,
+    ) -> Self::Value {
+        if !self.strip_identifiers
+            && let Some(identifier) = identifier
+        {
+            self.buf.write_fmt(format_args!(
+                "{}",
+                identifier.as_ref().color(self.theme.identifier)
+            ))?;
+            self.colorize_bracket("(")?;
+            self.increase_bracket_depth();
+            self.buf.write_fmt(format_args!(
+                "{}",
+                format_temporal(temporal).color(self.theme.temporal)
+            ))?;
+            self.decrease_bracket_depth();
+            self.colorize_bracket(")")?;
+        } else {
+            self.buf.write_fmt(format_args!(
+                "{}",
+                format_temporal(temporal).color(self.theme.temporal)
             ))?;
         }
 

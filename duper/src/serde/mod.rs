@@ -63,6 +63,7 @@ impl<'a> Serialize for DuperInner<'a> {
             }
             DuperInner::String(string) => serializer.serialize_str(string.as_ref()),
             DuperInner::Bytes(bytes) => serializer.serialize_bytes(bytes.as_ref()),
+            DuperInner::Temporal(temporal) => serializer.serialize_str(temporal.as_ref()),
             DuperInner::Integer(integer) => serializer.serialize_i64(*integer),
             DuperInner::Float(float) => serializer.serialize_f64(*float),
             DuperInner::Boolean(boolean) => serializer.serialize_bool(*boolean),

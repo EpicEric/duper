@@ -5,7 +5,10 @@ use chumsky::prelude::*;
 
 use crate::{
     DuperBytes, DuperString,
-    ast::{DuperArray, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperTuple, DuperValue},
+    ast::{
+        DuperArray, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperTemporal, DuperTuple,
+        DuperValue,
+    },
     escape::{unescape_bytes, unescape_str},
 };
 
@@ -156,6 +159,7 @@ pub(crate) fn identified_value<'a>()
             raw_bytes().map(|bytes| DuperInner::Bytes(DuperBytes(Cow::Borrowed(bytes)))),
             quoted_string().map(|cow_str| DuperInner::String(DuperString(cow_str))),
             raw_string().map(|str| DuperInner::String(DuperString(Cow::Borrowed(str)))),
+            temporal().map(|str| DuperInner::Temporal(DuperTemporal(Cow::Borrowed(str)))),
             float().map(DuperInner::Float),
             integer().map(DuperInner::Integer),
             boolean().map(DuperInner::Boolean),
@@ -381,6 +385,17 @@ pub(crate) fn raw_bytes<'a>()
     )
 }
 
+pub(crate) fn temporal<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone
+{
+    temporal_inner().delimited_by(just('\''), just('\''))
+}
+
+pub(crate) fn temporal_inner<'a>()
+-> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
+    // TO-DO: Temporal - Actual parsing
+    any().and_is(just('\'').not()).repeated().to_slice()
+}
+
 pub(crate) fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, char>>> + Clone {
     let decimal = one_of("+-").or_not().then(integer_digits()).to_slice();
 
@@ -560,7 +575,7 @@ pub(crate) fn value_recovery<'a>()
 mod duper_parser_tests {
     use crate::{
         DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperParser,
-        DuperString, DuperTuple, DuperValue,
+        DuperString, DuperTuple, DuperValue, ast::DuperTemporal,
     };
 
     #[test]
@@ -709,6 +724,24 @@ mod duper_parser_tests {
         assert!(matches!(duper.inner, DuperInner::Object(_)));
 
         let input = r#"
+            '2022-02-28'
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Temporal(_)));
+
+        let input = r#"
+            '2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Temporal(_)));
+
+        let input = r#"
+            '2022-02-28T03:06:00.092121729Z'
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Temporal(_)));
+
+        let input = r#"
             [1, 2.2, null]
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
@@ -732,10 +765,6 @@ mod duper_parser_tests {
         assert!(DuperParser::parse_duper_value(input).is_err());
 
         // Strings and bytes
-        let input = r#"
-            'single quotes'
-        "#;
-        assert!(DuperParser::parse_duper_value(input).is_err());
         let input = r#"
             "unclosed
         "#;
@@ -776,6 +805,9 @@ mod duper_parser_tests {
             b64"ABC-"  // Invalid character
         "#;
         assert!(DuperParser::parse_duper_value(input).is_err());
+
+        // Temporal
+        // TO-DO: Temporal - Tests for parsing errors
 
         // Floats and decimal
         let input = r#"
@@ -1177,7 +1209,7 @@ mod duper_parser_tests {
                     average: 4.5,
                     count: 127,
                 },
-                created_at: DateTime("2023-11-17T21:50:43+00:00"),
+                created_at: Instant('2023-11-17T21:50:43+00:00'),
             })
         "##;
         let duper = DuperParser::parse_duper_value(input).unwrap();
@@ -1379,8 +1411,8 @@ mod duper_parser_tests {
                     (
                         DuperKey(Cow::Borrowed("created_at")),
                         DuperValue {
-                            identifier: Some(DuperIdentifier(Cow::Borrowed("DateTime"))),
-                            inner: DuperInner::String(DuperString(Cow::Borrowed(
+                            identifier: Some(DuperIdentifier(Cow::Borrowed("Instant"))),
+                            inner: DuperInner::Temporal(DuperTemporal(Cow::Borrowed(
                                 "2023-11-17T21:50:43+00:00"
                             ))),
                         }

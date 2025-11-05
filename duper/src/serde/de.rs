@@ -7,7 +7,7 @@ use serde_core::{
     forward_to_deserialize_any,
 };
 
-use super::error::Error;
+use super::error::DuperSerdeError;
 
 /// Implementation of a deserializer from a [`DuperValue`].
 pub struct Deserializer<'de> {
@@ -17,9 +17,9 @@ pub struct Deserializer<'de> {
 /// A structure that deserializes Duper values into Rust values.
 impl<'de> Deserializer<'de> {
     /// Creates a Duper deserializer from a `&str`.
-    pub fn from_string(input: &'de str) -> Result<Self, Error> {
-        let value =
-            DuperParser::parse_duper_value(input).map_err(|err| Error::parse(input, err))?;
+    pub fn from_string(input: &'de str) -> Result<Self, DuperSerdeError> {
+        let value = DuperParser::parse_duper_value(input)
+            .map_err(|err| DuperSerdeError::parse(input, err))?;
         Ok(Self { value: Some(value) })
     }
 
@@ -63,7 +63,7 @@ impl<'de> Deserializer<'de> {
 /// something is wrong with the data, for example required struct fields are
 /// missing from the Duper object or some number is too big to fit in the
 /// expected primitive type.
-pub fn from_string<'a, T>(input: &'a str) -> Result<T, Error>
+pub fn from_string<'a, T>(input: &'a str) -> Result<T, DuperSerdeError>
 where
     T: Deserialize<'a>,
 {
@@ -130,7 +130,7 @@ where
 /// something is wrong with the data, for example required struct fields are
 /// missing from the Duper object or some number is too big to fit in the
 /// expected primitive type.
-pub fn from_value<'a, T>(value: DuperValue<'a>) -> Result<T, Error>
+pub fn from_value<'a, T>(value: DuperValue<'a>) -> Result<T, DuperSerdeError>
 where
     T: Deserialize<'a>,
 {
@@ -191,6 +191,13 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
             }) => match bytes.into_inner() {
                 Cow::Borrowed(b) => visitor.visit_borrowed_bytes(b),
                 Cow::Owned(b) => visitor.visit_byte_buf(b),
+            },
+            Some(DuperValue {
+                inner: DuperInner::Temporal(temporal),
+                ..
+            }) => match temporal.into_inner() {
+                Cow::Borrowed(t) => visitor.visit_borrowed_str(t),
+                Cow::Owned(t) => visitor.visit_string(t),
             },
             Some(DuperValue {
                 inner: DuperInner::Integer(integer),

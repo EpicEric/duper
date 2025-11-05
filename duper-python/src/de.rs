@@ -121,6 +121,20 @@ impl<'py> DuperVisitor for Visitor<'py> {
         })
     }
 
+    fn visit_temporal<'a>(
+        &mut self,
+        identifier: Option<&duper::DuperIdentifier<'a>>,
+        temporal: &duper::DuperTemporal<'a>,
+    ) -> Self::Value {
+        // TO-DO: Temporal - Use a special value, to indicate this should be serialized back into a Temporal value
+        Ok(VisitorValue {
+            value: PyString::new(self.py, &temporal.clone().into_inner()).into_any(),
+            duper: identifier
+                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
+                .transpose()?,
+        })
+    }
+
     fn visit_integer<'a>(
         &mut self,
         identifier: Option<&duper::DuperIdentifier<'a>>,

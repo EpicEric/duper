@@ -293,7 +293,7 @@ pub mod bytes;
 pub mod types;
 
 pub use duper::serde::de::Deserializer;
-pub use duper::serde::error::{Error, ErrorImpl, ErrorKind, Result};
+pub use duper::serde::error::{DuperSerdeError, DuperSerdeErrorKind, ErrorImpl, Result};
 pub use duper::serde::ser::{
     Serializer, to_duper, to_string, to_string_minified, to_string_pretty,
 };

@@ -15,7 +15,7 @@ use axum::{
     http::{HeaderValue, StatusCode, header::CONTENT_TYPE},
     response::{IntoResponse, Response},
 };
-use duper::serde::error::ErrorKind;
+use duper::serde::error::DuperSerdeErrorKind;
 use serde_core::{Serialize, de::DeserializeOwned};
 
 pub static DUPER_CONTENT_TYPE: &str = "application/duper";
@@ -146,11 +146,11 @@ where
         match duper::serde::de::from_string(string) {
             Ok(value) => Ok(Self(value)),
             Err(err) => match err.inner.kind {
-                ErrorKind::ParseError(_) => Err(DuperRejection::DuperSyntaxError),
-                ErrorKind::SerializationError
-                | ErrorKind::DeserializationError(_)
-                | ErrorKind::InvalidValue
-                | ErrorKind::Custom => Err(DuperRejection::InternalDuperError),
+                DuperSerdeErrorKind::ParseError(_) => Err(DuperRejection::DuperSyntaxError),
+                DuperSerdeErrorKind::SerializationError
+                | DuperSerdeErrorKind::DeserializationError(_)
+                | DuperSerdeErrorKind::InvalidValue
+                | DuperSerdeErrorKind::Custom => Err(DuperRejection::InternalDuperError),
             },
         }
     }

@@ -1,10 +1,12 @@
 use std::fmt::{self, Display};
 
-use crate::{DuperIdentifierTryFromError, DuperObjectTryFromError, DuperParser};
+use crate::{
+    DuperIdentifierTryFromError, DuperObjectTryFromError, DuperParser, DuperTemporalTryFromError,
+};
 
 /// The kinds of errors that can happen during serialization and deserialization.
 #[derive(Debug, Clone)]
-pub enum ErrorKind {
+pub enum DuperSerdeErrorKind {
     /// Parsing failed at the given [`chumsky`] spans.
     ParseError(Vec<chumsky::error::Rich<'static, char>>),
     /// Serialization failed with an unspecified error.
@@ -17,14 +19,14 @@ pub enum ErrorKind {
     Custom,
 }
 
-impl Display for ErrorKind {
+impl Display for DuperSerdeErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            ErrorKind::ParseError(_) => "ParseError",
-            ErrorKind::SerializationError => "SerializationError",
-            ErrorKind::DeserializationError(_) => "DeserializationError",
-            ErrorKind::InvalidValue => "InvalidValue",
-            ErrorKind::Custom => "Custom",
+            DuperSerdeErrorKind::ParseError(_) => "ParseError",
+            DuperSerdeErrorKind::SerializationError => "SerializationError",
+            DuperSerdeErrorKind::DeserializationError(_) => "DeserializationError",
+            DuperSerdeErrorKind::InvalidValue => "InvalidValue",
+            DuperSerdeErrorKind::Custom => "Custom",
         })
     }
 }
@@ -32,19 +34,19 @@ impl Display for ErrorKind {
 /// This type includes the error kind and message associated with the failure.
 #[derive(Debug, Clone)]
 pub struct ErrorImpl {
-    pub kind: ErrorKind,
+    pub kind: DuperSerdeErrorKind,
     pub message: String,
 }
 
 /// This type represents all possible errors that can occur when serializing or
 /// deserializing Duper data.
 #[derive(Debug, Clone)]
-pub struct Error {
+pub struct DuperSerdeError {
     pub inner: Box<ErrorImpl>,
 }
 
-impl Error {
-    pub(crate) fn new(kind: ErrorKind, message: impl Into<String>) -> Self {
+impl DuperSerdeError {
+    pub(crate) fn new(kind: DuperSerdeErrorKind, message: impl Into<String>) -> Self {
         Self {
             inner: Box::new(ErrorImpl {
                 kind,
@@ -54,35 +56,37 @@ impl Error {
     }
 
     pub(crate) fn custom(msg: impl Into<String> + Clone) -> Self {
-        Self::new(ErrorKind::Custom, msg)
+        Self::new(DuperSerdeErrorKind::Custom, msg)
     }
 
     pub(crate) fn parse<'a>(src: &'a str, err_vec: Vec<chumsky::error::Rich<'a, char>>) -> Self {
         let message = DuperParser::prettify_error(src, &err_vec, None);
         Self::new(
-            ErrorKind::ParseError(err_vec.into_iter().map(|err| err.into_owned()).collect()),
+            DuperSerdeErrorKind::ParseError(
+                err_vec.into_iter().map(|err| err.into_owned()).collect(),
+            ),
             message.unwrap_or_else(|_| "failed to generate parse error".into()),
         )
     }
 
     pub(crate) fn serialization(msg: impl Into<String>) -> Self {
-        Self::new(ErrorKind::SerializationError, msg)
+        Self::new(DuperSerdeErrorKind::SerializationError, msg)
     }
 
     pub(crate) fn invalid_value(msg: impl Into<String>) -> Self {
-        Self::new(ErrorKind::InvalidValue, msg)
+        Self::new(DuperSerdeErrorKind::InvalidValue, msg)
     }
 }
 
-impl Display for Error {
+impl Display for DuperSerdeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}: {}", self.inner.kind, self.inner.message)
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for DuperSerdeError {}
 
-impl serde_core::ser::Error for Error {
+impl serde_core::ser::Error for DuperSerdeError {
     fn custom<T>(msg: T) -> Self
     where
         T: Display,
@@ -91,25 +95,32 @@ impl serde_core::ser::Error for Error {
     }
 }
 
-impl From<serde_core::de::value::Error> for Error {
+impl From<serde_core::de::value::Error> for DuperSerdeError {
     fn from(value: serde_core::de::value::Error) -> Self {
         let message = value.to_string();
-        Self::new(ErrorKind::DeserializationError(value), message)
+        Self::new(DuperSerdeErrorKind::DeserializationError(value), message)
     }
 }
 
-impl From<DuperIdentifierTryFromError<'_>> for Error {
+impl From<DuperIdentifierTryFromError<'_>> for DuperSerdeError {
     fn from(value: DuperIdentifierTryFromError) -> Self {
         let message = value.to_string();
-        Self::new(ErrorKind::SerializationError, message)
+        Self::new(DuperSerdeErrorKind::SerializationError, message)
     }
 }
 
-impl From<DuperObjectTryFromError<'_>> for Error {
+impl From<DuperObjectTryFromError<'_>> for DuperSerdeError {
     fn from(value: DuperObjectTryFromError) -> Self {
         let message = value.to_string();
-        Self::new(ErrorKind::SerializationError, message)
+        Self::new(DuperSerdeErrorKind::SerializationError, message)
     }
 }
 
-pub type Result<T> = std::result::Result<T, Error>;
+impl From<DuperTemporalTryFromError<'_>> for DuperSerdeError {
+    fn from(value: DuperTemporalTryFromError) -> Self {
+        let message = value.to_string();
+        Self::new(DuperSerdeErrorKind::SerializationError, message)
+    }
+}
+
+pub type Result<T> = std::result::Result<T, DuperSerdeError>;

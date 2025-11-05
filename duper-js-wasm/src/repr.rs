@@ -6,7 +6,7 @@ use wasm_bindgen::{convert::RefFromWasmAbi, prelude::*};
 
 use crate::ser::{
     serialize_array, serialize_boolean, serialize_bytes, serialize_float, serialize_integer,
-    serialize_null, serialize_object, serialize_string, serialize_tuple,
+    serialize_null, serialize_object, serialize_string, serialize_temporal, serialize_tuple,
 };
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -14,7 +14,7 @@ const DUPER_VALUE_TYPE: &'static str = r#"
 /**
  * Valid Duper types.
  */
-type DuperValueType = "object" | "array" | "tuple" | "string" | "bytes" | "integer" | "float" | "boolean" | "null";"#;
+type DuperValueType = "object" | "array" | "tuple" | "string" | "bytes" | "temporal" | "integer" | "float" | "boolean" | "null";"#;
 
 #[wasm_bindgen]
 extern "C" {
@@ -28,6 +28,7 @@ pub(crate) enum JsDuperValueInner {
     Tuple(JsValue),
     String(JsValue),
     Bytes(JsValue),
+    Temporal(JsValue),
     Integer(JsValue),
     Float(JsValue),
     Boolean(JsValue),
@@ -242,6 +243,7 @@ impl Display for JsDuperValueInner {
             JsDuperValueInner::Tuple(_) => "tuple",
             JsDuperValueInner::String(_) => "string",
             JsDuperValueInner::Bytes(_) => "bytes",
+            JsDuperValueInner::Temporal(_) => "temporal",
             JsDuperValueInner::Integer(_) => "integer",
             JsDuperValueInner::Float(_) => "float",
             JsDuperValueInner::Boolean(_) => "boolean",
@@ -265,6 +267,7 @@ impl JsDuperValue {
             JsDuperValueInner::Tuple(inner) => serialize_tuple(inner, identifier),
             JsDuperValueInner::String(inner) => serialize_string(inner, identifier),
             JsDuperValueInner::Bytes(inner) => serialize_bytes(inner, identifier),
+            JsDuperValueInner::Temporal(inner) => serialize_temporal(inner, identifier),
             JsDuperValueInner::Integer(inner) => serialize_integer(inner, identifier),
             JsDuperValueInner::Float(inner) => serialize_float(inner, identifier),
             JsDuperValueInner::Boolean(inner) => serialize_boolean(inner, identifier),
@@ -337,6 +340,7 @@ impl JsDuperValue {
             | JsDuperValueInner::Tuple(inner)
             | JsDuperValueInner::String(inner)
             | JsDuperValueInner::Bytes(inner)
+            | JsDuperValueInner::Temporal(inner)
             | JsDuperValueInner::Integer(inner)
             | JsDuperValueInner::Float(inner)
             | JsDuperValueInner::Boolean(inner) => inner.clone(),
@@ -412,6 +416,7 @@ impl JsDuperValue {
                 Ok(new_array.into())
             }
             JsDuperValueInner::String(inner)
+            | JsDuperValueInner::Temporal(inner)
             | JsDuperValueInner::Float(inner)
             | JsDuperValueInner::Boolean(inner) => Ok(inner.clone()),
             JsDuperValueInner::Null => Ok(JsValue::NULL),
