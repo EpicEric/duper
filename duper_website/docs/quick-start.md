@@ -1,6 +1,6 @@
 # Quick start
 
-## JavaScript
+## JavaScript (WebAssembly)
 
 ```bash
 npm install --save @duper-js/wasm

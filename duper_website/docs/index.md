@@ -57,9 +57,9 @@ const initial = `UserProfile({
 
 Duper excels in a variety of use cases:
 
-- **Configuration files**: Duper's explicit types and identifiers serve as helpful guides when users need to modify values.
+- **Configuration files**: Duper's explicit types and comments serve as helpful guides when users need to modify values.
 - **REST APIs**: Self-documenting identifiers make Duper a natural fit for API responses.
-- **Data interchange**: With support for bytes, raw data, JSON compatibility, and identifiers that can be turned on for debugging-only, Duper is ideal for data exchange between systems.
+- **Logging**: With a simple syntax and extended type support, Duper is a breath of fresh air for both manual and tool-assisted debugging.
 
 ## Playground
 
@@ -79,7 +79,7 @@ Duper excels in a variety of use cases:
 | Raw strings      | ✅                | ❌   | ❌    | ✅                | ✅                | ✅  |
 | Identifiers/tags | ✅                | ❌   | ❌    | ✅                | ❌                | ✅  |
 | Unambiguous      | ✅                | ✅   | ✅    | ❌<sup>\[3]</sup> | ⚠️<sup>\[4]</sup> | ✅  |
-| Simple           | ⚠️<sup>\[2]</sup> | ✅   | ✅    | ❌                | ✅                | ✅  |
+| Simple           | ✅                | ✅   | ✅    | ❌                | ✅                | ✅  |
 | JSON-compatible  | ✅                | ✅   | ✅    | ✅                | ❌                | ❌  |
 | Popular          | ❌                | ✅   | ⚠️    | ✅                | ✅                | ⚠️  |
 
