@@ -757,16 +757,76 @@ mod duper_parser_tests {
             '2022-02-28'
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Temporal(_)));
+        assert!(matches!(
+            duper.inner,
+            DuperInner::Temporal(DuperTemporal::Unspecified(_))
+        ));
 
         let input = r#"
             '2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Temporal(_)));
+        assert!(matches!(
+            duper.inner,
+            DuperInner::Temporal(DuperTemporal::Unspecified(_))
+        ));
 
         let input = r#"
-            '2022-02-28T03:06:00.092121729Z'
+            ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]')
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(
+            duper.inner,
+            DuperInner::Temporal(DuperTemporal::ZonedDateTime(_))
+        ));
+
+        let input = r#"
+            '  2022-02-28T03:06:00.092121729Z  '
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(
+            duper.inner,
+            DuperInner::Temporal(DuperTemporal::Unspecified(_))
+        ));
+
+        let input = r#"
+            PlainDate('  2022-02-28T03:06:00.092121729Z  ')
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(
+            duper.inner,
+            DuperInner::Temporal(DuperTemporal::PlainDate(_))
+        ));
+
+        let input = r#"
+            PlainTime('  2022-02-28T03:06:00.092121729Z  ')
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(
+            duper.inner,
+            DuperInner::Temporal(DuperTemporal::PlainTime(_))
+        ));
+
+        let input = r#"
+            PlainMonthDay('--11-03')
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(
+            duper.inner,
+            DuperInner::Temporal(DuperTemporal::PlainMonthDay(_))
+        ));
+
+        let input = r#"
+            UnknownIdent('--11-03')
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(
+            duper.inner,
+            DuperInner::Temporal(DuperTemporal::Unspecified(_))
+        ));
+
+        let input = r#"
+            'PT0.0021S'
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(duper.inner, DuperInner::Temporal(_)));
@@ -837,7 +897,18 @@ mod duper_parser_tests {
         assert!(DuperParser::parse_duper_value(input).is_err());
 
         // Temporal
-        // TO-DO: Temporal - Tests for parsing errors
+        let input = r#"
+            'invalid'
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            '2025-02-29'  // Inexistent date
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[u-ca=chinese]')  // Missing timezone
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
 
         // Floats and decimal
         let input = r#"
