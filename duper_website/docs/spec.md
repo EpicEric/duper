@@ -269,13 +269,22 @@ Byte strings are similar to strings, but represent binary data. Like strings, th
 
 ## Temporal values
 
-Temporal values are a set of value types, representing a point in time or the difference between two points in time. They are surrounded by single quotes `'` and must follow the [Temporal proposal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal), which uses the format specified in [RFC 9557](https://datatracker.ietf.org/doc/html/rfc9557).
+Temporal values are a set of value types, representing either a point in time or the difference between two points in time. They are surrounded by single quotes `'` and must follow the [Temporal proposal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal), which uses a strict version of the format specified in [RFC 9557](https://datatracker.ietf.org/doc/html/rfc9557) (itself based off of ISO 8601 / RFC 3339).
 
-Whitespace between the Temporal value and the single quotes is allowed and ignored. Parsers should validate that the value between single quotes is a valid Temporal value.
+Whitespace between the Temporal value and the single quotes is allowed and ignored. Parsers must validate that the value between single quotes is a valid Temporal value.
 
 ```duper
 {
+  // Allowed
+  instant: '2022-02-28T03:06:00.092121729Z',
+  duration: '  P7DT5.000001S  ',
+  calendar_system: '2020-05-22[u-ca=hebrew]',  // 28 Iyar 5780
+  christmas_eve: '--12-24',
+  large_extensions: '2020-05-22T07:19:35.123456789-04:00[America/Indiana/Indianapolis][u-ca=islamic-umalqura]',
 
+  // Not allowed
+  not_temporal: 'hello world',         // INVALID
+  "date doesn't exist": '2025-02-29',  // INVALID
 }
 ```
 
@@ -292,7 +301,18 @@ These values may or may not contain an [identifier](#identifiers). In the case w
 
 ```duper
 {
+  // Allowed
+  precise_identifier: PlainDateTime('2007-03-31T10:35:10'),
+  subset: PlainYearMonth('1994-11-06T19:45:27-03:00'),  // PlainYearMonth is a subset of Instant
 
+  // Allowed but discouraged
+  string_in_disguise: PlainDate("this isn't a Temporal value"),
+  confusing_identifier: PlainTimeDate('2025-11-03'),  /* Unlike `PlainDateTime`, this doesn't
+                                                       * validate the input, other than that
+                                                       * it's a Temporal value. */
+
+  // Not allowed
+  missing_offset: Instant('2025-11-06T19:39:02.888834'),  // INVALID
 }
 ```
 

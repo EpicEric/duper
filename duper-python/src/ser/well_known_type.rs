@@ -90,6 +90,15 @@ pub(crate) enum WellKnownType<'py> {
     Ulid(Bound<'py, PyAny>),
     // re
     Pattern(Bound<'py, PyAny>),
+    // temporal
+    TemporalInstant(Bound<'py, PyAny>),
+    TemporalZonedDateTime(Bound<'py, PyAny>),
+    TemporalPlainDate(Bound<'py, PyAny>),
+    TemporalPlainTime(Bound<'py, PyAny>),
+    TemporalPlainDateTime(Bound<'py, PyAny>),
+    TemporalPlainYearMonth(Bound<'py, PyAny>),
+    TemporalPlainMonthDay(Bound<'py, PyAny>),
+    TemporalDuration(Bound<'py, PyAny>),
     // uuid
     Uuid(Bound<'py, PyAny>),
 }
@@ -298,6 +307,31 @@ impl<'py> WellKnownType<'py> {
                 }
                 // re
                 ("re", "Pattern") => return Ok(Some(WellKnownType::Pattern(value.clone()))),
+                // temporal
+                ("duper.temporal", "Instant") => {
+                    return Ok(Some(WellKnownType::TemporalInstant(value.clone())));
+                }
+                ("duper.temporal", "ZonedDateTime") => {
+                    return Ok(Some(WellKnownType::TemporalZonedDateTime(value.clone())));
+                }
+                ("duper.temporal", "PlainDate") => {
+                    return Ok(Some(WellKnownType::TemporalPlainDate(value.clone())));
+                }
+                ("duper.temporal", "PlainTime") => {
+                    return Ok(Some(WellKnownType::TemporalPlainTime(value.clone())));
+                }
+                ("duper.temporal", "PlainDateTime") => {
+                    return Ok(Some(WellKnownType::TemporalPlainDateTime(value.clone())));
+                }
+                ("duper.temporal", "PlainYearMonth") => {
+                    return Ok(Some(WellKnownType::TemporalPlainYearMonth(value.clone())));
+                }
+                ("duper.temporal", "PlainMonthDay") => {
+                    return Ok(Some(WellKnownType::TemporalPlainMonthDay(value.clone())));
+                }
+                ("duper.temporal", "Duration") => {
+                    return Ok(Some(WellKnownType::TemporalDuration(value.clone())));
+                }
                 // uuid
                 ("uuid", "UUID") => return Ok(Some(WellKnownType::Uuid(value.clone()))),
                 _ => (),
@@ -341,29 +375,71 @@ impl<'py> WellKnownType<'py> {
                 inner: serialize_pyany(value.getattr("__dict__")?)?.inner,
             }),
             // datetime
-            WellKnownType::DateTime(value) => Ok(DuperValue {
-                identifier: Some(
-                    DuperIdentifier::try_from(Cow::Borrowed("DateTime")).expect("valid identifier"),
-                ),
-                inner: DuperInner::Temporal(
-                    DuperTemporal::try_instant_from(Cow::Owned(
-                        value.call_method0("isoformat")?.extract()?,
-                    ))
-                    .map_err(|err| {
-                        PyValueError::new_err(format!("Failed to parse Temporal value: {err}"))
-                    })?,
-                ),
+            WellKnownType::DateTime(value) => Ok({
+                let datetime: Cow<'_, str> =
+                    Cow::Owned(value.call_method0("isoformat")?.extract()?);
+                let tzinfo = value.getattr("tzinfo")?;
+                if tzinfo.is_none() || tzinfo.getattr("utcoffset")?.call1((value,))?.is_none() {
+                    DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from(Cow::Borrowed("PlainDateTime"))
+                                .expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_plain_date_time_from(datetime).map_err(|err| {
+                                PyValueError::new_err(format!(
+                                    "Failed to parse Temporal value: {err}"
+                                ))
+                            })?,
+                        ),
+                    }
+                } else {
+                    DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from(Cow::Borrowed("Instant"))
+                                .expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_instant_from(datetime).map_err(|err| {
+                                PyValueError::new_err(format!(
+                                    "Failed to parse Temporal value: {err}"
+                                ))
+                            })?,
+                        ),
+                    }
+                }
             }),
             WellKnownType::TimeDelta(value) => Ok(DuperValue {
                 identifier: Some(
-                    DuperIdentifier::try_from(Cow::Borrowed("TimeDelta"))
-                        .expect("valid identifier"),
+                    DuperIdentifier::try_from(Cow::Borrowed("Duration")).expect("valid identifier"),
                 ),
-                inner: DuperInner::String(DuperString::from(Cow::Owned(value.str()?.extract()?))),
+                inner: {
+                    let py = value.py();
+                    let datetime_module = py.import("datetime")?;
+                    let pydantic_module = py.import("pydantic")?;
+                    let adapter = pydantic_module
+                        .getattr("TypeAdapter")?
+                        .call1((datetime_module.getattr("timedelta")?,))?;
+                    let kwargs = PyDict::new(py);
+                    kwargs.set_item("mode", "json")?;
+                    let dump = adapter
+                        .getattr("dump_python")?
+                        .call((value,), Some(&kwargs))?;
+                    DuperInner::Temporal(
+                        DuperTemporal::try_duration_from(Cow::Owned(dump.extract()?)).map_err(
+                            |err| {
+                                PyValueError::new_err(format!(
+                                    "Failed to parse Temporal value: {err}"
+                                ))
+                            },
+                        )?,
+                    )
+                },
             }),
             WellKnownType::Date(value) => Ok(DuperValue {
                 identifier: Some(
-                    DuperIdentifier::try_from(Cow::Borrowed("Date")).expect("valid identifier"),
+                    DuperIdentifier::try_from(Cow::Borrowed("PlainDate"))
+                        .expect("valid identifier"),
                 ),
                 inner: DuperInner::Temporal(
                     DuperTemporal::try_plain_date_from(Cow::Owned(
@@ -376,7 +452,8 @@ impl<'py> WellKnownType<'py> {
             }),
             WellKnownType::Time(value) => Ok(DuperValue {
                 identifier: Some(
-                    DuperIdentifier::try_from(Cow::Borrowed("Time")).expect("valid identifier"),
+                    DuperIdentifier::try_from(Cow::Borrowed("PlainTime"))
+                        .expect("valid identifier"),
                 ),
                 inner: DuperInner::Temporal(
                     DuperTemporal::try_plain_time_from(Cow::Owned(
@@ -766,6 +843,103 @@ impl<'py> WellKnownType<'py> {
                 inner: DuperInner::String(DuperString::from(Cow::Owned(
                     value.getattr("pattern")?.extract()?,
                 ))),
+            }),
+            // temporal
+            WellKnownType::TemporalInstant(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::try_from("Instant").expect("valid identifier")),
+                inner: DuperInner::Temporal(
+                    DuperTemporal::try_instant_from(Cow::Owned(
+                        value.getattr("to_string")?.call0()?.extract()?,
+                    ))
+                    .map_err(|err| {
+                        PyValueError::new_err(format!("Failed to parse Instant: {err}"))
+                    })?,
+                ),
+            }),
+            WellKnownType::TemporalZonedDateTime(value) => Ok(DuperValue {
+                identifier: Some(
+                    DuperIdentifier::try_from("ZonedDateTime").expect("valid identifier"),
+                ),
+                inner: DuperInner::Temporal(
+                    DuperTemporal::try_zoned_date_time_from(Cow::Owned(
+                        value.getattr("to_string")?.call0()?.extract()?,
+                    ))
+                    .map_err(|err| {
+                        PyValueError::new_err(format!("Failed to parse ZonedDateTime: {err}"))
+                    })?,
+                ),
+            }),
+            WellKnownType::TemporalPlainDate(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::try_from("PlainDate").expect("valid identifier")),
+                inner: DuperInner::Temporal(
+                    DuperTemporal::try_plain_date_from(Cow::Owned(
+                        value.getattr("to_string")?.call0()?.extract()?,
+                    ))
+                    .map_err(|err| {
+                        PyValueError::new_err(format!("Failed to parse PlainDate: {err}"))
+                    })?,
+                ),
+            }),
+            WellKnownType::TemporalPlainTime(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::try_from("PlainTime").expect("valid identifier")),
+                inner: DuperInner::Temporal(
+                    DuperTemporal::try_plain_time_from(Cow::Owned(
+                        value.getattr("to_string")?.call0()?.extract()?,
+                    ))
+                    .map_err(|err| {
+                        PyValueError::new_err(format!("Failed to parse PlainTime: {err}"))
+                    })?,
+                ),
+            }),
+            WellKnownType::TemporalPlainDateTime(value) => Ok(DuperValue {
+                identifier: Some(
+                    DuperIdentifier::try_from("PlainDateTime").expect("valid identifier"),
+                ),
+                inner: DuperInner::Temporal(
+                    DuperTemporal::try_plain_date_time_from(Cow::Owned(
+                        value.getattr("to_string")?.call0()?.extract()?,
+                    ))
+                    .map_err(|err| {
+                        PyValueError::new_err(format!("Failed to parse PlainDateTime: {err}"))
+                    })?,
+                ),
+            }),
+            WellKnownType::TemporalPlainYearMonth(value) => Ok(DuperValue {
+                identifier: Some(
+                    DuperIdentifier::try_from("PlainYearMonth").expect("valid identifier"),
+                ),
+                inner: DuperInner::Temporal(
+                    DuperTemporal::try_plain_year_month_from(Cow::Owned(
+                        value.getattr("to_string")?.call0()?.extract()?,
+                    ))
+                    .map_err(|err| {
+                        PyValueError::new_err(format!("Failed to parse PlainYearMonth: {err}"))
+                    })?,
+                ),
+            }),
+            WellKnownType::TemporalPlainMonthDay(value) => Ok(DuperValue {
+                identifier: Some(
+                    DuperIdentifier::try_from("PlainMonthDay").expect("valid identifier"),
+                ),
+                inner: DuperInner::Temporal(
+                    DuperTemporal::try_plain_month_day_from(Cow::Owned(
+                        value.getattr("to_string")?.call0()?.extract()?,
+                    ))
+                    .map_err(|err| {
+                        PyValueError::new_err(format!("Failed to parse PlainMonthDay: {err}"))
+                    })?,
+                ),
+            }),
+            WellKnownType::TemporalDuration(value) => Ok(DuperValue {
+                identifier: Some(DuperIdentifier::try_from("Duration").expect("valid identifier")),
+                inner: DuperInner::Temporal(
+                    DuperTemporal::try_duration_from(Cow::Owned(
+                        value.getattr("to_string")?.call0()?.extract()?,
+                    ))
+                    .map_err(|err| {
+                        PyValueError::new_err(format!("Failed to parse Duration: {err}"))
+                    })?,
+                ),
             }),
             // uuid
             WellKnownType::Uuid(value) => Ok(DuperValue {

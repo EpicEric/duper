@@ -1,4 +1,4 @@
-use duper::visitor::DuperVisitor;
+use duper::{DuperTemporal, visitor::DuperVisitor};
 use pyo3::{prelude::*, types::*};
 
 use crate::Duper;
@@ -124,11 +124,62 @@ impl<'py> DuperVisitor for Visitor<'py> {
     fn visit_temporal<'a>(
         &mut self,
         identifier: Option<&duper::DuperIdentifier<'a>>,
-        temporal: &duper::DuperTemporal<'a>,
+        temporal: &DuperTemporal<'a>,
     ) -> Self::Value {
-        // TO-DO: Temporal - Use the appropriate temporal-python type for the DuperTemporal value
         Ok(VisitorValue {
-            value: PyString::new(self.py, &temporal.clone().into_inner()).into_any(),
+            value: match temporal {
+                DuperTemporal::Instant(inner) => self
+                    .py
+                    .import("duper.temporal")?
+                    .getattr("Instant")?
+                    .getattr("from_string")?
+                    .call1((PyString::new(self.py, inner.as_ref()),))?,
+                DuperTemporal::ZonedDateTime(inner) => self
+                    .py
+                    .import("duper.temporal")?
+                    .getattr("ZonedDateTime")?
+                    .getattr("from_string")?
+                    .call1((PyString::new(self.py, inner.as_ref()),))?,
+                DuperTemporal::PlainDate(inner) => self
+                    .py
+                    .import("duper.temporal")?
+                    .getattr("PlainDate")?
+                    .getattr("from_string")?
+                    .call1((PyString::new(self.py, inner.as_ref()),))?,
+                DuperTemporal::PlainTime(inner) => self
+                    .py
+                    .import("duper.temporal")?
+                    .getattr("PlainTime")?
+                    .getattr("from_string")?
+                    .call1((PyString::new(self.py, inner.as_ref()),))?,
+                DuperTemporal::PlainDateTime(inner) => self
+                    .py
+                    .import("duper.temporal")?
+                    .getattr("PlainDateTime")?
+                    .getattr("from_string")?
+                    .call1((PyString::new(self.py, inner.as_ref()),))?,
+                DuperTemporal::PlainYearMonth(inner) => self
+                    .py
+                    .import("duper.temporal")?
+                    .getattr("PlainYearMonth")?
+                    .getattr("from_string")?
+                    .call1((PyString::new(self.py, inner.as_ref()),))?,
+                DuperTemporal::PlainMonthDay(inner) => self
+                    .py
+                    .import("duper.temporal")?
+                    .getattr("PlainMonthDay")?
+                    .getattr("from_string")?
+                    .call1((PyString::new(self.py, inner.as_ref()),))?,
+                DuperTemporal::Duration(inner) => self
+                    .py
+                    .import("duper.temporal")?
+                    .getattr("Duration")?
+                    .getattr("from_string")?
+                    .call1((PyString::new(self.py, inner.as_ref()),))?,
+                DuperTemporal::Unspecified(inner) => {
+                    PyString::new(self.py, inner.as_ref()).into_any()
+                }
+            },
             duper: identifier
                 .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,

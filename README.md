@@ -38,7 +38,7 @@ Duper excels in a variety of use cases:
 
 - In configuration files, where users are expected to swap out values, its explicit types can be a helpful guide.
 - Thanks to its self-documenting identifiers, Duper feels right at home in REST APIs.
-- With support for bytes and raw data, minimal syntax, and compatibility with JSON, Duper is also a great choice for data interchange.
+- With a simple syntax and extended type support, using Duper for logs is a breath of fresh air for both manual and tool-assisted debugging.
 
 ## For implementers
 

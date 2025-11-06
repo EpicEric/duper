@@ -159,44 +159,11 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
 }
 
 pub(crate) fn format_temporal<'a>(temporal: &'a DuperTemporal<'a>) -> String {
-    match temporal {
-        DuperTemporal::Instant(inner) => {
-            let value = inner.as_ref();
-            format!("Instant('{value}')")
-        }
-        DuperTemporal::ZonedDateTime(inner) => {
-            let value = inner.as_ref();
-            format!("ZonedDateTime('{value}')")
-        }
-        DuperTemporal::PlainDate(inner) => {
-            let value = inner.as_ref();
-            format!("PlainDate('{value}')")
-        }
-        DuperTemporal::PlainTime(inner) => {
-            let value = inner.as_ref();
-            format!("PlainTime('{value}')")
-        }
-        DuperTemporal::PlainDateTime(inner) => {
-            let value = inner.as_ref();
-            format!("PlainDateTime('{value}')")
-        }
-        DuperTemporal::PlainYearMonth(inner) => {
-            let value = inner.as_ref();
-            format!("PlainYearMonth('{value}')")
-        }
-        DuperTemporal::PlainMonthDay(inner) => {
-            let value = inner.as_ref();
-            format!("PlainMonthDay('{value}')")
-        }
-        DuperTemporal::Duration(inner) => {
-            let value = inner.as_ref();
-            format!("Duration('{value}')")
-        }
-        DuperTemporal::Unspecified(inner) => {
-            let value = inner.as_ref();
-            format!("'{value}'")
-        }
-    }
+    let mut string = String::with_capacity(temporal.as_ref().len() + 2);
+    string.push('\'');
+    string.push_str(temporal.as_ref());
+    string.push('\'');
+    string
 }
 
 pub(crate) fn format_integer(integer: i64) -> String {
