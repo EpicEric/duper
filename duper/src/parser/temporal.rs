@@ -321,13 +321,39 @@ pub(crate) fn time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, cha
     hour()
         .then(
             just(':')
-                .then(minute_or_second())
                 .then(
-                    just(':')
-                        .then(minute_or_second().or(just("60").ignored()))
-                        .then(just('.').then(text::digits(10).at_most(9)).or_not())
-                        .or_not(),
+                    minute_or_second().then(
+                        just(':')
+                            .then(
+                                minute_or_second()
+                                    .or(just("60").ignored())
+                                    .then(just('.').then(text::digits(10).at_most(9)).or_not()),
+                            )
+                            .ignored()
+                            .or(minute_or_second()
+                                .or(just("60").ignored())
+                                .then(just('.').then(text::digits(10).at_most(9)).or_not())
+                                .ignored())
+                            .or_not(),
+                    ),
                 )
+                .ignored()
+                .or(minute_or_second()
+                    .then(
+                        just(':')
+                            .then(
+                                minute_or_second()
+                                    .or(just("60").ignored())
+                                    .then(just('.').then(text::digits(10).at_most(9)).or_not()),
+                            )
+                            .ignored()
+                            .or(minute_or_second()
+                                .or(just("60").ignored())
+                                .then(just('.').then(text::digits(10).at_most(9)).or_not())
+                                .ignored())
+                            .or_not(),
+                    )
+                    .ignored())
                 .or_not(),
         )
         .ignored()
@@ -350,12 +376,11 @@ pub(crate) fn month_day<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a
     choice((
         just("--").ignored(),
         text::digits(10)
-            .repeated()
             .exactly(4)
             .then(just('-').or_not())
             .ignored(),
         one_of("+-")
-            .then(text::digits(10).repeated().exactly(6))
+            .then(text::digits(10).exactly(6))
             .then(just('-').or_not())
             .ignored(),
     ))
@@ -370,34 +395,41 @@ pub(crate) fn month_day<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a
             just("10"),
             just("12"),
         ))
-        .then(just('-').or_not())
-        .then(days_31)
+        .then(just('-').ignore_then(days_31.clone()).or(days_31))
+        .ignored()
         .or(choice((just("04"), just("06"), just("09"), just("11")))
-            .then(just('-').or_not())
-            .then(days_30))
-        .or(just("02").then(just('-').or_not()).then(days_29))
-        .ignored(),
+            .then(just('-').ignore_then(days_30.clone()).or(days_30))
+            .ignored())
+        .or(just("02")
+            .then(just('-').ignore_then(days_29.clone()).or(days_29))
+            .ignored()),
     )
 }
 
 pub(crate) fn year_month<'a>()
 -> impl Parser<'a, &'a str, (u32, u32), extra::Err<Rich<'a, char>>> + Clone {
     choice((
-        text::digits(10).repeated().exactly(4).to_slice(),
-        one_of("+-")
-            .then(text::digits(10).repeated().exactly(6))
-            .to_slice(),
+        text::digits(10).exactly(4).to_slice(),
+        one_of("+-").then(text::digits(10).exactly(6)).to_slice(),
     ))
     .from_str::<u32>()
     .unwrapped()
-    .then_ignore(just('-').or_not())
     .then(
-        just('0')
-            .then(one_of('0'..='9'))
-            .to_slice()
-            .or(just('1').then(one_of('0'..='2')).to_slice())
-            .from_str::<u32>()
-            .unwrapped(),
+        just('-')
+            .ignore_then(
+                just('0')
+                    .then(one_of('0'..='9'))
+                    .to_slice()
+                    .or(just('1').then(one_of('0'..='2')).to_slice())
+                    .from_str::<u32>()
+                    .unwrapped(),
+            )
+            .or(just('0')
+                .then(one_of('0'..='9'))
+                .to_slice()
+                .or(just('1').then(one_of('0'..='2')).to_slice())
+                .from_str::<u32>()
+                .unwrapped()),
     )
 }
 
@@ -426,8 +458,9 @@ pub(crate) fn date<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, cha
     ));
 
     year_month()
-        .then_ignore(just('-').or_not())
-        .ignore_with_ctx(day)
+        .then_ignore(just('-'))
+        .ignore_with_ctx(day.clone())
+        .or(year_month().ignore_with_ctx(day))
 }
 
 pub(crate) fn date_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {

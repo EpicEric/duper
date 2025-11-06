@@ -79,11 +79,11 @@ Duper excels in a variety of use cases:
 | Raw strings      | ✅                | ❌   | ❌    | ✅                | ✅                | ✅  |
 | Identifiers/tags | ✅                | ❌   | ❌    | ✅                | ❌                | ✅  |
 | Unambiguous      | ✅                | ✅   | ✅    | ❌<sup>\[3]</sup> | ⚠️<sup>\[4]</sup> | ✅  |
-| Simple           | ✅                | ✅   | ✅    | ❌                | ✅                | ✅  |
+| Simple           | ⚠️<sup>\[2]</sup> | ✅   | ✅    | ❌                | ✅                | ✅  |
 | JSON-compatible  | ✅                | ✅   | ✅    | ✅                | ❌                | ❌  |
 | Popular          | ❌                | ✅   | ⚠️    | ✅                | ✅                | ⚠️  |
 
 - <sup>[1]</sup> Using the [`!!binary` scalar type](https://yaml.org/type/binary.html) and base64 text; limited support in implementations.
-- <sup>[2]</sup> Compliant with the [Temporal specification](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal).
-- <sup>[3]</sup> Unquoted strings can get confused with other scalars and [vice-versa](https://www.bram.us/2022/01/11/yaml-the-norway-problem/).
+- <sup>[2]</sup> Fully compliant with the [Temporal specification](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal).
+- <sup>[3]</sup> Unquoted strings can get [confused with other scalars](https://www.bram.us/2022/01/11/yaml-the-norway-problem/) and vice-versa.
 - <sup>[4]</sup> Tabs allowed in [strings](https://toml.io/en/v1.0.0#string).
