@@ -10,6 +10,7 @@ from ._duper import (
     load,
     Duper,
     DuperType,
+    TemporalString,
 )
 from .pydantic import BaseModel
 
@@ -21,4 +22,5 @@ __all__ = [
     "Duper",
     "DuperType",
     "BaseModel",
+    "TemporalString",
 ]

@@ -19,7 +19,7 @@ from uuid import UUID
 
 from pydantic import ByteSize
 
-from duper import BaseModel
+from duper import BaseModel, TemporalString
 
 
 def test_pydantic_simple():
@@ -81,7 +81,7 @@ def test_pydantic_complex():
     class Complex(BaseModel):
         datetime: datetime
         duration: timedelta
-        # zdt: ZonedDateTime
+        zdt: TemporalString
         uuid: UUID
         deque: deque[str]
         named_tuple: MyTuple
@@ -97,9 +97,10 @@ def test_pydantic_complex():
     val = Complex(
         datetime="2025-10-12T20:01:28.400086",
         duration=timedelta(days=7, seconds=5, microseconds=1),
-        # zdt=ZonedDateTime.from_string(
-        #     "2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]"
-        # ),
+        zdt=TemporalString(
+            "2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]",
+            type="ZonedDateTime",
+        ),
         uuid="a708f86d-ee5b-4ce8-b505-8f59d3d26850",
         deque=deque(),
         named_tuple=(34, 35),

@@ -10,6 +10,7 @@ __all__ = [
     "load",
     "Duper",
     "DuperType",
+    "TemporalString",
 ]
 
 class Duper:
@@ -33,9 +34,45 @@ class Duper:
 
     def __init__(self, identifier: str | None) -> None: ...
     @property
-    def identifier(self) -> str: ...
+    def identifier(self) -> str | None: ...
 
-DuperType: TypeAlias = "dict[str, DuperType] | list[DuperType] | tuple[DuperType, ...] | str | bytes | int | float | bool | None"
+class TemporalString:
+    """A string representing a valid Temporal value. An optional type may be
+    provided during initialization to enforce strict parsing."""
+
+    def __init__(
+        self,
+        value: str,
+        type: Literal[
+            "Instant",
+            "ZonedDateTime",
+            "PlainDate",
+            "PlainTime",
+            "PlainDateTime",
+            "PlainYearMonth",
+            "PlainMonthDay",
+            "Duration",
+        ]
+        | None,
+    ) -> None: ...
+    @property
+    def type(
+        self,
+    ) -> (
+        Literal[
+            "Instant",
+            "ZonedDateTime",
+            "PlainDate",
+            "PlainTime",
+            "PlainDateTime",
+            "PlainYearMonth",
+            "PlainMonthDay",
+            "Duration",
+        ]
+        | None
+    ): ...
+
+DuperType: TypeAlias = "dict[str, DuperType] | list[DuperType] | tuple[DuperType, ...] | str | bytes | TemporalString | int | float | bool | None"
 """All possible Python return types for Duper values."""
 
 def dumps(

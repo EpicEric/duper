@@ -1,7 +1,6 @@
 pub mod de;
 pub mod error;
-// TO-DO: Temporal - Support meta-serde
-// pub mod meta;
+pub mod meta;
 pub mod ser;
 
 use std::borrow::Cow;
