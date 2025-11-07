@@ -2,11 +2,13 @@ use pyo3::{exceptions::PyValueError, prelude::*};
 
 mod de;
 mod ser;
+mod temporal;
 
 #[pyclass(frozen)]
 pub(crate) struct DuperType;
 
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "duper")]
+#[derive(Debug, Clone)]
 pub(crate) struct Duper {
     pub(crate) identifier: Option<duper::DuperIdentifier<'static>>,
 }
@@ -61,7 +63,7 @@ mod duper_py {
     };
 
     #[pymodule_export]
-    use crate::{Duper, DuperType};
+    use crate::{Duper, DuperType, temporal::TemporalString};
     use crate::{de::Visitor, ser::serialize_pyany};
 
     #[pyfunction]

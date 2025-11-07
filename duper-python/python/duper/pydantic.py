@@ -46,18 +46,47 @@ class BaseModel(PydanticBaseModel):
     Foo(bar='duper')
     """
 
+    def model_dump_duper(
+        self,
+        *,
+        indent: str | int | None = None,
+        strip_identifiers: bool = False,
+        minify: bool = False,
+    ) -> dict[str, object] | str:
+        """Generates a Duper representation of the model using Duper's `dumps` method.
+
+        If ``indent`` is a positive integer, then Duper array elements and
+        object members will be pretty-printed with that indent level. The
+        indent may also be specified as a ``str`` containing spaces and/or
+        tabs. ``None`` is the most compact representation.
+
+        If ``strip_identifiers`` is ``True``, then this function will strip
+        all identifiers from the serialized value.
+
+        If ``minify`` is ``True``, then this function will remove any extra
+        whitespace. This is incompatible with the ``indent`` option."""
+        from ._duper import dumps
+
+        return dumps(
+            self, indent=indent, strip_identifiers=strip_identifiers, minify=minify
+        )
+
     @model_serializer(mode="wrap")
     def serialize_model(
         self,
         handler: SerializerFunctionWrapHandler,
         info: SerializationInfo,
         *,
+        indent: str | int | None = None,
         strip_identifiers: bool = False,
+        minify: bool = False,
     ) -> dict[str, object] | str:
         if info.mode == "duper":
             from ._duper import dumps
 
-            return dumps(self, strip_identifiers=strip_identifiers)
+            return dumps(
+                self, indent=indent, strip_identifiers=strip_identifiers, minify=minify
+            )
         return handler(self)  # pyright: ignore[reportAny]
 
     @classmethod
@@ -97,8 +126,11 @@ class BaseModel(PydanticBaseModel):
             from ._duper import loads
 
             loaded = loads(serialized, parse_any=False)
+            print(loaded)
             if isinstance(loaded, list):
                 raise ValidationError("cannot validate Duper list")
+            if isinstance(loaded, tuple):
+                raise ValidationError("cannot validate Duper tuple")
             return cls.model_validate(
                 loaded.model_dump(mode="python"),
                 strict=strict,
