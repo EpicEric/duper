@@ -13,7 +13,7 @@ use serde_core::{
 
 use crate::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTemporal, DuperTuple, DuperValue,
+    DuperTuple, DuperValue,
 };
 
 impl<'a> Serialize for DuperValue<'a> {
@@ -63,62 +63,7 @@ impl<'a> Serialize for DuperInner<'a> {
             }
             DuperInner::String(string) => serializer.serialize_str(string.as_ref()),
             DuperInner::Bytes(bytes) => serializer.serialize_bytes(bytes.as_ref()),
-            DuperInner::Temporal(temporal) => match temporal {
-                DuperTemporal::Instant(inner) => serializer.serialize_newtype_variant(
-                    "DuperTemporal",
-                    0,
-                    "Instant",
-                    inner.as_ref(),
-                ),
-                DuperTemporal::ZonedDateTime(inner) => serializer.serialize_newtype_variant(
-                    "DuperTemporal",
-                    1,
-                    "ZonedDateTime",
-                    inner.as_ref(),
-                ),
-                DuperTemporal::PlainDate(inner) => serializer.serialize_newtype_variant(
-                    "DuperTemporal",
-                    2,
-                    "PlainDate",
-                    inner.as_ref(),
-                ),
-                DuperTemporal::PlainTime(inner) => serializer.serialize_newtype_variant(
-                    "DuperTemporal",
-                    3,
-                    "PlainTime",
-                    inner.as_ref(),
-                ),
-                DuperTemporal::PlainDateTime(inner) => serializer.serialize_newtype_variant(
-                    "DuperTemporal",
-                    4,
-                    "PlainDateTime",
-                    inner.as_ref(),
-                ),
-                DuperTemporal::PlainYearMonth(inner) => serializer.serialize_newtype_variant(
-                    "DuperTemporal",
-                    5,
-                    "PlainYearMonth",
-                    inner.as_ref(),
-                ),
-                DuperTemporal::PlainMonthDay(inner) => serializer.serialize_newtype_variant(
-                    "DuperTemporal",
-                    6,
-                    "PlainMonthDay",
-                    inner.as_ref(),
-                ),
-                DuperTemporal::Duration(inner) => serializer.serialize_newtype_variant(
-                    "DuperTemporal",
-                    7,
-                    "Duration",
-                    inner.as_ref(),
-                ),
-                DuperTemporal::Unspecified(inner) => serializer.serialize_newtype_variant(
-                    "DuperTemporal",
-                    8,
-                    "Unspecified",
-                    inner.as_ref(),
-                ),
-            },
+            DuperInner::Temporal(temporal) => serializer.serialize_str(temporal.as_ref()),
             DuperInner::Integer(integer) => serializer.serialize_i64(*integer),
             DuperInner::Float(float) => serializer.serialize_f64(*float),
             DuperInner::Boolean(boolean) => serializer.serialize_bool(*boolean),
@@ -496,7 +441,7 @@ mod serde_tests {
 
     use crate::{
         DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-        DuperTuple, DuperValue, PrettyPrinter,
+        DuperTemporal, DuperTuple, DuperValue, PrettyPrinter,
         serde::{de::Deserializer, ser::Serializer},
     };
 
@@ -617,6 +562,20 @@ mod serde_tests {
                     },
                 ),
                 (
+                    DuperKey::from("temporal"),
+                    DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from("PlainTime").expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_plain_time_from(std::borrow::Cow::Borrowed(
+                                "16:20:00",
+                            ))
+                            .expect("valid PlainTime"),
+                        ),
+                    },
+                ),
+                (
                     DuperKey::from("integer"),
                     DuperValue {
                         identifier: None,
@@ -649,7 +608,63 @@ mod serde_tests {
         let serialized = serialize_duper(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_duper(&serialized);
-        assert_eq!(value, deserialized);
+        assert_eq!(
+            deserialized,
+            DuperValue {
+                identifier: None,
+                inner: DuperInner::Object(DuperObject(vec![
+                    (
+                        DuperKey::from("string"),
+                        DuperValue {
+                            identifier: None,
+                            inner: DuperInner::String(DuperString::from("Hello world!")),
+                        },
+                    ),
+                    (
+                        DuperKey::from("bytes"),
+                        DuperValue {
+                            identifier: None,
+                            inner: DuperInner::Bytes(DuperBytes::from(&br"/\"[..])),
+                        },
+                    ),
+                    (
+                        DuperKey::from("temporal"),
+                        DuperValue {
+                            identifier: None,
+                            inner: DuperInner::String(DuperString::from("16:20:00",),),
+                        },
+                    ),
+                    (
+                        DuperKey::from("integer"),
+                        DuperValue {
+                            identifier: None,
+                            inner: DuperInner::Integer(1337),
+                        },
+                    ),
+                    (
+                        DuperKey::from("float"),
+                        DuperValue {
+                            identifier: None,
+                            inner: DuperInner::Float(8.25),
+                        },
+                    ),
+                    (
+                        DuperKey::from("boolean"),
+                        DuperValue {
+                            identifier: None,
+                            inner: DuperInner::Boolean(true),
+                        },
+                    ),
+                    (
+                        DuperKey::from("null"),
+                        DuperValue {
+                            identifier: None,
+                            inner: DuperInner::Null,
+                        },
+                    ),
+                ])),
+            }
+        );
 
         let value = DuperValue {
             identifier: Some(DuperIdentifier::try_from("MyScalars").expect("valid identifier")),
@@ -665,6 +680,17 @@ mod serde_tests {
                         DuperIdentifier::try_from("MyBytes").expect("valid identifier"),
                     ),
                     inner: DuperInner::Bytes(DuperBytes::from(&br"/\"[..])),
+                },
+                DuperValue {
+                    identifier: Some(
+                        DuperIdentifier::try_from("MyTemporal").expect("valid identifier"),
+                    ),
+                    inner: DuperInner::Temporal(
+                        DuperTemporal::try_unspecified_from(std::borrow::Cow::Borrowed(
+                            "2012-12-21",
+                        ))
+                        .expect("valid PlainTime"),
+                    ),
                 },
                 DuperValue {
                     identifier: Some(DuperIdentifier::try_from("MyInt").expect("valid identifier")),
@@ -693,6 +719,43 @@ mod serde_tests {
         let serialized = serialize_duper(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_duper(&serialized);
-        assert_eq!(value, deserialized);
+        assert_eq!(
+            deserialized,
+            DuperValue {
+                identifier: Some(DuperIdentifier::try_from("MyScalars").expect("valid identifier")),
+                inner: DuperInner::Array(DuperArray(vec![
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::String(DuperString::from("Hello world!")),
+                    },
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Bytes(DuperBytes::from(&br"/\"[..])),
+                    },
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::String(DuperString::from("2012-12-21"))
+                    },
+                    DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from("MyInt").expect("valid identifier")
+                        ),
+                        inner: DuperInner::Integer(1337),
+                    },
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Float(8.25),
+                    },
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Boolean(true),
+                    },
+                    DuperValue {
+                        identifier: None,
+                        inner: DuperInner::Null,
+                    },
+                ])),
+            }
+        );
     }
 }

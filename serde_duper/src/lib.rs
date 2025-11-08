@@ -106,6 +106,11 @@
 //! - [`serde_bytes::ByteArray`] over `[u8; N]`
 //! - [`serde_bytes::Bytes`] over `[u8]`
 //!
+//! # Support for Temporal values
+//!
+//! Unfortunately, `serde` has no support for custom value types. Therefore,
+//! any Temporal values are serialized/deserialized as strings.
+//!
 //! # Support for identifiers
 //!
 //! By default, serialization will attempt to include identifiers for structs
