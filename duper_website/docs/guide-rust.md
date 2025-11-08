@@ -1,14 +1,16 @@
 # Rust guide
 
-Get started with Duper in Rust with the [`serde_duper`](https://crates.io/crates/serde_duper) crate.
+Get started with Duper in Rust with one of the several crates available.
 
-## Installation
+## Native type (de)serialization with `serde`
+
+### Installation
 
 ```bash
 cargo add serde_duper
 ```
 
-## Quick example
+### Quick example
 
 ```rust
 use serde::{Deserialize, Serialize};
@@ -39,7 +41,7 @@ fn main() -> serde_duper::Result<()> {
 }
 ```
 
-## Basic serialization
+### Basic serialization
 
 ```rust
 use serde_duper::{to_string, to_string_pretty};
@@ -49,7 +51,7 @@ let compact = to_string(&data)?;
 let pretty = to_string_pretty(&data)?;
 ```
 
-## Basic deserialization
+### Basic deserialization
 
 ```rust
 use serde_duper::from_string;
@@ -72,7 +74,7 @@ struct User {
 let user: User = from_string(duper_data)?;
 ```
 
-## Working with identifiers
+### Working with identifiers
 
 `serde_duper` has special support for identifiers with Serde. Add or modify type hints to your serialized models:
 
@@ -99,7 +101,7 @@ let output = serde_duper::to_string_pretty(&item)?;
 // })
 ```
 
-## Working with bytes
+### Working with bytes
 
 You can make use of Duper's bytes support:
 
@@ -127,3 +129,44 @@ Also, tuples are first-class values in `serde_duper`.
 ---
 
 See the [docs](https://docs.rs/serde_duper/latest/serde_duper/) for more information.
+
+## HTTP requests/responses with `axum`
+
+### Installation
+
+```bash
+cargo add axum_duper
+```
+
+### Quick example
+
+```rust
+use axum::{Router, routing::post};
+use axum_duper::Duper;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+#[derive(Deserialize)]
+struct CreateUser {
+    email: String,
+    password: String,
+}
+
+#[derive(Serialize)]
+struct User {
+    id: Uuid,
+    email: String,
+}
+
+async fn create_user(Duper(payload): Duper<CreateUser>) -> Duper<User> {
+    let user = new_user(payload).await.unwrap();
+    Duper(user)
+}
+
+async fn new_user(payload: CreateUser) -> Result<User> {
+    // ... add user to database ...
+    Ok(user)
+}
+
+let app = Router::new().route("/user", post(create_user));
+```

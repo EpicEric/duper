@@ -1,5 +1,6 @@
 import { assert, describe, expect, it } from "vitest";
 import { DuperValue } from "..";
+import { Temporal } from "temporal-polyfill";
 
 describe("DuperValue", () => {
   it("infers types from JS types", () => {
@@ -7,6 +8,7 @@ describe("DuperValue", () => {
     expect(new DuperValue([]).type).toEqual("array");
     expect(new DuperValue("").type).toEqual("string");
     expect(new DuperValue(new Uint8Array()).type).toEqual("bytes");
+    expect(new DuperValue(Temporal.Now.instant()).type).toEqual("temporal");
     expect(new DuperValue(34).type).toEqual("float");
     expect(new DuperValue(35n).type).toEqual("integer");
     expect(new DuperValue(true).type).toEqual("boolean");
@@ -25,6 +27,12 @@ describe("DuperValue", () => {
       "bytes"
     );
     expect(new DuperValue("Hello world!", null, "bytes").type).toEqual("bytes");
+    expect(
+      new DuperValue(Temporal.Now.instant(), null, "temporal").type
+    ).toEqual("temporal");
+    expect(new DuperValue("2025-11-08", null, "temporal").type).toEqual(
+      "temporal"
+    );
     expect(new DuperValue(34, null, "float").type).toEqual("float");
     expect(new DuperValue(34, null, "integer").type).toEqual("integer");
     expect(new DuperValue(35n, null, "integer").type).toEqual("integer");
@@ -62,5 +70,17 @@ describe("DuperValue", () => {
     assert.throws(() => new DuperValue("35n", null, "integer"));
     assert.throws(() => new DuperValue("true", null, "boolean"));
     assert.throws(() => new DuperValue("null", null, "null"));
+  });
+
+  it("raises error for invalid values", () => {
+    assert.throws(() => new DuperValue({ "non-duper value": "hello" }));
+    assert.throws(
+      () => new DuperValue({ "non-duper value": "hello" }, null, "object")
+    );
+    assert.throws(() => new DuperValue(["non-duper value"]));
+    assert.throws(() => new DuperValue(["non-duper value"], null, "array"));
+    assert.throws(() => new DuperValue(["non-duper value"], null, "tuple"));
+    assert.throws(() => new DuperValue(new Date()));
+    assert.throws(() => new DuperValue(new Date(), null, "temporal"));
   });
 });

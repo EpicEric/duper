@@ -250,7 +250,7 @@ Byte strings are similar to strings, but represent binary data. Like strings, th
 {
   path: br"C:\Windows\System32",
   shrug: br#" "Whatever." ¯\_(ツ)_/¯ "#,
-  rust_expression: br##"{ let str = r#"meta string"#; }"##,
+  rust_block: br##"{ let str = r#"meta string"#; }"##,
 }
 ```
 
@@ -258,11 +258,11 @@ Byte strings are similar to strings, but represent binary data. Like strings, th
 
 ```duper
 {
-  duper: b64"ZHVwZXI=",
-  duper_no_padding: b64"ZHVwZXI",
-  with_whitespace: b64"  ABC+ZA==  ",
+  regular: b64"ZHVwZXI=",
+  no_padding: b64"ZHVwZXI",
+  with_whitespace: b64"  +boUO5X/bYI=  ",
 
-  too_much_padding: b64"ZHVwZXI===",  // INVALID
+  too_much_padding: b64"ZHVwZXI==",   // INVALID
   invalid_characters: b64"QUFB-Q==",  // INVALID
 }
 ```
@@ -306,13 +306,13 @@ These values may or may not contain an [identifier](#identifiers). In the case w
   subset: PlainYearMonth('1994-11-06T19:45:27-03:00'),  // PlainYearMonth is a subset of Instant
 
   // Allowed but discouraged
-  string_in_disguise: PlainDate("this isn't a Temporal value"),
+  string_in_disguise: PlainDate("not Temporal"),      // Uses double-quotes
   confusing_identifier: PlainTimeDate('2025-11-03'),  /* Unlike `PlainDateTime`, this doesn't
                                                        * validate the input, other than that
                                                        * it's a Temporal value. */
 
   // Not allowed
-  missing_offset: Instant('2025-11-06T19:39:02.888834'),  // INVALID
+  missing_offset: Instant('2025-10-31T19:39:02'),  // INVALID
 }
 ```
 

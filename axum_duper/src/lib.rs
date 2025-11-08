@@ -84,7 +84,7 @@ impl IntoResponse for DuperRejection {
 ///     // payload is a `CreateUser`
 /// }
 ///
-/// let app = Router::new().route("/users", post(create_user));
+/// let app = Router::new().route("/user", post(create_user));
 /// # let _: Router = app;
 /// ```
 ///
@@ -120,7 +120,7 @@ impl IntoResponse for DuperRejection {
 ///     # unimplemented!()
 /// }
 ///
-/// let app = Router::new().route("/users/{id}", get(get_user));
+/// let app = Router::new().route("/user/{id}", get(get_user));
 /// # let _: Router = app;
 /// ```
 pub struct Duper<T>(pub T);

@@ -1,7 +1,7 @@
 use std::{borrow::Cow, fmt::Display};
 
 use duper::{DuperIdentifier, DuperTemporal, DuperValue, Serializer};
-use js_sys::{Array, BigInt, Boolean, Function, Object, Reflect, Uint8Array};
+use js_sys::{Array, BigInt, Boolean, Date, Function, Object, Reflect, Uint8Array};
 use wasm_bindgen::{convert::RefFromWasmAbi, prelude::*};
 
 use crate::ser::{
@@ -107,7 +107,7 @@ impl JsDuperValueInner {
                     }
                 }
                 "bytes" => {
-                    if Uint8Array::is_type_of(&inner) {
+                    if inner.has_type::<Uint8Array>() {
                         Ok(JsDuperValueInner::Bytes(inner))
                     } else if Array::is_array(&inner) {
                         let array: Array = inner.dyn_into().expect("checked conversion");
@@ -130,16 +130,32 @@ impl JsDuperValueInner {
                     }
                 }
                 "temporal" => {
-                    if inner.is_string() {
-                        DuperTemporal::try_from(Cow::Owned(
+                    if inner.has_type::<crate::temporal::Instant>()
+                        || inner.has_type::<crate::temporal::ZonedDateTime>()
+                        || inner.has_type::<crate::temporal::PlainDate>()
+                        || inner.has_type::<crate::temporal::PlainTime>()
+                        || inner.has_type::<crate::temporal::PlainDateTime>()
+                        || inner.has_type::<crate::temporal::PlainYearMonth>()
+                        || inner.has_type::<crate::temporal::PlainMonthDay>()
+                        || inner.has_type::<crate::temporal::Duration>()
+                    {
+                        Ok(JsDuperValueInner::Temporal(inner))
+                    } else if inner.is_string() {
+                        DuperTemporal::try_unspecified_from(Cow::Owned(
                             inner.as_string().expect("checked conversion"),
                         ))
                         .map_err(|err| {
                             JsError::new(&format!("string is not a valid Temporal value: {err}"))
                         })?;
                         Ok(JsDuperValueInner::Temporal(inner))
+                    } else if inner.has_type::<Date>() {
+                        Err(JsError::new(
+                            "invalid Date value; convert it into a Temporal value first",
+                        ))
                     } else {
-                        Err(JsError::new(&format!("expected string, found {inner:?}")))
+                        Err(JsError::new(&format!(
+                            "expected Temporal value or string, found {inner:?}"
+                        )))
                     }
                 }
                 "integer" => {
@@ -171,7 +187,7 @@ impl JsDuperValueInner {
                     }
                 }
                 "boolean" => {
-                    if Boolean::is_type_of(&inner) {
+                    if inner.has_type::<Boolean>() {
                         Ok(JsDuperValueInner::Boolean(inner))
                     } else {
                         Err(JsError::new(&format!("expected boolean, found {inner:?}")))
@@ -190,16 +206,30 @@ impl JsDuperValueInner {
             }
         } else if inner.is_null() || inner.is_undefined() {
             Ok(JsDuperValueInner::Null)
-        } else if Boolean::is_type_of(&inner) {
+        } else if inner.has_type::<Boolean>() {
             Ok(JsDuperValueInner::Boolean(inner))
         } else if inner.is_bigint() {
             Ok(JsDuperValueInner::Integer(inner))
         } else if inner.as_f64().is_some() {
             Ok(JsDuperValueInner::Float(inner))
-        } else if Uint8Array::is_type_of(&inner) {
+        } else if inner.has_type::<Uint8Array>() {
             Ok(JsDuperValueInner::Bytes(inner))
         } else if inner.is_string() {
             Ok(JsDuperValueInner::String(inner))
+        } else if inner.has_type::<crate::temporal::Instant>()
+            || inner.has_type::<crate::temporal::ZonedDateTime>()
+            || inner.has_type::<crate::temporal::PlainDate>()
+            || inner.has_type::<crate::temporal::PlainTime>()
+            || inner.has_type::<crate::temporal::PlainDateTime>()
+            || inner.has_type::<crate::temporal::PlainYearMonth>()
+            || inner.has_type::<crate::temporal::PlainMonthDay>()
+            || inner.has_type::<crate::temporal::Duration>()
+        {
+            Ok(JsDuperValueInner::Temporal(inner))
+        } else if inner.has_type::<Date>() {
+            Err(JsError::new(
+                "invalid Date value; convert it into a Temporal value first",
+            ))
         } else if Array::is_array(&inner) {
             let array = inner
                 .dyn_into::<Array>()

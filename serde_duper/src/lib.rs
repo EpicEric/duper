@@ -388,7 +388,7 @@ where
 /// // The type of `j` is `&str`
 /// let j = r#"
 ///     User({
-///         fingerprint: b"\xF9\xBA\x14\x3B\x95\xFF\x6D\x82",
+///         fingerprint: b64"+boUO5X/bYI=",
 ///         location: City("Menlo Park, CA"),
 ///     })"#;
 ///

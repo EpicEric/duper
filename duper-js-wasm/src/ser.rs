@@ -4,7 +4,7 @@ use duper::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
     DuperTemporal, DuperTuple, DuperValue,
 };
-use js_sys::{Array, BigInt, Boolean, Object, Uint8Array, try_iter};
+use js_sys::{Array, BigInt, Boolean, Date, Object, Uint8Array, try_iter};
 use wasm_bindgen::prelude::*;
 
 use crate::repr::JsDuperValue;
@@ -13,19 +13,33 @@ pub(crate) fn serialize_jsvalue(value: &JsValue) -> Result<DuperValue<'static>, 
     if let Ok(value) = JsDuperValue::from_jsval(value) {
         value.serialize()
     }
-    // Not a Duper deserialized value; detect which type it actually is
+    // Not a Duper deserialized value; detect which type it might be
     else if value.is_null() || value.is_undefined() {
         serialize_null(None)
-    } else if Boolean::is_type_of(value) {
+    } else if value.has_type::<Boolean>() {
         serialize_boolean(value, None)
     } else if value.is_bigint() {
         serialize_integer(value, None)
     } else if value.as_f64().is_some() {
         serialize_float(value, None)
-    } else if Uint8Array::is_type_of(value) {
+    } else if value.has_type::<Uint8Array>() {
         serialize_bytes(value, None)
     } else if value.is_string() {
         serialize_string(value, None)
+    } else if value.has_type::<crate::temporal::Instant>()
+        || value.has_type::<crate::temporal::ZonedDateTime>()
+        || value.has_type::<crate::temporal::PlainDate>()
+        || value.has_type::<crate::temporal::PlainTime>()
+        || value.has_type::<crate::temporal::PlainDateTime>()
+        || value.has_type::<crate::temporal::PlainYearMonth>()
+        || value.has_type::<crate::temporal::PlainMonthDay>()
+        || value.has_type::<crate::temporal::Duration>()
+    {
+        serialize_temporal(value, None)
+    } else if value.has_type::<Date>() {
+        Err(JsValue::from_str(
+            "invalid Date value; convert it into a Temporal value first",
+        ))
     } else if Array::is_array(value) {
         serialize_array(value, None)
     } else if !value.is_function() && !value.is_symbol() {
@@ -117,13 +131,88 @@ pub(crate) fn serialize_temporal(
     value: &JsValue,
     identifier: Option<DuperIdentifier<'static>>,
 ) -> Result<DuperValue<'static>, JsValue> {
+    if let Some(temporal) = value.dyn_ref::<crate::temporal::Instant>() {
+        return Ok(DuperValue {
+            identifier: Some(DuperIdentifier::try_from("Instant").expect("valid identifier")),
+            inner: DuperInner::Temporal(
+                DuperTemporal::try_instant_from(Cow::Owned(temporal.to_string()))
+                    .map_err(|err| JsValue::from_str(&format!("failed to parse Instant: {err}")))?,
+            ),
+        });
+    } else if let Some(temporal) = value.dyn_ref::<crate::temporal::ZonedDateTime>() {
+        return Ok(DuperValue {
+            identifier: Some(DuperIdentifier::try_from("ZonedDateTime").expect("valid identifier")),
+            inner: DuperInner::Temporal(
+                DuperTemporal::try_zoned_date_time_from(Cow::Owned(temporal.to_string())).map_err(
+                    |err| JsValue::from_str(&format!("failed to parse ZonedDateTime: {err}")),
+                )?,
+            ),
+        });
+    } else if let Some(temporal) = value.dyn_ref::<crate::temporal::PlainDate>() {
+        return Ok(DuperValue {
+            identifier: Some(DuperIdentifier::try_from("PlainDate").expect("valid identifier")),
+            inner: DuperInner::Temporal(
+                DuperTemporal::try_plain_date_from(Cow::Owned(temporal.to_string())).map_err(
+                    |err| JsValue::from_str(&format!("failed to parse PlainDate: {err}")),
+                )?,
+            ),
+        });
+    } else if let Some(temporal) = value.dyn_ref::<crate::temporal::PlainTime>() {
+        return Ok(DuperValue {
+            identifier: Some(DuperIdentifier::try_from("PlainTime").expect("valid identifier")),
+            inner: DuperInner::Temporal(
+                DuperTemporal::try_plain_time_from(Cow::Owned(temporal.to_string())).map_err(
+                    |err| JsValue::from_str(&format!("failed to parse PlainTime: {err}")),
+                )?,
+            ),
+        });
+    } else if let Some(temporal) = value.dyn_ref::<crate::temporal::PlainDateTime>() {
+        return Ok(DuperValue {
+            identifier: Some(DuperIdentifier::try_from("PlainDateTime").expect("valid identifier")),
+            inner: DuperInner::Temporal(
+                DuperTemporal::try_plain_date_time_from(Cow::Owned(temporal.to_string())).map_err(
+                    |err| JsValue::from_str(&format!("failed to parse PlainDateTime: {err}")),
+                )?,
+            ),
+        });
+    } else if let Some(temporal) = value.dyn_ref::<crate::temporal::PlainYearMonth>() {
+        return Ok(DuperValue {
+            identifier: Some(
+                DuperIdentifier::try_from("PlainYearMonth").expect("valid identifier"),
+            ),
+            inner: DuperInner::Temporal(
+                DuperTemporal::try_plain_year_month_from(Cow::Owned(temporal.to_string()))
+                    .map_err(|err| {
+                        JsValue::from_str(&format!("failed to parse PlainYearMonth: {err}"))
+                    })?,
+            ),
+        });
+    } else if let Some(temporal) = value.dyn_ref::<crate::temporal::PlainMonthDay>() {
+        return Ok(DuperValue {
+            identifier: Some(DuperIdentifier::try_from("PlainMonthDay").expect("valid identifier")),
+            inner: DuperInner::Temporal(
+                DuperTemporal::try_plain_month_day_from(Cow::Owned(temporal.to_string())).map_err(
+                    |err| JsValue::from_str(&format!("failed to parse PlainMonthDay: {err}")),
+                )?,
+            ),
+        });
+    } else if let Some(temporal) = value.dyn_ref::<crate::temporal::Duration>() {
+        return Ok(DuperValue {
+            identifier: Some(DuperIdentifier::try_from("Duration").expect("valid identifier")),
+            inner: DuperInner::Temporal(
+                DuperTemporal::try_duration_from(Cow::Owned(temporal.to_string())).map_err(
+                    |err| JsValue::from_str(&format!("failed to parse Duration: {err}")),
+                )?,
+            ),
+        });
+    }
     let string = value
         .as_string()
         .ok_or_else(|| format!("expected string, found {value:?}"))?;
     Ok(DuperValue {
         identifier,
         inner: DuperInner::Temporal(
-            DuperTemporal::try_from(Cow::Owned(string)).map_err(|err| {
+            DuperTemporal::try_unspecified_from(Cow::Owned(string)).map_err(|err| {
                 JsValue::from_str(&format!("failed to parse Temporal value: {err}"))
             })?,
         ),
