@@ -136,3 +136,14 @@
 .DocSearch {
   --docsearch-primary-color: var(--vp-c-brand-1) !important;
 }
+
+/**
+ * Component: Index features icons
+ * -------------------------------------------------------------------------- */
+
+svg.lucide {
+  stroke: #3868c7;
+}
+.dark svg.lucide {
+  stroke: #dc9b18;
+}
