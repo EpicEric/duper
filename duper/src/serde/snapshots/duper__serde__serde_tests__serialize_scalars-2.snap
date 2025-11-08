@@ -5,6 +5,7 @@ expression: serialized
 [
   "Hello world!",
   br"/\",
+  "2012-12-21",
   1337,
   8.25,
   true,

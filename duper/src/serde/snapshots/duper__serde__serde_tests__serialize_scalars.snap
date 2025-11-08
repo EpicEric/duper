@@ -5,6 +5,7 @@ expression: serialized
 {
   string: "Hello world!",
   bytes: br"/\",
+  temporal: "16:20:00",
   integer: 1337,
   float: 8.25,
   boolean: true,
