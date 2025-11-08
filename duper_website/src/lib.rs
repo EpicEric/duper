@@ -64,7 +64,7 @@ pub fn convert_duper(value: &str, to: Option<ConvertDuperTo>) -> Result<String, 
         ))
     })?;
 
-    let duper = duper.accept(&mut visitor::EncodeBytesVisitor {});
+    let duper = duper.accept(&mut visitor::EncodingTranslationVisitor {});
 
     match target {
         ConvertTo::Json => {

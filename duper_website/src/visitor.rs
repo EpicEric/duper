@@ -5,9 +5,9 @@ use duper::{
 };
 
 // A visitor that transforms bytes into an array of integers.
-pub(crate) struct EncodeBytesVisitor;
+pub(crate) struct EncodingTranslationVisitor;
 
-impl DuperVisitor for EncodeBytesVisitor {
+impl DuperVisitor for EncodingTranslationVisitor {
     type Value = DuperValue<'static>;
 
     fn visit_object<'a>(
@@ -86,7 +86,7 @@ impl DuperVisitor for EncodeBytesVisitor {
     ) -> Self::Value {
         DuperValue {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::Temporal(temporal.static_clone()),
+            inner: DuperInner::String(DuperString::from(temporal.as_ref().to_owned())),
         }
     }
 
