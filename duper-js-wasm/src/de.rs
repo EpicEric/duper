@@ -98,10 +98,35 @@ impl DuperVisitor for Visitor {
         identifier: Option<&duper::DuperIdentifier<'a>>,
         temporal: &duper::DuperTemporal<'a>,
     ) -> Self::Value {
-        // TO-DO: Temporal - Preserve type
         Ok(JsDuperValue {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: JsDuperValueInner::Temporal(temporal.as_ref().into()),
+            inner: JsDuperValueInner::Temporal(match temporal {
+                duper::DuperTemporal::Instant(inner) => {
+                    crate::temporal::Instant::from(inner.as_ref()).into()
+                }
+                duper::DuperTemporal::ZonedDateTime(inner) => {
+                    crate::temporal::ZonedDateTime::from(inner.as_ref()).into()
+                }
+                duper::DuperTemporal::PlainDate(inner) => {
+                    crate::temporal::PlainDate::from(inner.as_ref()).into()
+                }
+                duper::DuperTemporal::PlainTime(inner) => {
+                    crate::temporal::PlainTime::from(inner.as_ref()).into()
+                }
+                duper::DuperTemporal::PlainDateTime(inner) => {
+                    crate::temporal::PlainDateTime::from(inner.as_ref()).into()
+                }
+                duper::DuperTemporal::PlainYearMonth(inner) => {
+                    crate::temporal::PlainYearMonth::from(inner.as_ref()).into()
+                }
+                duper::DuperTemporal::PlainMonthDay(inner) => {
+                    crate::temporal::PlainMonthDay::from(inner.as_ref()).into()
+                }
+                duper::DuperTemporal::Duration(inner) => {
+                    crate::temporal::Duration::from(inner.as_ref()).into()
+                }
+                duper::DuperTemporal::Unspecified(inner) => inner.as_ref().into(),
+            }),
         })
     }
 

@@ -1,5 +1,6 @@
 import { assert, describe, expect, it } from "vitest";
 import { parse, stringify, DuperValue } from "..";
+import { Temporal } from "temporal-polyfill";
 
 describe("parse then stringify", () => {
   const input = `
@@ -8,6 +9,7 @@ describe("parse then stringify", () => {
       weight: Kilograms(0.285),
       image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
       tags: ["electronics", "audio", "wireless"],
+      date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'),
     })
   `;
 
@@ -82,6 +84,7 @@ describe("stringify then parse", () => {
         new DuperValue("192.168.0.50:12345", "IPv4Socket"),
         new DuperValue("[2001:1d8::1]:29876", "IPv46ocket"),
       ]),
+      date: new DuperValue(Temporal.PlainDate.from("2025-11-08")),
     },
     "Tcp"
   );
@@ -99,6 +102,10 @@ describe("stringify then parse", () => {
     expect(deserialized.inner.port.inner).toEqual(5173n);
     expect(deserialized.inner.connections.type).toEqual("array");
     expect(deserialized.inner.connections.inner.length).toEqual(2);
+    expect(deserialized.inner.date.type).toEqual("temporal");
+    expect(deserialized.inner.date.inner).toEqual(
+      Temporal.PlainDate.from("2025-11-08")
+    );
   });
 
   it("properly serializes then deserializes to JSON-safe", () => {

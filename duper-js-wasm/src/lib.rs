@@ -7,6 +7,7 @@ use crate::{de::Visitor, ser::serialize_jsvalue};
 mod de;
 mod repr;
 mod ser;
+mod temporal;
 
 struct StringifyOptions {
     indent: Option<String>,
