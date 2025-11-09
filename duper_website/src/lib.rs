@@ -1,4 +1,5 @@
 use duper::DuperParser;
+use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 mod visitor;
@@ -64,17 +65,40 @@ pub fn convert_duper(value: &str, to: Option<ConvertDuperTo>) -> Result<String, 
         ))
     })?;
 
-    let duper = duper.accept(&mut visitor::EncodingTranslationVisitor {});
-
     match target {
         ConvertTo::Json => {
-            serde_json::to_string_pretty(&duper).map_err(|err| JsError::new(&err.to_string()))
+            serde_json::to_string_pretty(&duper.accept(&mut visitor::SerdeVisitor {}))
+                .map_err(|err| JsError::new(&err.to_string()))
         }
-        ConvertTo::Yaml => {
-            serde_yaml_ng::to_string(&duper).map_err(|err| JsError::new(&err.to_string()))
-        }
-        ConvertTo::Toml => {
-            toml::to_string_pretty(&duper).map_err(|err| JsError::new(&err.to_string()))
-        }
+        ConvertTo::Yaml => match duper.accept(&mut visitor::SaphyrVisitor {}) {
+            Ok(yaml) => {
+                let yaml: saphyr::Yaml = (&yaml).into();
+                let mut out = String::new();
+                let mut emitter = saphyr::YamlEmitter::new(&mut out);
+                emitter.multiline_strings(true);
+                emitter
+                    .dump(&yaml)
+                    .map_err(|err| JsError::new(&err.to_string()))?;
+                Ok(out)
+            }
+            Err(err) => Err(JsError::new(&err)),
+        },
+        ConvertTo::Toml => match duper.accept(&mut visitor::TomlVisitor {}) {
+            Ok(Some(toml::Value::Table(table))) => {
+                // let mut out = String::new();
+                let mut buf = toml::ser::Buffer::new();
+                let serializer = toml::Serializer::pretty(&mut buf);
+                table
+                    .serialize(serializer)
+                    .map_err(|err| JsError::new(&err.to_string()))?;
+                Ok(buf.to_string())
+            }
+            Ok(Some(value)) => Err(JsError::new(&format!(
+                "TOML only supports tables as the root value, not {}",
+                value.type_str()
+            ))),
+            Ok(None) => Err(JsError::new("Cannot serialize null in TOML")),
+            Err(err) => Err(JsError::new(&err)),
+        },
     }
 }

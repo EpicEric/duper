@@ -4,10 +4,10 @@ use duper::{
     DuperTemporal, DuperTuple, DuperValue, visitor::DuperVisitor,
 };
 
-// A visitor that transforms bytes into an array of integers.
-pub(crate) struct EncodingTranslationVisitor;
+// A visitor that simplifies Duper values for Serde serializers.
+pub(crate) struct SerdeVisitor;
 
-impl DuperVisitor for EncodingTranslationVisitor {
+impl DuperVisitor for SerdeVisitor {
     type Value = DuperValue<'static>;
 
     fn visit_object<'a>(
