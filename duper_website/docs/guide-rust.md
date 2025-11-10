@@ -112,16 +112,17 @@ use serde::{Deserialize, Serialize};
 use serde_duper::TemporalString;
 
 #[derive(Serialize, Deserialize)]
-#[serde(rename = "Product")]  // Renames wrapper to "Product(...)"
-struct DateValidator {
+struct DateValidator<'a> {
     #[serde(with = "serde_duper::types::chrono::DuperDateTime")]
     instant: DateTime<Utc>,
-    matches: TemporalString,
+    matches: TemporalString<'a>,
 }
 
 let item = DateValidator {
     instant: "2023-10-05T14:30:00Z".parse().unwrap(),
-    matches: TemporalString(DuperTemporal::try_plain_year_month_from("2023-10").unwrap()),
+    matches: TemporalString(DuperTemporal::try_plain_year_month_from(
+        std::borrow::Cow::Borrowed("2023-10")
+    ).unwrap()),
 };
 
 let output = serde_duper::to_string_pretty(&item)?;

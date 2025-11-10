@@ -25,6 +25,28 @@ pub const FIELD_VALUE: &str = "$__duper_private_value";
 /// This can represent any of the Temporal values (`Instant`, `ZonedDateTime`,
 /// `PlainDate`, `PlainTime`, `PlainDateTime`, `PlainYearMonth`,
 /// `PlainMonthDay`, `Duration`), including unspecified ones.
+///
+/// # Example
+///
+/// ```
+/// use serde::{Deserialize, Serialize};
+/// use duper::{DuperTemporal, serde::temporal::TemporalString};
+///
+/// #[derive(Serialize, Deserialize)]
+/// struct MyType<'a> {
+///     inner: TemporalString<'a>,
+/// }
+///
+/// let item = MyType {
+///     inner: TemporalString(DuperTemporal::try_plain_year_month_from(
+///         std::borrow::Cow::Borrowed("2023-10-05T14:30:00+00:00")
+///     ).unwrap()),
+/// };
+///
+/// let output = duper::serde::ser::to_string(&item).unwrap();
+/// let deserialized: MyType<'_> = duper::serde::de::from_string(&output).unwrap();
+/// assert!(matches!(deserialized.inner.0, DuperTemporal::PlainYearMonth(_)));
+/// ```
 pub struct TemporalString<'a>(pub DuperTemporal<'a>);
 
 impl<'a> serde_core::Serialize for TemporalString<'a> {
