@@ -167,10 +167,28 @@ pub(crate) fn zoned_date_time<'a>()
         .ignored()
 }
 
+pub(crate) fn non_z_zoned_date_time<'a>()
+-> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+    date_time()
+        .then(time_num_offset())
+        .then(timezone())
+        .then(suffix_tag().repeated())
+        .padded()
+        .ignored()
+}
+
 pub(crate) fn instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         zoned_date_time(),
         date_time().then(time_offset()).padded().ignored(),
+    ))
+}
+
+pub(crate) fn non_z_instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
+{
+    choice((
+        non_z_zoned_date_time(),
+        date_time().then(time_num_offset()).padded().ignored(),
     ))
 }
 
@@ -191,7 +209,7 @@ pub(crate) fn plain_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'
 pub(crate) fn plain_date_time<'a>()
 -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
-        instant(),
+        non_z_instant(),
         date_time().then(suffix_tag().repeated()).padded().ignored(),
     ))
 }

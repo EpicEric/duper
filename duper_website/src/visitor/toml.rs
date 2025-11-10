@@ -7,6 +7,8 @@ use duper::{
 };
 use toml::{Value, value::Datetime};
 
+use crate::temporal::{Instant, PlainDate, PlainDateTime, PlainTime};
+
 // A visitor that serializes Duper into a TOML value.
 pub(crate) struct TomlVisitor {}
 
@@ -76,14 +78,28 @@ impl DuperVisitor for TomlVisitor {
         temporal: &DuperTemporal<'a>,
     ) -> Self::Value {
         match temporal {
-            DuperTemporal::Instant(inner)
-            | DuperTemporal::PlainDateTime(inner)
-            | DuperTemporal::PlainDate(inner)
-            | DuperTemporal::PlainTime(inner) => {
-                let inner = inner.as_ref();
-                let datetime_str = inner.split_once('[').map(|(left, _)| left).unwrap_or(inner);
+            DuperTemporal::Instant(inner) => {
+                let datetime_str = Instant::from(inner.as_ref()).to_string();
                 Ok(Some(Value::Datetime(
-                    Datetime::from_str(datetime_str).map_err(|err| err.to_string())?,
+                    Datetime::from_str(&datetime_str).map_err(|err| err.to_string())?,
+                )))
+            }
+            DuperTemporal::PlainDateTime(inner) => {
+                let datetime_str = PlainDateTime::from(inner.as_ref()).to_string();
+                Ok(Some(Value::Datetime(
+                    Datetime::from_str(&datetime_str).map_err(|err| err.to_string())?,
+                )))
+            }
+            DuperTemporal::PlainDate(inner) => {
+                let datetime_str = PlainDate::from(inner.as_ref()).to_string();
+                Ok(Some(Value::Datetime(
+                    Datetime::from_str(&datetime_str).map_err(|err| err.to_string())?,
+                )))
+            }
+            DuperTemporal::PlainTime(inner) => {
+                let datetime_str = PlainTime::from(inner.as_ref()).to_string();
+                Ok(Some(Value::Datetime(
+                    Datetime::from_str(&datetime_str).map_err(|err| err.to_string())?,
                 )))
             }
             DuperTemporal::ZonedDateTime(inner)

@@ -6,6 +6,10 @@
 
 - Add `minify` option to `stringify`.
 
+### Changed
+
+- Update to comply with spec 0.4.0.
+
 ## 0.2.1 (2025-11-01)
 
 ### Changed

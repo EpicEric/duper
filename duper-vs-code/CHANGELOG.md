@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Update to comply with spec 0.4.0.
+
 ## 0.3.2 (2025-11-01)
 
 ### Added

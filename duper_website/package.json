@@ -21,11 +21,13 @@
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.9",
+    "@js-temporal/polyfill": "^0.5.1",
     "@shikijs/langs": "^3.14.0",
     "@shikijs/monaco": "^3.14.0",
     "@shikijs/themes": "^3.14.0",
     "monaco-editor": "^0.54.0",
-    "shiki": "^3.14.0"
+    "shiki": "^3.14.0",
+    "temporal-polyfill": "^0.3.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.1",

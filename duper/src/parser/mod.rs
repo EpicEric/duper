@@ -185,19 +185,6 @@ pub(crate) fn identified_value<'a>()
                 }
             }),
             identifier()
-                .and_is(
-                    choice((
-                        just("Instant"),
-                        just("ZonedDateTime"),
-                        just("PlainDate"),
-                        just("PlainTime"),
-                        just("PlainDateTime"),
-                        just("PlainYearMonth"),
-                        just("PlainMonthDay"),
-                        just("Duration"),
-                    ))
-                    .not(),
-                )
                 .then(temporal_unspecified().delimited_by(just('('), just(')')))
                 .map(|(identifier, temporal)| DuperValue {
                     identifier: Some(identifier),

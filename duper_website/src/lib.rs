@@ -2,6 +2,7 @@ use duper::DuperParser;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
+mod temporal;
 mod visitor;
 
 #[wasm_bindgen(typescript_custom_section)]

@@ -6,6 +6,10 @@
 
 - Add `minify` option to `dump`/`dumps`.
 
+### Changed
+
+- Update to comply with spec 0.4.0.
+
 ## 0.2.2 (2025-10-28)
 
 ### Changed
