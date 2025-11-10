@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 struct Product {
     name: String,
-    price: f64,
+    price: (u32, u8),
     in_stock: bool,
     tags: Vec<String>,
 }
@@ -26,7 +26,7 @@ struct Product {
 fn main() -> serde_duper::Result<()> {
     let product = Product {
         name: "Wireless Headphones".to_string(),
-        price: 129.99,
+        price: (129, 99),
         in_stock: true,
         tags: vec!["electronics".into(), "audio".into()],
     };
@@ -101,6 +101,36 @@ let output = serde_duper::to_string_pretty(&item)?;
 // })
 ```
 
+### Working with Temporal values
+
+You can use `chrono`, or directly manipulate values with `TemporalString`:
+
+```rust
+use chrono::{DateTime, Utc};
+use duper::DuperTemporal;
+use serde::{Deserialize, Serialize};
+use serde_duper::TemporalString;
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename = "Product")]  // Renames wrapper to "Product(...)"
+struct DateValidator {
+    #[serde(with = "serde_duper::types::chrono::DuperDateTime")]
+    instant: DateTime<Utc>,
+    matches: TemporalString,
+}
+
+let item = DateValidator {
+    instant: "2023-10-05T14:30:00Z".parse().unwrap(),
+    matches: TemporalString(DuperTemporal::try_plain_year_month_from("2023-10").unwrap()),
+};
+
+let output = serde_duper::to_string_pretty(&item)?;
+// DateValidator({
+//   instant: Instant('2023-10-05T14:30:00Z'),
+//   matches: PlainYearMonth('2023-10'),
+// })
+```
+
 ### Working with bytes
 
 You can make use of Duper's bytes support:
@@ -123,8 +153,6 @@ struct ImageData {
     data: ByteBuf,  // Equivalent to Vec<u8> but with better Duper support
 }
 ```
-
-Also, tuples are first-class values in `serde_duper`.
 
 ---
 
