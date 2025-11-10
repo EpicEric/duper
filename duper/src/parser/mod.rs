@@ -125,6 +125,32 @@ pub(crate) fn identifier<'a>()
         .map(|identifier| DuperIdentifier(Cow::Borrowed(identifier)))
 }
 
+pub(crate) fn non_temporal_identifier<'a>()
+-> impl Parser<'a, &'a str, DuperIdentifier<'a>, extra::Err<Rich<'a, char>>> + Clone {
+    let temporal_identifiers = choice((
+        just("Instant"),
+        just("ZonedDateTime"),
+        just("PlainDate"),
+        just("PlainTime"),
+        just("PlainDateTime"),
+        just("PlainYearMonth"),
+        just("PlainMonthDay"),
+        just("Duration"),
+    ));
+
+    temporal_identifiers
+        .then(
+            one_of("-_")
+                .or_not()
+                .then(ascii_alphanumeric())
+                .repeated()
+                .at_least(1),
+        )
+        .to_slice()
+        .map(|identifier| DuperIdentifier(Cow::Borrowed(identifier)))
+        .or(identifier())
+}
+
 pub(crate) fn identified_trunk<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     let inner_trunk = choice((
@@ -184,7 +210,7 @@ pub(crate) fn identified_value<'a>()
                     inner: DuperInner::Temporal(temporal),
                 }
             }),
-            identifier()
+            non_temporal_identifier()
                 .then(temporal_unspecified().delimited_by(just('('), just(')')))
                 .map(|(identifier, temporal)| DuperValue {
                     identifier: Some(identifier),
@@ -768,7 +794,7 @@ mod duper_parser_tests {
         ));
 
         let input = r#"
-            '  2022-02-28T03:06:00.092121729Z  '
+            '  2022-02-28T03:06:00.092121729+02:00  '
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
@@ -777,7 +803,7 @@ mod duper_parser_tests {
         ));
 
         let input = r#"
-            PlainDate('  2022-02-28T03:06:00.092121729Z  ')
+            PlainDate('  2022-02-28T03:06:00.092121729+02:00  ')
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
@@ -786,7 +812,7 @@ mod duper_parser_tests {
         ));
 
         let input = r#"
-            PlainTime('  2022-02-28T03:06:00.092121729Z  ')
+            PlainTime('  2022-02-28T03:06:00.092121729+02:00  ')
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
@@ -801,6 +827,15 @@ mod duper_parser_tests {
         assert!(matches!(
             duper.inner,
             DuperInner::Temporal(DuperTemporal::PlainMonthDay(_))
+        ));
+
+        let input = r#"
+            PlainTimeDate('2022-11-09')  // Non-recognized identifier
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(
+            duper.inner,
+            DuperInner::Temporal(DuperTemporal::Unspecified(_))
         ));
 
         let input = r#"
@@ -894,6 +929,10 @@ mod duper_parser_tests {
         assert!(DuperParser::parse_duper_value(input).is_err());
         let input = r#"
             ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[u-ca=chinese]')  // Missing timezone
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            PlainDateTime('2022-02-28T03:06:00Z')  // Z offset not allowed in conversion from Instant
         "#;
         assert!(DuperParser::parse_duper_value(input).is_err());
 

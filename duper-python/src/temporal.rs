@@ -28,7 +28,7 @@ impl TemporalString {
     #[new]
     fn new(value: String, r#type: Option<String>) -> PyResult<Self> {
         Ok(TemporalString {
-            temporal: match r#type.as_ref().map(|typ| typ.as_str()) {
+            temporal: match r#type.as_deref() {
                 Some("Instant") => duper::DuperTemporal::try_instant_from(Cow::Owned(value))
                     .map_err(|err| {
                         PyValueError::new_err(format!(
@@ -117,10 +117,7 @@ impl TemporalString {
     }
 
     fn __repr__(&self) -> String {
-        let typ = match self.r#type() {
-            Some(typ) => typ,
-            None => "None",
-        };
+        let typ = self.r#type().unwrap_or("None");
         let value = self.temporal.as_ref();
         format!("TemporalString(type={typ} value='{value}')")
     }

@@ -1,6 +1,6 @@
 import { assert, describe, expect, it } from "vitest";
 import { DuperValue } from "..";
-import { Temporal } from "temporal-polyfill";
+import { Temporal } from "@js-temporal/polyfill";
 
 describe("DuperValue", () => {
   it("infers types from JS types", () => {

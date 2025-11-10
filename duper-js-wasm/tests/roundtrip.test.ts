@@ -1,6 +1,6 @@
 import { assert, describe, expect, it } from "vitest";
 import { parse, stringify, DuperValue } from "..";
-import { Temporal } from "temporal-polyfill";
+import { Temporal } from "@js-temporal/polyfill";
 
 describe("parse then stringify", () => {
   const input = `

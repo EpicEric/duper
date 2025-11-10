@@ -33,6 +33,9 @@ pub(crate) fn temporal_instant<'a>()
             instant()
                 .to_slice()
                 .delimited_by(just('\''), just('\''))
+                .recover_with(via_parser(just('\'').ignore_then(
+                    none_of('\'').repeated().to_slice().then_ignore(just('\'')),
+                )))
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
@@ -48,6 +51,9 @@ pub(crate) fn temporal_zoned_date_time<'a>()
             zoned_date_time()
                 .to_slice()
                 .delimited_by(just('\''), just('\''))
+                .recover_with(via_parser(just('\'').ignore_then(
+                    none_of('\'').repeated().to_slice().then_ignore(just('\'')),
+                )))
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
@@ -63,6 +69,9 @@ pub(crate) fn temporal_plain_date<'a>()
             plain_date()
                 .to_slice()
                 .delimited_by(just('\''), just('\''))
+                .recover_with(via_parser(just('\'').ignore_then(
+                    none_of('\'').repeated().to_slice().then_ignore(just('\'')),
+                )))
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
@@ -78,6 +87,9 @@ pub(crate) fn temporal_plain_time<'a>()
             plain_time()
                 .to_slice()
                 .delimited_by(just('\''), just('\''))
+                .recover_with(via_parser(just('\'').ignore_then(
+                    none_of('\'').repeated().to_slice().then_ignore(just('\'')),
+                )))
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
@@ -93,6 +105,9 @@ pub(crate) fn temporal_plain_date_time<'a>()
             plain_date_time()
                 .to_slice()
                 .delimited_by(just('\''), just('\''))
+                .recover_with(via_parser(just('\'').ignore_then(
+                    none_of('\'').repeated().to_slice().then_ignore(just('\'')),
+                )))
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
@@ -108,6 +123,9 @@ pub(crate) fn temporal_plain_year_month<'a>()
             plain_year_month()
                 .to_slice()
                 .delimited_by(just('\''), just('\''))
+                .recover_with(via_parser(just('\'').ignore_then(
+                    none_of('\'').repeated().to_slice().then_ignore(just('\'')),
+                )))
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
@@ -123,6 +141,9 @@ pub(crate) fn temporal_plain_month_day<'a>()
             plain_month_day()
                 .to_slice()
                 .delimited_by(just('\''), just('\''))
+                .recover_with(via_parser(just('\'').ignore_then(
+                    none_of('\'').repeated().to_slice().then_ignore(just('\'')),
+                )))
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
@@ -138,6 +159,9 @@ pub(crate) fn temporal_duration<'a>()
             duration()
                 .to_slice()
                 .delimited_by(just('\''), just('\''))
+                .recover_with(via_parser(just('\'').ignore_then(
+                    none_of('\'').repeated().to_slice().then_ignore(just('\'')),
+                )))
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
@@ -243,19 +267,19 @@ pub(crate) fn duration<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a,
                 text::int(10)
                     .then(one_of("Mm"))
                     .or_not()
-                    .then(fractional.clone().then(one_of("Ss"))),
+                    .then(fractional.then(one_of("Ss"))),
             )
             .ignored(),
         text::int(10)
             .then(one_of("Hh"))
-            .then(fractional.clone().then(one_of("Mm")))
+            .then(fractional.then(one_of("Mm")))
             .ignored(),
         text::int(10)
             .then(one_of("Mm"))
-            .then(fractional.clone().then(one_of("Ss")))
+            .then(fractional.then(one_of("Ss")))
             .ignored(),
-        fractional.clone().then(one_of("Hh")).ignored(),
-        fractional.clone().then(one_of("Mm")).ignored(),
+        fractional.then(one_of("Hh")).ignored(),
+        fractional.then(one_of("Mm")).ignored(),
         fractional.then(one_of("Ss")).ignored(),
     )));
 
@@ -272,22 +296,22 @@ pub(crate) fn duration<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a,
                             .then(text::int(10).then(one_of("Dd")).or_not())
                             .or_not(),
                     )
-                    .then(duration_time.clone().or_not())
+                    .then(duration_time.or_not())
                     .ignored(),
                 text::int(10)
                     .then(one_of("Mm"))
                     .then(text::int(10).then(one_of("Ww")).or_not())
                     .then(text::int(10).then(one_of("Dd")).or_not())
-                    .then(duration_time.clone().or_not())
+                    .then(duration_time.or_not())
                     .ignored(),
                 text::int(10)
                     .then(one_of("Ww"))
                     .then(text::int(10).then(one_of("Dd")).or_not())
-                    .then(duration_time.clone().or_not())
+                    .then(duration_time.or_not())
                     .ignored(),
                 text::int(10)
                     .then(one_of("Dd"))
-                    .then(duration_time.clone().or_not())
+                    .then(duration_time.or_not())
                     .ignored(),
                 duration_time.ignored(),
             ))),
@@ -298,7 +322,7 @@ pub(crate) fn duration<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a,
 
 pub(crate) fn unspecified<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
 {
-    choice((plain_year_month(), plain_month_day(), duration()))
+    choice((instant(), plain_year_month(), plain_month_day(), duration()))
 }
 
 // Atoms
@@ -462,7 +486,9 @@ pub(crate) fn date<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, cha
         just("29")
             .contextual()
             .configure(|_, ctx: &(u32, u32)| {
-                ctx.1 != 2 || (ctx.0 % 4 == 0 && (ctx.0 % 100 != 0 || ctx.0 % 400 == 0))
+                ctx.1 != 2
+                    || (ctx.0.is_multiple_of(4)
+                        && (!ctx.0.is_multiple_of(100) || ctx.0.is_multiple_of(400)))
             })
             .ignored(),
         just("30")
