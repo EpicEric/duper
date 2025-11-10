@@ -535,6 +535,20 @@ impl<'a> DuperTemporal<'a> {
         }
     }
 
+    pub fn name(&self) -> &'static str {
+        match self {
+            DuperTemporal::Instant(_) => "Instant",
+            DuperTemporal::ZonedDateTime(_) => "ZonedDateTime",
+            DuperTemporal::PlainDate(_) => "PlainDate",
+            DuperTemporal::PlainTime(_) => "PlainTime",
+            DuperTemporal::PlainDateTime(_) => "PlainDateTime",
+            DuperTemporal::PlainYearMonth(_) => "PlainYearMonth",
+            DuperTemporal::PlainMonthDay(_) => "PlainMonthDay",
+            DuperTemporal::Duration(_) => "Duration",
+            DuperTemporal::Unspecified(_) => "Unspecified",
+        }
+    }
+
     /// Create a clone of this DuperTemporal with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporal<'static> {
         match self {
@@ -571,8 +585,8 @@ impl<'a> DuperTemporal<'a> {
     /// Create a valid Temporal Instant from the provided [`Cow<'_, str>`],
     /// returning an error if parsing fails.
     ///
-    /// The provided string must not contain an identifier or single quotes; if
-    /// it does, use the [`TryFrom::try_from`] method instead.
+    /// The provided string must not contain an identifier, single quotes,
+    /// or whitespace.
     pub fn try_instant_from(value: Cow<'a, str>) -> Result<Self, DuperTemporalTryFromError<'a>> {
         if value.is_empty() {
             return Err(DuperTemporalTryFromError::EmptyTemporal);
@@ -597,8 +611,8 @@ impl<'a> DuperTemporal<'a> {
     /// Create a valid Temporal ZonedDateTime from the provided [`Cow<'_, str>`],
     /// returning an error if parsing fails.
     ///
-    /// The provided string must not contain an identifier or single quotes; if
-    /// it does, use the [`TryFrom::try_from`] method instead.
+    /// The provided string must not contain an identifier, single quotes,
+    /// or whitespace.
     pub fn try_zoned_date_time_from(
         value: Cow<'a, str>,
     ) -> Result<Self, DuperTemporalTryFromError<'a>> {
@@ -625,8 +639,8 @@ impl<'a> DuperTemporal<'a> {
     /// Create a valid Temporal PlainDate from the provided [`Cow<'_, str>`],
     /// returning an error if parsing fails.
     ///
-    /// The provided string must not contain an identifier or single quotes; if
-    /// it does, use the [`TryFrom::try_from`] method instead.
+    /// The provided string must not contain an identifier, single quotes,
+    /// or whitespace.
     pub fn try_plain_date_from(value: Cow<'a, str>) -> Result<Self, DuperTemporalTryFromError<'a>> {
         if value.is_empty() {
             return Err(DuperTemporalTryFromError::EmptyTemporal);
@@ -651,8 +665,8 @@ impl<'a> DuperTemporal<'a> {
     /// Create a valid Temporal PlainTime from the provided [`Cow<'_, str>`],
     /// returning an error if parsing fails.
     ///
-    /// The provided string must not contain an identifier or single quotes; if
-    /// it does, use the [`TryFrom::try_from`] method instead.
+    /// The provided string must not contain an identifier, single quotes,
+    /// or whitespace.
     pub fn try_plain_time_from(value: Cow<'a, str>) -> Result<Self, DuperTemporalTryFromError<'a>> {
         if value.is_empty() {
             return Err(DuperTemporalTryFromError::EmptyTemporal);
@@ -677,8 +691,8 @@ impl<'a> DuperTemporal<'a> {
     /// Create a valid Temporal PlainDateTime from the provided [`Cow<'_, str>`],
     /// returning an error if parsing fails.
     ///
-    /// The provided string must not contain an identifier or single quotes; if
-    /// it does, use the [`TryFrom::try_from`] method instead.
+    /// The provided string must not contain an identifier, single quotes,
+    /// or whitespace.
     pub fn try_plain_date_time_from(
         value: Cow<'a, str>,
     ) -> Result<Self, DuperTemporalTryFromError<'a>> {
@@ -705,8 +719,8 @@ impl<'a> DuperTemporal<'a> {
     /// Create a valid Temporal PlainYearMonth from the provided [`Cow<'_, str>`],
     /// returning an error if parsing fails.
     ///
-    /// The provided string must not contain an identifier or single quotes; if
-    /// it does, use the [`TryFrom::try_from`] method instead.
+    /// The provided string must not contain an identifier, single quotes,
+    /// or whitespace.
     pub fn try_plain_year_month_from(
         value: Cow<'a, str>,
     ) -> Result<Self, DuperTemporalTryFromError<'a>> {
@@ -733,8 +747,8 @@ impl<'a> DuperTemporal<'a> {
     /// Create a valid Temporal PlainMonthDay from the provided [`Cow<'_, str>`],
     /// returning an error if parsing fails.
     ///
-    /// The provided string must not contain an identifier or single quotes; if
-    /// it does, use the [`TryFrom::try_from`] method instead.
+    /// The provided string must not contain an identifier, single quotes,
+    /// or whitespace.
     pub fn try_plain_month_day_from(
         value: Cow<'a, str>,
     ) -> Result<Self, DuperTemporalTryFromError<'a>> {
@@ -761,8 +775,8 @@ impl<'a> DuperTemporal<'a> {
     /// Create a valid Temporal Duration from the provided [`Cow<'_, str>`],
     /// returning an error if parsing fails.
     ///
-    /// The provided string must not contain an identifier or single quotes; if
-    /// it does, use the [`TryFrom::try_from`] method instead.
+    /// The provided string must not contain an identifier, single quotes,
+    /// or whitespace.
     pub fn try_duration_from(value: Cow<'a, str>) -> Result<Self, DuperTemporalTryFromError<'a>> {
         if value.is_empty() {
             return Err(DuperTemporalTryFromError::EmptyTemporal);
@@ -787,8 +801,8 @@ impl<'a> DuperTemporal<'a> {
     /// Create a valid unspecified Temporal value from the provided [`Cow<'_, str>`],
     /// returning an error if parsing fails.
     ///
-    /// The provided string must not contain single quotes; if it does, use the
-    /// [`TryFrom::try_from`] method instead.
+    /// The provided string must not contain an identifier, single quotes,
+    /// or whitespace.
     pub fn try_unspecified_from(
         value: Cow<'a, str>,
     ) -> Result<Self, DuperTemporalTryFromError<'a>> {

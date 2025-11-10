@@ -571,11 +571,8 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
                                 &"one of: object, array, tuple, string, bytes, temporal, integer, float, boolean, null",
                             ))?);
                 }
-                _ => {
-                    return Err(Error::unknown_field(
-                        key.as_str(),
-                        &["identifier", "inner", "type"],
-                    ));
+                key => {
+                    return Err(Error::unknown_field(key, &["identifier", "inner", "type"]));
                 }
             }
         }

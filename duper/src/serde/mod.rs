@@ -2,6 +2,7 @@ pub mod de;
 pub mod error;
 pub mod meta;
 pub mod ser;
+pub mod temporal;
 
 use std::borrow::Cow;
 

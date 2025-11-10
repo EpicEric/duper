@@ -125,32 +125,6 @@ pub(crate) fn identifier<'a>()
         .map(|identifier| DuperIdentifier(Cow::Borrowed(identifier)))
 }
 
-pub(crate) fn non_temporal_identifier<'a>()
--> impl Parser<'a, &'a str, DuperIdentifier<'a>, extra::Err<Rich<'a, char>>> + Clone {
-    let temporal_identifiers = choice((
-        just("Instant"),
-        just("ZonedDateTime"),
-        just("PlainDate"),
-        just("PlainTime"),
-        just("PlainDateTime"),
-        just("PlainYearMonth"),
-        just("PlainMonthDay"),
-        just("Duration"),
-    ));
-
-    temporal_identifiers
-        .then(
-            one_of("-_")
-                .or_not()
-                .then(ascii_alphanumeric())
-                .repeated()
-                .at_least(1),
-        )
-        .to_slice()
-        .map(|identifier| DuperIdentifier(Cow::Borrowed(identifier)))
-        .or(identifier())
-}
-
 pub(crate) fn identified_trunk<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     let inner_trunk = choice((
@@ -210,7 +184,7 @@ pub(crate) fn identified_value<'a>()
                     inner: DuperInner::Temporal(temporal),
                 }
             }),
-            non_temporal_identifier()
+            identifier()
                 .then(temporal_unspecified().delimited_by(just('('), just(')')))
                 .map(|(identifier, temporal)| DuperValue {
                     identifier: Some(identifier),
@@ -852,6 +826,12 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(duper.inner, DuperInner::Temporal(_)));
+
+        let input = r#"
+            Instant("2022-11-09")  // Misleading identifier
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::String(_)));
 
         let input = r#"
             [1, 2.2, null]

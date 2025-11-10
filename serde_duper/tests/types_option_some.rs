@@ -654,7 +654,7 @@ fn some_chrono() {
     let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
         serialized,
-        r#"Test({utc: DateTime("2023-10-05T14:30:00Z"), fo: DateTime("2023-10-05T11:30:00-03:00"), ndt: NaiveDateTime("2023-10-05T14:30:00"), nd: NaiveDate("2023-10-05"), nt: NaiveTime("14:30:00"), td: TimeDelta((604800, 0))})"#
+        r#"Test({utc: Instant('2023-10-05T14:30:00+00:00'), fo: Instant('2023-10-05T11:30:00-03:00'), ndt: PlainDateTime('2023-10-05T14:30:00'), nd: PlainDate('2023-10-05'), nt: PlainTime('14:30:00'), td: TimeDelta((604800, 0))})"#
     );
 
     let deserialized: Test = serde_duper::from_string(&serialized).unwrap();

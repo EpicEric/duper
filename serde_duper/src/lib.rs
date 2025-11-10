@@ -108,13 +108,49 @@
 //!
 //! # Support for Temporal values
 //!
-//! Unfortunately, `serde` has no support for custom value types. Therefore,
-//! any Temporal values are serialized/deserialized as strings.
+//! For generic Temporal value support, use [`TemporalString`] as a field in
+//! your structs/enums. This will bring support for both serialization with the
+//! appropriate identifier, and deserialization with value parsing.
+//!
+//! ```
+//! use serde::{Deserialize, Serialize};
+//! use serde_duper::TemporalString;
+//!
+//! #[derive(Serialize, Deserialize)]
+//! struct SomeData<'a> {
+//!     temporal: TemporalString<'a>,
+//! }
+//! ```
+//!
+//! For [`chrono`] support, use the types provided by [`types::chrono`] with the
+//! `#[serde(with = "...")]` attribute. For example:
+//!
+//! ```
+//! use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+//! use serde::{Deserialize, Serialize};
+//! use serde_duper::types::chrono::{
+//!     DuperDateTime, DuperNaiveDateTime, DuperOptionNaiveDate, DuperOptionNaiveTime,
+//! };
+//!
+//! #[derive(Serialize, Deserialize)]
+//! struct ChronoStuff {
+//!     #[serde(with = "DuperDateTime")]
+//!     utc: DateTime<Utc>,
+//!     #[serde(with = "DuperDateTime")]
+//!     fo: DateTime<FixedOffset>,
+//!     #[serde(with = "DuperNaiveDateTime")]
+//!     ndt: NaiveDateTime,
+//!     #[serde(with = "DuperOptionNaiveDate")]
+//!     nd: Option<NaiveDate>,
+//!     #[serde(with = "DuperOptionNaiveTime")]
+//!     nt: Option<NaiveTime>,
+//! }
+//! ```
 //!
 //! # Support for identifiers
 //!
 //! By default, serialization will attempt to include identifiers for structs
-//! and enums, while deserialization will ignore them. It's possible to
+//! and enums, while deserialization will discard them. It's possible to
 //! customize the emitted identifiers with the `#[serde(rename = "...")]`
 //! attribute.
 //!
@@ -195,8 +231,9 @@
 //! //     })
 //! ```
 //!
-//! This offers maximum customizability, but requires an extra layer of
-//! indirection in your code.
+//! This offers maximum customizability, but requires at best an extra layer of
+//! indirection in your code, and at worst the implementation of custom
+//! (de)serializers.
 //!
 //! ## 2. Using a remote (de)serializer
 //!
@@ -302,6 +339,7 @@ pub use duper::serde::error::{DuperSerdeError, DuperSerdeErrorKind, ErrorImpl, R
 pub use duper::serde::ser::{
     Serializer, to_duper, to_string, to_string_minified, to_string_pretty,
 };
+pub use duper::serde::temporal::TemporalString;
 pub use duper::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
     DuperTuple, DuperValue,

@@ -2,7 +2,8 @@ use std::{borrow::Cow, marker::PhantomData};
 
 use crate::{
     DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTuple, DuperValue, PrettyPrinter as DuperPrettyPrinter, Serializer as DuperSerializer,
+    DuperTemporal, DuperTuple, DuperValue, PrettyPrinter as DuperPrettyPrinter,
+    Serializer as DuperSerializer,
 };
 use serde_core::{Serialize, ser};
 
@@ -611,11 +612,176 @@ impl<'ser, 'a> ser::SerializeStruct for SerializeStruct<'ser, 'a> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
-            identifier: (!self.name.is_empty())
-                .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
-            inner: DuperInner::Object(DuperObject::try_from(self.fields)?),
-        })
+        // Special handling for Temporal values
+        if self.name == super::temporal::STRUCT {
+            let mut typ: Option<DuperValue<'a>> = None;
+            let mut value: Option<DuperValue<'a>> = None;
+            for (key, val) in self.fields.into_iter() {
+                match key.as_ref() {
+                    super::temporal::FIELD_TYPE => typ = Some(val),
+                    super::temporal::FIELD_VALUE => value = Some(val),
+                    field => {
+                        return Err(DuperSerdeError::invalid_value(format!(
+                            "unknown field {field} for TemporalString",
+                        )));
+                    }
+                }
+            }
+
+            let typ = typ.ok_or_else(|| {
+                DuperSerdeError::invalid_value(format!(
+                    "missing field {} for TemporalString",
+                    super::temporal::FIELD_TYPE
+                ))
+            })?;
+            let value = value.ok_or_else(|| {
+                DuperSerdeError::invalid_value(format!(
+                    "missing field {} for TemporalString",
+                    super::temporal::FIELD_VALUE
+                ))
+            })?;
+
+            match (typ.inner, value.inner) {
+                (DuperInner::String(typ), DuperInner::String(value)) => match typ.as_ref() {
+                    "Instant" => Ok(DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from("Instant").expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_instant_from(value.into_inner()).map_err(|err| {
+                                DuperSerdeError::invalid_value(format!(
+                                    "failed to parse Instant for TemporalString: {err}"
+                                ))
+                            })?,
+                        ),
+                    }),
+                    "ZonedDateTime" => Ok(DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from("ZonedDateTime").expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_zoned_date_time_from(value.into_inner()).map_err(
+                                |err| {
+                                    DuperSerdeError::invalid_value(format!(
+                                        "failed to parse ZonedDateTime for TemporalString: {err}"
+                                    ))
+                                },
+                            )?,
+                        ),
+                    }),
+                    "PlainDate" => Ok(DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from("PlainDate").expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_plain_date_from(value.into_inner()).map_err(
+                                |err| {
+                                    DuperSerdeError::invalid_value(format!(
+                                        "failed to parse PlainDate for TemporalString: {err}"
+                                    ))
+                                },
+                            )?,
+                        ),
+                    }),
+                    "PlainTime" => Ok(DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from("PlainTime").expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_plain_time_from(value.into_inner()).map_err(
+                                |err| {
+                                    DuperSerdeError::invalid_value(format!(
+                                        "failed to parse PlainTime for TemporalString: {err}"
+                                    ))
+                                },
+                            )?,
+                        ),
+                    }),
+                    "PlainDateTime" => Ok(DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from("PlainDateTime").expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_plain_date_time_from(value.into_inner()).map_err(
+                                |err| {
+                                    DuperSerdeError::invalid_value(format!(
+                                        "failed to parse PlainDateTime for TemporalString: {err}"
+                                    ))
+                                },
+                            )?,
+                        ),
+                    }),
+                    "PlainYearMonth" => Ok(DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from("PlainYearMonth").expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_plain_year_month_from(value.into_inner()).map_err(
+                                |err| {
+                                    DuperSerdeError::invalid_value(format!(
+                                        "failed to parse PlainYearMonth for TemporalString: {err}"
+                                    ))
+                                },
+                            )?,
+                        ),
+                    }),
+                    "PlainMonthDay" => Ok(DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from("PlainMonthDay").expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_plain_month_day_from(value.into_inner()).map_err(
+                                |err| {
+                                    DuperSerdeError::invalid_value(format!(
+                                        "failed to parse PlainMonthDay for TemporalString: {err}"
+                                    ))
+                                },
+                            )?,
+                        ),
+                    }),
+                    "Duration" => Ok(DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from("Duration").expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_duration_from(value.into_inner()).map_err(
+                                |err| {
+                                    DuperSerdeError::invalid_value(format!(
+                                        "failed to parse Duration for TemporalString: {err}"
+                                    ))
+                                },
+                            )?,
+                        ),
+                    }),
+                    "Unspecified" => Ok(DuperValue {
+                        identifier: Some(
+                            DuperIdentifier::try_from("Unspecified").expect("valid identifier"),
+                        ),
+                        inner: DuperInner::Temporal(
+                            DuperTemporal::try_unspecified_from(value.into_inner()).map_err(
+                                |err| {
+                                    DuperSerdeError::invalid_value(format!(
+                                        "failed to parse Unspecified for TemporalString: {err}"
+                                    ))
+                                },
+                            )?,
+                        ),
+                    }),
+                    _ => Err(DuperSerdeError::invalid_value(format!(
+                        "invalid type {typ:?} for TemporalString",
+                    ))),
+                },
+                _ => Err(DuperSerdeError::invalid_value(
+                    "invalid fields for TemporalString",
+                )),
+            }
+        } else {
+            Ok(DuperValue {
+                identifier: (!self.name.is_empty())
+                    .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
+                inner: DuperInner::Object(DuperObject::try_from(self.fields)?),
+            })
+        }
     }
 }
 

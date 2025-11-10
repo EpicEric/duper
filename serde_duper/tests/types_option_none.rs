@@ -485,7 +485,7 @@ fn none_chrono() {
     let serialized = serde_duper::to_string(&value).unwrap();
     assert_eq!(
         serialized,
-        r#"Test({utc: DateTime(null), fo: DateTime(null), ndt: NaiveDateTime(null), nd: NaiveDate(null), nt: NaiveTime(null), td: TimeDelta(null)})"#
+        r#"Test({utc: Instant(null), fo: Instant(null), ndt: PlainDateTime(null), nd: PlainDate(null), nt: PlainTime(null), td: TimeDelta(null)})"#
     );
 
     let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
