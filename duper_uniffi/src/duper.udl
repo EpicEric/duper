@@ -1,0 +1,26 @@
+[Enum]
+interface DuperValue {
+  Object(string? identifier, record<string, BoxedDuperValue> value);
+  Array(string? identifier, sequence<BoxedDuperValue> value);
+  Tuple(string? identifier, sequence<BoxedDuperValue> value);
+  String(string? identifier, string value);
+  Bytes(string? identifier, bytes value);
+  Temporal(string? identifier, string value);
+  Integer(string? identifier, i64 value);
+  Float(string? identifier, double value);
+  Boolean(string? identifier, boolean value);
+  Null(string? identifier);
+};
+
+[Custom]
+typedef DuperValue BoxedDuperValue;
+
+[Error]
+enum DuperError {
+  "Parse",
+};
+
+namespace duper {
+  [Throws=DuperError]
+  DuperValue parse([ByRef] string input, boolean parse_any);
+};

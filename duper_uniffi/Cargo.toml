@@ -1,0 +1,25 @@
+[package]
+name = "duper_uniffi"
+description = "UniFFI bindings for Duper."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+repository = "https://github.com/EpicEric/duper"
+homepage = "https://duper.dev.br"
+readme = "README.md"
+categories = ["encoding", "parser-implementations"]
+keywords = ["duper", "serialization", "python"]
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+duper = { path = "../duper" }
+thiserror = "2.0.17"
+uniffi = { version = "0.29.4", features = ["cli"] }
+
+[build-dependencies]
+uniffi = { version = "0.29.4", features = ["build"] }
