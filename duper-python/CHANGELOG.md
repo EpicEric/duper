@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 (2025-11-11)
 
 ### Added
 
@@ -8,7 +8,12 @@
 
 ### Changed
 
-- Update to comply with spec 0.4.0.
+- **Breaking:** Bump `duper` to 0.4.0.
+- **Breaking:** Update to comply with spec 0.4.0.
+
+## 0.3.0 (2025-10-31)
+
+- Bump `duper` to 0.3.0.
 
 ## 0.2.2 (2025-10-28)
 

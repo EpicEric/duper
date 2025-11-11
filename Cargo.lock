@@ -120,7 +120,7 @@ dependencies = [
 
 [[package]]
 name = "axum_duper"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "axum",
  "duper",
@@ -303,7 +303,7 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "duper"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "ariadne",
  "base64",
@@ -328,7 +328,7 @@ dependencies = [
 
 [[package]]
 name = "duper-python"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "duper",
  "pyo3",
@@ -1071,7 +1071,7 @@ dependencies = [
 
 [[package]]
 name = "serde_duper"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bytes",
  "chrono",

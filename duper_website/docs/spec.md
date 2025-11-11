@@ -1,5 +1,5 @@
 ---
-version: "0.4.0-alpha.2"
+version: "0.4.0"
 ---
 
 <script setup lang="ts">
@@ -8,7 +8,7 @@ import { useData } from "vitepress";
 
 const { frontmatter } = useData();
 
-const formattedVersion = computed(() => {
+const shieldsIoVersion = computed(() => {
   return frontmatter.value.version.replaceAll("-", "--").replaceAll("_", "__").replaceAll(" ", "_");
 })
 </script>
@@ -19,7 +19,7 @@ const formattedVersion = computed(() => {
 <h1 align="center">Duper: The format that's super!</h1>
 
 <p align="center">
-    <img :alt="`Specification version ${$frontmatter.version}`" :src="`https://img.shields.io/badge/spec_version-${formattedVersion}-3868c7?style=for-the-badge`">
+    <img :alt="`Specification version ${$frontmatter.version}`" :src="`https://img.shields.io/badge/spec_version-${shieldsIoVersion}-3868c7?style=for-the-badge`">
 </p>
 
 Duper aims to be a human-friendly extension of JSON with quality-of-life improvements, extra types, and semantic identifiers.
