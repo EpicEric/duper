@@ -53,15 +53,9 @@ TextMateGrammar({
           ],
         },
         {
-          name: "string.single.temporal.duper",
+          name: "constant.other.temporal.duper",
           begin: Regex("'"),
           end: Regex("'"),
-          patterns: [
-            {
-              match: Regex("."),
-              name: "string.single.content.duper",
-            },
-          ],
         },
       ],
     },

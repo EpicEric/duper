@@ -63,15 +63,9 @@
           ]
         },
         {
-          "name": "string.single.temporal.duper",
+          "name": "constant.other.temporal.duper",
           "begin": "'",
-          "end": "'",
-          "patterns": [
-            {
-              "match": ".",
-              "name": "string.single.content.duper"
-            }
-          ]
+          "end": "'"
         }
       ]
     },

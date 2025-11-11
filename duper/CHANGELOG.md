@@ -8,6 +8,10 @@
 - **Breaking**: Add `b64"..."` syntax for Base64-encoded bytes.
 - **Breaking**: Add `'...'` and `Type('...')` syntax for Temporal values.
 
+### Fixed
+
+- Not handling sequential comments.
+
 ## 0.3.0 (2025-10-30)
 
 ### Changed

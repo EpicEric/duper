@@ -213,25 +213,16 @@ pub(crate) fn object<'a>(
     identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
 ) -> impl Parser<'a, &'a str, DuperObject<'a>, extra::Err<Rich<'a, char>>> + Clone {
     object_key()
-        .then_ignore(
-            just(':')
-                .ignored()
-                .recover_with(via_parser(value_recovery()))
-                .padded_by(whitespace_and_comments()),
-        )
-        .then(identified_value)
         .padded_by(whitespace_and_comments())
-        .separated_by(
-            just(',')
-                .ignored()
-                .recover_with(via_parser(key_recovery()))
-                .padded_by(whitespace_and_comments()),
-        )
+        .then_ignore(just(':').padded_by(whitespace_and_comments()))
+        .then(identified_value.padded_by(whitespace_and_comments()))
+        .separated_by(just(',').padded_by(whitespace_and_comments()))
         .allow_trailing()
         .collect::<Vec<_>>()
         .try_map(|object, span| {
             DuperObject::try_from(object).map_err(|err| Rich::custom(span, err))
         })
+        .padded_by(whitespace_and_comments())
         .delimited_by(
             just('{').padded_by(whitespace_and_comments()),
             just('}').padded_by(whitespace_and_comments()),
@@ -258,22 +249,21 @@ pub(crate) fn array<'a>(
 ) -> impl Parser<'a, &'a str, DuperArray<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_value
         .padded_by(whitespace_and_comments())
-        .separated_by(
-            just(',')
-                .ignored()
-                .recover_with(via_parser(value_recovery()))
-                .padded_by(whitespace_and_comments()),
-        )
+        .separated_by(just(',').padded_by(whitespace_and_comments()))
         .allow_trailing()
         .collect::<Vec<_>>()
         .map(DuperArray)
+        .padded_by(whitespace_and_comments())
         .delimited_by(
             just('[').padded_by(whitespace_and_comments()),
             just(']').padded_by(whitespace_and_comments()),
         )
         .or(just(',')
             .padded_by(whitespace_and_comments())
-            .delimited_by(just('['), just(']'))
+            .delimited_by(
+                just('[').padded_by(whitespace_and_comments()),
+                just(']').padded_by(whitespace_and_comments()),
+            )
             .map(|_| DuperArray(vec![])))
 }
 
@@ -282,22 +272,21 @@ pub(crate) fn tuple<'a>(
 ) -> impl Parser<'a, &'a str, DuperTuple<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_value
         .padded_by(whitespace_and_comments())
-        .separated_by(
-            just(',')
-                .ignored()
-                .recover_with(via_parser(value_recovery()))
-                .padded_by(whitespace_and_comments()),
-        )
+        .separated_by(just(',').padded_by(whitespace_and_comments()))
         .allow_trailing()
         .collect::<Vec<_>>()
         .map(DuperTuple)
+        .padded_by(whitespace_and_comments())
         .delimited_by(
             just('(').padded_by(whitespace_and_comments()),
             just(')').padded_by(whitespace_and_comments()),
         )
         .or(just(',')
             .padded_by(whitespace_and_comments())
-            .delimited_by(just('('), just(')'))
+            .delimited_by(
+                just('(').padded_by(whitespace_and_comments()),
+                just(')').padded_by(whitespace_and_comments()),
+            )
             .map(|_| DuperTuple(vec![])))
 }
 
@@ -516,8 +505,9 @@ pub(crate) fn whitespace_and_comments<'a>()
             .then(just("*/"))
             .padded()
             .ignored(),
-        text::whitespace().ignored(),
     ))
+    .repeated()
+    .padded()
     .ignored()
 }
 
@@ -569,23 +559,6 @@ pub(crate) fn hex_digit<'a>() -> impl Parser<'a, &'a str, char, extra::Err<Rich<
 pub(crate) fn octal_digit<'a>() -> impl Parser<'a, &'a str, char, extra::Err<Rich<'a, char>>> + Clone
 {
     one_of('0'..='7').labelled("an octal digit")
-}
-
-// Recovery rules
-
-pub(crate) fn key_recovery<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
-{
-    choice((one_of('a'..='z'), one_of('A'..='Z'), one_of("_\""))).ignored()
-}
-
-pub(crate) fn value_recovery<'a>()
--> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
-    choice((
-        one_of('0'..='9'),
-        one_of('A'..='Z'),
-        one_of(r#"_"brntf-+{[("#),
-    ))
-    .ignored()
 }
 
 #[cfg(test)]
@@ -838,6 +811,21 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(duper.inner, DuperInner::Array(_)));
+
+        let input = r#"
+            {
+                name: "constant.other.temporal.duper",
+                begin: Regex("'"),
+                end: Regex("'"),
+                // patterns: [
+                //   {
+                //     match: Regex("."),
+                //   },
+                // ],
+            }
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper.inner, DuperInner::Object(_)));
     }
 
     #[test]
