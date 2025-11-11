@@ -21,6 +21,10 @@
       "path": "duper-python"
     },
     {
+      "name": "duper_uniffi",
+      "path": "duper_uniffi"
+    },
+    {
       "name": "duper-vs-code",
       "path": "duper-vs-code"
     },

@@ -1,0 +1,13 @@
+default:
+  just --list
+
+build:
+  cargo build
+  uniffi-bindgen-cs src/duper.udl --config uniffi.toml --out-dir out
+
+example: example-cs
+
+[working-directory: 'example']
+example-cs:
+  dotnet build
+  LD_LIBRARY_PATH="../../target/debug" dotnet run
