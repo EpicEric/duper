@@ -16,9 +16,7 @@ classifiers = [
     "Framework :: Pydantic",
     "Framework :: Pydantic :: 2",
 ]
-dependencies = [
-    "pydantic>=2,<3",
-]
+dependencies = ["pydantic>=2,<3"]
 
 [project.urls]
 homepage = "https://duper.dev.br"
