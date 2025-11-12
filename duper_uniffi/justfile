@@ -1,13 +1,17 @@
 default:
   just --list
 
-build:
+bindgen-debug:
   cargo build
-  uniffi-bindgen-cs src/duper.udl --config uniffi.toml --out-dir out
+  uniffi-bindgen-cs src/duper.udl --config uniffi.toml --out-dir csharp/ffi
 
-example: example-cs
+bindgen-release:
+  cargo build --release --target x86_64-unknown-linux-gnu
+  uniffi-bindgen-cs src/duper.udl --config uniffi.toml --out-dir csharp/ffi
 
-[working-directory: 'example']
+example: bindgen-release example-cs
+
+[working-directory: 'example/csharp']
 example-cs:
   dotnet build
-  LD_LIBRARY_PATH="../../target/debug" dotnet run
+  LD_LIBRARY_PATH="../../../target/x86_64-unknown-linux-gnu/release" dotnet run

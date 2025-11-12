@@ -56,8 +56,8 @@ pub enum DuperValue {
 pub enum DuperError {
     #[error("Parse error: {0}")]
     Parse(String),
-    #[error("Invalid options: {0}")]
-    Options(&'static str),
+    #[error("Invalid serialization options: {0}")]
+    SerializeOptions(&'static str),
     #[error("Identifier error: {0}")]
     InvalidIdentifier(#[from] DuperIdentifierTryFromError<'static>),
     #[error("Object error: {0}")]
@@ -79,21 +79,34 @@ pub fn parse(input: &str, parse_any: bool) -> Result<DuperValue, DuperError> {
     Ok(value.accept(&mut UniffiVisitor))
 }
 
-pub fn serialize(
-    value: DuperValue,
+pub struct SerializeOptions {
+    indent: Option<String>,
     strip_identifiers: bool,
     minify: bool,
-    indent: Option<String>,
+}
+
+pub fn serialize(
+    value: DuperValue,
+    options: Option<SerializeOptions>,
 ) -> Result<String, DuperError> {
     let value = value.serialize()?;
+    let SerializeOptions {
+        indent,
+        strip_identifiers,
+        minify,
+    } = options.unwrap_or(SerializeOptions {
+        indent: None,
+        strip_identifiers: false,
+        minify: false,
+    });
     if let Some(indent) = indent {
         if minify {
-            Err(DuperError::Options(
+            Err(DuperError::SerializeOptions(
                 "Cannot serialize Duper value with both indent and minify options",
             ))
         } else {
             Ok(PrettyPrinter::new(strip_identifiers, indent.as_ref())
-                .map_err(DuperError::Options)?
+                .map_err(DuperError::SerializeOptions)?
                 .pretty_print(value))
         }
     } else {
