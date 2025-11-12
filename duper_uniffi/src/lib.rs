@@ -1,28 +1,27 @@
 use std::collections::HashMap;
 
 use duper::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperParser, DuperString, DuperTemporal,
-    DuperTuple, visitor::DuperVisitor,
+    DuperIdentifierTryFromError, DuperObjectTryFromError, DuperParser, DuperTemporalTryFromError,
+    PrettyPrinter, Serializer,
 };
 
-pub struct BoxedDuperValue(pub Box<DuperValue>);
-uniffi::custom_type!(BoxedDuperValue, DuperValue, {
-    lower: |boxed| *boxed.0,
-    try_lift: |val| Ok(BoxedDuperValue(Box::new(val))),
-});
+use crate::parse::UniffiVisitor;
+
+mod parse;
+mod serialize;
 
 pub enum DuperValue {
     Object {
         identifier: Option<String>,
-        value: HashMap<String, BoxedDuperValue>,
+        value: HashMap<String, DuperValue>,
     },
     Array {
         identifier: Option<String>,
-        value: Vec<BoxedDuperValue>,
+        value: Vec<DuperValue>,
     },
     Tuple {
         identifier: Option<String>,
-        value: Vec<BoxedDuperValue>,
+        value: Vec<DuperValue>,
     },
     String {
         identifier: Option<String>,
@@ -53,136 +52,18 @@ pub enum DuperValue {
     },
 }
 
-struct UniffiVisitor;
-
-impl DuperVisitor for UniffiVisitor {
-    type Value = DuperValue;
-
-    fn visit_object<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        object: &DuperObject<'a>,
-    ) -> Self::Value {
-        let mut value = HashMap::with_capacity(object.len());
-        for (key, val) in object.iter() {
-            value.insert(
-                key.as_ref().to_string(),
-                BoxedDuperValue(Box::new(val.accept(self).into())),
-            );
-        }
-        DuperValue::Object {
-            identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-            value,
-        }
-    }
-
-    fn visit_array<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        array: &DuperArray<'a>,
-    ) -> Self::Value {
-        let mut value = Vec::with_capacity(array.len());
-        for val in array.iter() {
-            value.push(BoxedDuperValue(Box::new(val.accept(self).into())));
-        }
-        DuperValue::Array {
-            identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-            value,
-        }
-    }
-
-    fn visit_tuple<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        tuple: &DuperTuple<'a>,
-    ) -> Self::Value {
-        let mut value = Vec::with_capacity(tuple.len());
-        for val in tuple.iter() {
-            value.push(BoxedDuperValue(Box::new(val.accept(self).into())));
-        }
-        DuperValue::Tuple {
-            identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-            value,
-        }
-    }
-
-    fn visit_string<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        string: &DuperString<'a>,
-    ) -> Self::Value {
-        DuperValue::String {
-            identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-            value: string.as_ref().to_string(),
-        }
-    }
-
-    fn visit_bytes<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        bytes: &DuperBytes<'a>,
-    ) -> Self::Value {
-        DuperValue::Bytes {
-            identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-            value: bytes.as_ref().to_vec(),
-        }
-    }
-
-    fn visit_temporal<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        temporal: &DuperTemporal<'a>,
-    ) -> Self::Value {
-        DuperValue::Temporal {
-            identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-            value: temporal.as_ref().to_string(),
-        }
-    }
-
-    fn visit_integer<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        integer: i64,
-    ) -> Self::Value {
-        DuperValue::Integer {
-            identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-            value: integer,
-        }
-    }
-
-    fn visit_float<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        float: f64,
-    ) -> Self::Value {
-        DuperValue::Float {
-            identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-            value: float,
-        }
-    }
-
-    fn visit_boolean<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        boolean: bool,
-    ) -> Self::Value {
-        DuperValue::Boolean {
-            identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-            value: boolean,
-        }
-    }
-
-    fn visit_null<'a>(&mut self, identifier: Option<&DuperIdentifier<'a>>) -> Self::Value {
-        DuperValue::Null {
-            identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-        }
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum DuperError {
     #[error("Parse error: {0}")]
     Parse(String),
+    #[error("Invalid options: {0}")]
+    Options(&'static str),
+    #[error("Identifier error: {0}")]
+    InvalidIdentifier(#[from] DuperIdentifierTryFromError<'static>),
+    #[error("Object error: {0}")]
+    InvalidObject(#[from] DuperObjectTryFromError<'static>),
+    #[error("Temporal error: {0}")]
+    InvalidTemporal(#[from] DuperTemporalTryFromError<'static>),
 }
 
 pub fn parse(input: &str, parse_any: bool) -> Result<DuperValue, DuperError> {
@@ -196,6 +77,28 @@ pub fn parse(input: &str, parse_any: bool) -> Result<DuperValue, DuperError> {
         )
     })?;
     Ok(value.accept(&mut UniffiVisitor))
+}
+
+pub fn serialize(
+    value: DuperValue,
+    strip_identifiers: bool,
+    minify: bool,
+    indent: Option<String>,
+) -> Result<String, DuperError> {
+    let value = value.serialize()?;
+    if let Some(indent) = indent {
+        if minify {
+            Err(DuperError::Options(
+                "Cannot serialize Duper value with both indent and minify options",
+            ))
+        } else {
+            Ok(PrettyPrinter::new(strip_identifiers, indent.as_ref())
+                .map_err(DuperError::Options)?
+                .pretty_print(value))
+        }
+    } else {
+        Ok(Serializer::new(strip_identifiers, minify).serialize(value))
+    }
 }
 
 uniffi::include_scaffolding!("duper");
