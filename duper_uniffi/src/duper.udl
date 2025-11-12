@@ -1,8 +1,8 @@
 [Enum]
 interface DuperValue {
-  Object(string? identifier, record<string, BoxedDuperValue> value);
-  Array(string? identifier, sequence<BoxedDuperValue> value);
-  Tuple(string? identifier, sequence<BoxedDuperValue> value);
+  Object(string? identifier, record<string, DuperValue> value);
+  Array(string? identifier, sequence<DuperValue> value);
+  Tuple(string? identifier, sequence<DuperValue> value);
   String(string? identifier, string value);
   Bytes(string? identifier, bytes value);
   Temporal(string? identifier, string value);
@@ -12,15 +12,19 @@ interface DuperValue {
   Null(string? identifier);
 };
 
-[Custom]
-typedef DuperValue BoxedDuperValue;
-
 [Error]
 enum DuperError {
   "Parse",
+  "Options",
+  "InvalidIdentifier",
+  "InvalidObject",
+  "InvalidTemporal",
 };
 
 namespace duper {
   [Throws=DuperError]
   DuperValue parse([ByRef] string input, boolean parse_any);
+
+  [Throws=DuperError]
+  string serialize(DuperValue input, boolean strip_identifiers, boolean minify, string? indent);
 };

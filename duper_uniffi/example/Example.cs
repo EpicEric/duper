@@ -26,5 +26,6 @@ class Example
     var obj = (DuperValue.Object)output;
     var id = (DuperValue.String)obj.value["id"];
     Console.WriteLine(id.value);
+    Console.WriteLine(Duper.Duper.Serialize(output, true, true, null));
   }
 }
