@@ -1,4 +1,4 @@
 [bindings.csharp]
 cdylib_name = "duper_uniffi"
-namespace = "Duper"
+namespace = "Duper.Ffi"
 global_methods_class_name = "Duper"

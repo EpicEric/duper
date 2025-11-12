@@ -15,10 +15,16 @@ interface DuperValue {
 [Error]
 enum DuperError {
   "Parse",
-  "Options",
+  "SerializeOptions",
   "InvalidIdentifier",
   "InvalidObject",
   "InvalidTemporal",
+};
+
+dictionary SerializeOptions {
+  string? indent;
+  boolean strip_identifiers;
+  boolean minify;
 };
 
 namespace duper {
@@ -26,5 +32,5 @@ namespace duper {
   DuperValue parse([ByRef] string input, boolean parse_any);
 
   [Throws=DuperError]
-  string serialize(DuperValue input, boolean strip_identifiers, boolean minify, string? indent);
+  string serialize(DuperValue input, SerializeOptions? options);
 };
