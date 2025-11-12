@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>EpicEric.Duper</id>
-    <version>0.1.0</version>
+    <version>0.0.1</version>
     <title>Duper</title>
     <authors>Eric Rodrigues Pires &lt;eric@eric.dev.br&gt;</authors>
     <license type="expression">MIT</licenseUrl>
