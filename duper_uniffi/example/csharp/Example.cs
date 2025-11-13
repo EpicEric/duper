@@ -6,25 +6,26 @@ namespace Example
   public class UserProfile
   {
     [Duper("Uuid")]
-    public required string @id;
-    public required string @username;
+    public required string @id; // Support for public fields, too
+    public required string @username { get; set; }
     [Duper("EmailAddress")]
-    public required string @email;
-    public required UserSettings @settings;
-    public double @score;
+    public required string @email { get; set; }
+    public required UserSettings @settings { get; set; }
+    public float @score { get; set; }
     [Duper("Png")]
-    public required byte[] @avatar;
-    public string? @bio;
-    public required IList<(string, DateTimeOffset)> @last_logins;
+    public required byte[] @avatar { get; set; }
+    public string? @bio { get; set; }
+    [Duper(Key = "last_logins")]
+    public required IList<(string, DateTimeOffset)> LastLogins { get; set; }
   }
 
   public class UserSettings
   {
     [Duper(Key = "dark mode")]
-    public bool DarkMode;
+    public bool DarkMode { get; set; }
     [Duper("Locale")]
-    public required string @language;
-    public Dictionary<string, string>? @metadata;
+    public required string @language { get; set; }
+    public Dictionary<string, string>? @metadata { get; set; }
   }
 
   public class Example
@@ -50,10 +51,11 @@ namespace Example
           ],
         })
         """) ?? throw new ApplicationException("shouldn't be null");
-      Console.WriteLine(userProfile.settings.DarkMode);
-      Console.WriteLine(userProfile.last_logins[0].Item2);
 
-      // Console.WriteLine(DuperSerializer.Serialize(userProfile));
+      Console.WriteLine(userProfile.settings.DarkMode);
+      Console.WriteLine(userProfile.LastLogins[0].Item2);
+
+      Console.WriteLine(DuperSerializer.Serialize(userProfile));
     }
   }
 }

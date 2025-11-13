@@ -14,7 +14,7 @@ public class DuperSerializer
     {
       return false;
     }
-    var t2 = t.GetGenericTypeDefinition();
+    Type t2 = t.GetGenericTypeDefinition();
     return t2 == typeof(ValueTuple<>)
       || t2 == typeof(ValueTuple<,>)
       || t2 == typeof(ValueTuple<,,>)
@@ -27,9 +27,9 @@ public class DuperSerializer
 
   public static T? Deserialize<T>(string @input)
   {
-    var duperValue = Duper.Parse(input, true);
-    var t = typeof(T);
-    var value = DeserializeInner(duperValue, typeof(T));
+    DuperValue duperValue = Duper.Parse(input, true);
+    Type t = typeof(T);
+    object? value = DeserializeInner(duperValue, typeof(T));
     if (value == null)
     {
       if (!t.IsValueType || Nullable.GetUnderlyingType(t) != null)
@@ -98,7 +98,6 @@ public class DuperSerializer
       }
       // Create class instance
       object instance = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
-      Dictionary<string, System.Reflection.FieldInfo> fields = [];
       foreach (var field in t.GetFields())
       {
         string key = field.Name;
@@ -116,6 +115,24 @@ public class DuperSerializer
         }
         var item = obj.value[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
         field.SetValue(instance, DeserializeInner(item, field.FieldType));
+      }
+      foreach (var prop in t.GetProperties())
+      {
+        string key = prop.Name;
+        Attribute[] attrs = Attribute.GetCustomAttributes(prop);
+        foreach (Attribute attr in attrs)
+        {
+          if (attr is DuperAttribute a)
+          {
+            if (a.Key != null)
+            {
+              key = a.Key;
+            }
+            break;
+          }
+        }
+        var item = obj.value[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
+        prop.SetValue(instance, DeserializeInner(item, prop.PropertyType));
       }
       return instance;
     }
@@ -166,10 +183,10 @@ public class DuperSerializer
         {
           Type itemType = interfaceType.GetGenericArguments().Single();
           var list = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
-          var addMethod = interfaceType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for IList");
+          var ilist = (list as System.Collections.IList) ?? throw new ApplicationException("IList cast shouldn't fail");
           foreach (var item in array.value)
           {
-            addMethod.Invoke(list, [DeserializeInner(item, itemType)]);
+            ilist.Add(DeserializeInner(item, itemType));
           }
           return list;
         }
@@ -259,6 +276,18 @@ public class DuperSerializer
       {
         return temporal.value;
       }
+      else if (typeof(DateOnly).IsAssignableTo(t))
+      {
+        // TO-DO: Validate the identifier first
+        // TO-DO: Proper conversion from Temporal value
+        return DateOnly.Parse(temporal.value);
+      }
+      else if (typeof(TimeOnly).IsAssignableTo(t))
+      {
+        // TO-DO: Validate the identifier first
+        // TO-DO: Proper conversion from Temporal value
+        return TimeOnly.Parse(temporal.value);
+      }
       else if (typeof(DateTime).IsAssignableTo(t))
       {
         // TO-DO: Validate the identifier first
@@ -336,28 +365,241 @@ public class DuperSerializer
 
   public static string Serialize<T>(T @value)
   {
-    var duperValue = SerializeInner<T>(value);
+    var duperValue = SerializeInner(value, typeof(T), null);
     return Duper.Serialize(duperValue, null);
   }
 
   public static string Serialize<T>(T? @value, SerializerOptions @options)
   {
-    var duperValue = SerializeInner<T>(value);
-    return Duper.Serialize(duperValue, new SerializeOptions(options.Indent, options.StripIdentifiers, options.Minify));
+    var duperValue = SerializeInner(value, typeof(T), null);
+    return Duper.Serialize(duperValue, new Ffi.SerializeOptions(options.Indent, options.StripIdentifiers, options.Minify));
   }
 
-  private static DuperValue SerializeInner<T>(T? @value)
+  private static DuperValue SerializeInner(object? @value, Type t, string? identifier)
   {
-    var t = typeof(T);
     Attribute[] attrs = Attribute.GetCustomAttributes(t);
-    string? identifier;
     foreach (Attribute attr in attrs)
     {
       if (attr is DuperAttribute a)
       {
         identifier = a.Identifier;
+        break;
       }
     }
-    throw new ApplicationException("Unimplemented");
+
+    if (value == null)
+    {
+      return new DuperValue.Null(identifier);
+    }
+
+    t = Nullable.GetUnderlyingType(t) ?? t;
+    if (t.IsAssignableTo(typeof(bool)))
+    {
+      return new DuperValue.Boolean(identifier, (bool)value);
+    }
+    else if (t.IsAssignableTo(typeof(double)))
+    {
+      return new DuperValue.Float(identifier, (double)value);
+    }
+    else if (t.IsAssignableTo(typeof(float)))
+    {
+      return new DuperValue.Float(identifier, (float)value);
+    }
+    else if (t.IsAssignableTo(typeof(long)))
+    {
+      return new DuperValue.Integer(identifier, (long)value);
+    }
+    else if (t.IsAssignableTo(typeof(int)))
+    {
+      return new DuperValue.Integer(identifier, (int)value);
+    }
+    else if (t.IsAssignableTo(typeof(byte[])))
+    {
+      return new DuperValue.Bytes(identifier, (byte[])value);
+    }
+    else if (t.IsAssignableTo(typeof(string)))
+    {
+      return new DuperValue.String(identifier, (string)value);
+    }
+    else if (t.IsAssignableTo(typeof(DateTimeOffset)))
+    {
+      if (identifier == "PlainDateTime")
+      {
+        return new DuperValue.Temporal(identifier, ((DateTimeOffset)value).DateTime.ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      }
+      else if (identifier == "PlainDate")
+      {
+        return new DuperValue.Temporal(identifier, DateOnly.FromDateTime(((DateTimeOffset)value).DateTime).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      }
+      else if (identifier == "PlainTime")
+      {
+        return new DuperValue.Temporal(identifier, TimeOnly.FromDateTime(((DateTimeOffset)value).DateTime).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      }
+      else if (identifier == "PlainYearMonth")
+      {
+        return new DuperValue.Temporal(identifier, DateOnly.FromDateTime(((DateTimeOffset)value).DateTime).ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture));
+      }
+      else if (identifier == "PlainMonthDay")
+      {
+        return new DuperValue.Temporal(identifier, DateOnly.FromDateTime(((DateTimeOffset)value).DateTime).ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+      }
+      return new DuperValue.Temporal(identifier, ((DateTimeOffset)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+    }
+    else if (t.IsAssignableTo(typeof(DateTime)))
+    {
+      if (identifier == "PlainDate")
+      {
+        return new DuperValue.Temporal(identifier, DateOnly.FromDateTime((DateTime)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      }
+      else if (identifier == "PlainTime")
+      {
+        return new DuperValue.Temporal(identifier, TimeOnly.FromDateTime((DateTime)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      }
+      else if (identifier == "PlainYearMonth")
+      {
+        return new DuperValue.Temporal(identifier, DateOnly.FromDateTime((DateTime)value).ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture));
+      }
+      else if (identifier == "PlainMonthDay")
+      {
+        return new DuperValue.Temporal(identifier, DateOnly.FromDateTime((DateTime)value).ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+      }
+      return new DuperValue.Temporal(identifier, ((DateTime)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+    }
+    else if (t.IsAssignableTo(typeof(DateOnly)))
+    {
+      if (identifier == "PlainYearMonth")
+      {
+        return new DuperValue.Temporal(identifier, ((DateOnly)value).ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture));
+      }
+      else if (identifier == "PlainMonthDay")
+      {
+        return new DuperValue.Temporal(identifier, ((DateOnly)value).ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+      }
+      return new DuperValue.Temporal(identifier, ((DateOnly)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+    }
+    else if (t.IsAssignableTo(typeof(TimeOnly)))
+    {
+      return new DuperValue.Temporal(identifier, ((TimeOnly)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+    }
+    else if (IsTuple(t))
+    {
+      var tupleFields = t.GetFields();
+      DuperValue[] tupleValue = new DuperValue[tupleFields.Length];
+      for (int i = 0; i < tupleFields.Length; i++)
+      {
+        var field = tupleFields[i];
+        // TO-DO: Tuple identifiers
+        tupleValue[i] = SerializeInner(field.GetValue(value), field.FieldType, null);
+      }
+      return new DuperValue.Tuple(identifier, tupleValue);
+    }
+    else if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IList<>))
+    {
+      Type itemType = t.GetGenericArguments().Single();
+      System.Collections.IList valueList = (value as System.Collections.IList) ?? throw new ApplicationException("IList cast shouldn't fail");
+      DuperValue[] arrayValue = new DuperValue[valueList.Count];
+      for (int i = 0; i < valueList.Count; i++)
+      {
+        arrayValue[i] = SerializeInner(valueList[i], itemType, null);
+      }
+      return new DuperValue.Array(identifier, arrayValue);
+    }
+    else if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IDictionary<,>))
+    {
+      var generics = t.GetGenericArguments();
+      Type keyType = generics[0];
+      if (keyType != typeof(string))
+      {
+        throw new ApplicationException($"Cannot serialize dictionary with non-string keys to Duper");
+      }
+      Type valueType = generics[1];
+      Dictionary<string, DuperValue> objValue = [];
+      System.Collections.IDictionary valueDict = (value as System.Collections.IDictionary) ?? throw new ApplicationException("IDictionary cast shouldn't fail");
+      foreach (var key in valueDict.Keys)
+      {
+        objValue[(string)key] = SerializeInner(valueDict[key], valueType, null);
+      }
+      return new DuperValue.Object(identifier, objValue);
+    }
+
+    foreach (Type interfaceType in t.GetInterfaces())
+    {
+      if (interfaceType.IsGenericType &&
+          interfaceType.GetGenericTypeDefinition()
+          == typeof(IList<>))
+      {
+        Type itemType = interfaceType.GetGenericArguments().Single();
+        System.Collections.IList valueList = (value as System.Collections.IList) ?? throw new ApplicationException("IList cast shouldn't fail");
+        DuperValue[] arrayValue = new DuperValue[valueList.Count];
+        for (int i = 0; i < valueList.Count; i++)
+        {
+          arrayValue[i] = SerializeInner(valueList[i], itemType, null);
+        }
+        return new DuperValue.Array(identifier, arrayValue);
+      }
+      else if (interfaceType.IsGenericType &&
+          interfaceType.GetGenericTypeDefinition()
+          == typeof(IDictionary<,>))
+      {
+        var generics = interfaceType.GetGenericArguments();
+        Type keyType = generics[0];
+        if (keyType != typeof(string))
+        {
+          throw new ApplicationException($"Cannot serialize dictionary with non-string keys to Duper");
+        }
+        Type valueType = generics[1];
+        Dictionary<string, DuperValue> objValue = [];
+        System.Collections.IDictionary valueDict = (value as System.Collections.IDictionary) ?? throw new ApplicationException("IDictionary cast shouldn't fail");
+        foreach (var key in valueDict.Keys)
+        {
+          objValue[(string)key] = SerializeInner(valueDict[key], valueType, null);
+        }
+        return new DuperValue.Object(identifier, objValue);
+      }
+    }
+
+    Dictionary<string, DuperValue> classDict = [];
+
+    foreach (var field in t.GetFields())
+    {
+      string key = field.Name;
+      string? fieldIdentifier = null;
+      Attribute[] fieldAttrs = Attribute.GetCustomAttributes(field);
+      foreach (Attribute attr in fieldAttrs)
+      {
+        if (attr is DuperAttribute a)
+        {
+          fieldIdentifier = a.Identifier;
+          if (a.Key != null)
+          {
+            key = a.Key;
+          }
+          break;
+        }
+      }
+      classDict[key] = SerializeInner(field.GetValue(value), field.FieldType, fieldIdentifier);
+    }
+
+    foreach (var prop in t.GetProperties())
+    {
+      string key = prop.Name;
+      string? propIdentifier = null;
+      Attribute[] fieldAttrs = Attribute.GetCustomAttributes(prop);
+      foreach (Attribute attr in fieldAttrs)
+      {
+        if (attr is DuperAttribute a)
+        {
+          propIdentifier = a.Identifier;
+          if (a.Key != null)
+          {
+            key = a.Key;
+          }
+          break;
+        }
+      }
+      classDict[key] = SerializeInner(prop.GetValue(value), prop.PropertyType, propIdentifier);
+    }
+
+    return new DuperValue.Object(identifier, classDict);
   }
 }
