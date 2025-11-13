@@ -1,3 +1,4 @@
+using System.Net;
 using Duper;
 
 namespace Example
@@ -16,7 +17,7 @@ namespace Example
     public required byte[] @avatar { get; set; }
     public string? @bio { get; set; }
     [Duper(Key = "last_logins")]
-    public required IList<(string, DateTimeOffset)> LastLogins { get; set; }
+    public required IList<(IPAddress, DateTimeOffset)> LastLogins { get; set; }
   }
 
   public class UserSettings

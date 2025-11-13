@@ -1,20 +1,28 @@
 <?xml version="1.0"?>
-<package>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>EpicEric.Duper</id>
     <version>0.0.1</version>
     <title>Duper</title>
     <authors>Eric Rodrigues Pires &lt;eric@eric.dev.br&gt;</authors>
-    <license type="expression">MIT</licenseUrl>
+    <license type="expression">MIT</license>
     <projectUrl>https://duper.dev.br</projectUrl>
-    <iconUrl>https://duper.dev.br/logos/duper-200-200.png</iconUrl>
+    <icon>icon.png</icon>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>The format that's super!</description>
+    <readme>README.md</readme>
     <releaseNotes>Initial release.</releaseNotes>
     <copyright>Copyright 2025</copyright>
     <tags>Duper encoding format serialization parsing</tags>
+    <dependencies>
+      <group targetFramework="net8.0" />
+    </dependencies>
   </metadata>
   <files>
-    <file src="..\..\target\x86_64-unknown-linux-gnu\release\libduper_uniffi.so" target="runtimes\linux-x64\native" />
+    <file src="icon.png" />
+    <file src="README.md" />
+    <file src="bin\Release\net8.0\Duper.dll" target="lib\net8.0\" />
+    <file src="../../target/x86_64-unknown-linux-gnu/release/libduper_uniffi.so" target="runtimes\linux-x64\native\" />
+    <file src="../../target/x86_64-pc-windows-gnu/release/duper_uniffi.dll" target="runtimes\win-x64\native\" />
   </files>
 </package>
