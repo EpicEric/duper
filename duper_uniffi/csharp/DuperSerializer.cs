@@ -1,5 +1,6 @@
 ﻿namespace Duper;
 
+using System.Reflection;
 using Ffi;
 
 public class DuperSerializer
@@ -258,6 +259,17 @@ public class DuperSerializer
       {
         return str.value;
       }
+      foreach (Type interfaceType in t.GetInterfaces())
+      {
+        if (interfaceType.IsGenericType &&
+            interfaceType.GetGenericTypeDefinition()
+            == typeof(IParsable<>))
+        {
+          var parseMethod = typeof(DuperSerializer).GetMethod("ParseViaGeneric", BindingFlags.NonPublic | BindingFlags.Static) ?? throw new ApplicationException("No ParseViaGeneric method found for DuperSerializer");
+          parseMethod = parseMethod.MakeGenericMethod(t);
+          return parseMethod.Invoke(null, [str.value]);
+        }
+      }
       throw new ApplicationException($"Cannot cast string to {t}");
     }
 
@@ -352,8 +364,13 @@ public class DuperSerializer
     // Fail-safe
     else
     {
-      throw new ApplicationException($"Unknown DuperValue type {duperValue.GetType()}");
+      throw new ApplicationException($"Unknown Duper value type {duperValue.GetType()}");
     }
+  }
+
+  private static T ParseViaGeneric<T>(string value) where T : IParsable<T>
+  {
+    return T.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
   }
 
   public record SerializerOptions(
@@ -365,18 +382,8 @@ public class DuperSerializer
 
   public static string Serialize<T>(T @value)
   {
-    var duperValue = SerializeInner(value, typeof(T), null);
-    return Duper.Serialize(duperValue, null);
-  }
-
-  public static string Serialize<T>(T? @value, SerializerOptions @options)
-  {
-    var duperValue = SerializeInner(value, typeof(T), null);
-    return Duper.Serialize(duperValue, new Ffi.SerializeOptions(options.Indent, options.StripIdentifiers, options.Minify));
-  }
-
-  private static DuperValue SerializeInner(object? @value, Type t, string? identifier)
-  {
+    Type t = typeof(T);
+    string? identifier = null;
     Attribute[] attrs = Attribute.GetCustomAttributes(t);
     foreach (Attribute attr in attrs)
     {
@@ -386,7 +393,29 @@ public class DuperSerializer
         break;
       }
     }
+    var duperValue = SerializeInner(value, t, identifier);
+    return Duper.Serialize(duperValue, null);
+  }
 
+  public static string Serialize<T>(T? @value, SerializerOptions @options)
+  {
+    Type t = typeof(T);
+    string? identifier = null;
+    Attribute[] attrs = Attribute.GetCustomAttributes(t);
+    foreach (Attribute attr in attrs)
+    {
+      if (attr is DuperAttribute a)
+      {
+        identifier = a.Identifier;
+        break;
+      }
+    }
+    var duperValue = SerializeInner(value, t, identifier);
+    return Duper.Serialize(duperValue, new Ffi.SerializeOptions(options.Indent, options.StripIdentifiers, options.Minify));
+  }
+
+  private static DuperValue SerializeInner(object? @value, Type t, string? identifier)
+  {
     if (value == null)
     {
       return new DuperValue.Null(identifier);
@@ -443,7 +472,7 @@ public class DuperSerializer
       {
         return new DuperValue.Temporal(identifier, DateOnly.FromDateTime(((DateTimeOffset)value).DateTime).ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture));
       }
-      return new DuperValue.Temporal(identifier, ((DateTimeOffset)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      return new DuperValue.Temporal(identifier ?? "Instant", ((DateTimeOffset)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
     }
     else if (t.IsAssignableTo(typeof(DateTime)))
     {
@@ -463,7 +492,7 @@ public class DuperSerializer
       {
         return new DuperValue.Temporal(identifier, DateOnly.FromDateTime((DateTime)value).ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture));
       }
-      return new DuperValue.Temporal(identifier, ((DateTime)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      return new DuperValue.Temporal(identifier ?? "PlainDateTime", ((DateTime)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
     }
     else if (t.IsAssignableTo(typeof(DateOnly)))
     {
@@ -475,11 +504,11 @@ public class DuperSerializer
       {
         return new DuperValue.Temporal(identifier, ((DateOnly)value).ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture));
       }
-      return new DuperValue.Temporal(identifier, ((DateOnly)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      return new DuperValue.Temporal(identifier ?? "PlainDate", ((DateOnly)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
     }
     else if (t.IsAssignableTo(typeof(TimeOnly)))
     {
-      return new DuperValue.Temporal(identifier, ((TimeOnly)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      return new DuperValue.Temporal(identifier ?? "PlainTime", ((TimeOnly)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
     }
     else if (IsTuple(t))
     {
@@ -522,6 +551,7 @@ public class DuperSerializer
       return new DuperValue.Object(identifier, objValue);
     }
 
+    Type? iformattable = null;
     foreach (Type interfaceType in t.GetInterfaces())
     {
       if (interfaceType.IsGenericType &&
@@ -555,6 +585,21 @@ public class DuperSerializer
           objValue[(string)key] = SerializeInner(valueDict[key], valueType, null);
         }
         return new DuperValue.Object(identifier, objValue);
+      }
+      else if (interfaceType == typeof(IFormattable))
+      {
+        iformattable = interfaceType;
+      }
+    }
+
+    if (iformattable != null)
+    {
+      var parseMethod = typeof(DuperSerializer).GetMethod("FormatViaGeneric", BindingFlags.NonPublic | BindingFlags.Static) ?? throw new ApplicationException("No FormatViaGeneric method found for DuperSerializer");
+      parseMethod = parseMethod.MakeGenericMethod(t);
+      var toStringResult = parseMethod.Invoke(null, [value]);
+      if (toStringResult is string str)
+      {
+        return new DuperValue.String(identifier, str);
       }
     }
 
@@ -601,5 +646,10 @@ public class DuperSerializer
     }
 
     return new DuperValue.Object(identifier, classDict);
+  }
+
+  private static string FormatViaGeneric<T>(T value) where T : IFormattable
+  {
+    return ((IFormattable)value).ToString(null, System.Globalization.CultureInfo.InvariantCulture);
   }
 }
