@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Duper;
 
 namespace Example
@@ -32,31 +31,27 @@ namespace Example
   {
     public static void Main(string[] args)
     {
-      (string, string, float)? basic = DuperSerializer.Deserialize<(string, string, float)?>("""
-      ("1234", '2025-11', 123.4)
-      """);
-      Console.WriteLine(basic);
-
-      // UserProfile? userProfile = DuperSerializer.Deserialize<UserProfile>("""
-      //   UserProfile({
-      //     id: Uuid("f111c275-b4ce-4392-8e5b-19067ce39b53"),
-      //     username: "EpicEric",
-      //     email: EmailAddress("eric@duper.dev.br"),
-      //     settings: {
-      //       "dark mode": true,
-      //       language: Locale("pt-BR"),
-      //       metadata: null,
-      //     },
-      //     score: 120.25,
-      //     // Support for bytes, woohoo!
-      //     avatar: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ"),
-      //     bio: r#"Hello! I'm a super "duper" user!"#,
-      //     last_logins: [
-      //       (IPv4Address("192.168.1.100"), Instant('2024-03-20T14:30:00+00:00')),
-      //     ],
-      //   })
-      //   """);
-      // Console.WriteLine(userProfile);
+      UserProfile? userProfile = DuperSerializer.Deserialize<UserProfile>("""
+        UserProfile({
+          id: Uuid("f111c275-b4ce-4392-8e5b-19067ce39b53"),
+          username: "EpicEric",
+          email: EmailAddress("eric@duper.dev.br"),
+          settings: {
+            "dark mode": true,
+            language: Locale("pt-BR"),
+            metadata: null,
+          },
+          score: 120.25,
+          // Support for bytes, woohoo!
+          avatar: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ"),
+          bio: r#"Hello! I'm a super "duper" user!"#,
+          last_logins: [
+            (IPv4Address("192.168.1.100"), Instant('2024-03-20T14:30:00+00:00')),
+          ],
+        })
+        """) ?? throw new ApplicationException("shouldn't be null");
+      Console.WriteLine(userProfile.settings.DarkMode);
+      Console.WriteLine(userProfile.last_logins[0].Item2);
 
       // Console.WriteLine(DuperSerializer.Serialize(userProfile));
     }
