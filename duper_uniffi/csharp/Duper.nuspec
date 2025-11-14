@@ -21,7 +21,7 @@
   <files>
     <file src="icon.png" />
     <file src="README.md" />
-    <file src="bin\Release\net8.0\Duper.dll" target="lib\net8.0\" />
+    <file src="bin/Release/net8.0/Duper.dll" target="lib\net8.0\" />
     <file src="../../target/x86_64-unknown-linux-gnu/release/libduper_uniffi.so" target="runtimes\linux-x64\native\" />
     <file src="../../target/x86_64-pc-windows-gnu/release/duper_uniffi.dll" target="runtimes\win-x64\native\" />
   </files>

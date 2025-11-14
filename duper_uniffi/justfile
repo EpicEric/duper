@@ -12,13 +12,18 @@ build-release:
   cargo build --release --target x86_64-pc-windows-gnu
 
 [working-directory: 'csharp']
-package-cs: bindgen build-release
+package-cs: build-release bindgen
   dotnet build
   dotnet pack
 
-example: bindgen build-debug example-cs
+example: build-debug bindgen example-cs
 
 [working-directory: 'example/csharp']
 example-cs:
-  dotnet build
-  LD_LIBRARY_PATH="../../../target/debug" dotnet run
+  dotnet run
+
+test: build-debug bindgen test-cs
+
+[working-directory: 'tests/csharp']
+test-cs:
+  dotnet test

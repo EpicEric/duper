@@ -15,6 +15,7 @@ env:
   CARGO_PROFILE_TEST_DEBUG: "0"
   PYTHON_MINIMUM_VERSION: "3.10"
   NODE_VERSION: "20"
+  DOTNET_VERSION: "9.0.x"
 
 jobs:
   rustfmt:
@@ -115,7 +116,7 @@ jobs:
           python-version: ${{ env.PYTHON_MINIMUM_VERSION }}
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
-      - name: Test Python
+      - name: Test with pytest
         working-directory: ./duper-python
         run: |
           uv run maturin develop
@@ -152,3 +153,29 @@ jobs:
         working-directory: ./duper-js-wasm
         run: |
           npm run test
+  test-csharp:
+    name: Run C# tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d # v5.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Fetch MSRV
+        run: |
+          rustup toolchain install ${RUST_MSRV}-x86_64-unknown-linux-gnu
+          rustup override set ${RUST_MSRV}-x86_64-unknown-linux-gnu
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: Build Uniffi bindings
+        working-directory: ./duper_uniffi
+        run: |
+          cargo build
+      - name: Test with xUnit
+        working-directory: ./duper_uniffi/tests/csharp
+        run: |
+          dotnet test
