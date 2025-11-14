@@ -6,7 +6,8 @@
   </head>
   <body>
     <script type="module">
-      import { parse, stringify, DuperValue } from "@duper-js/wasm";
+      import init, { parse, stringify, DuperValue } from "@duper-js/wasm";
+      await init();
 
       // Parse some input
       const input = `

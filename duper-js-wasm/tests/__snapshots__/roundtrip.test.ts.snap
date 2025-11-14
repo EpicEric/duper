@@ -34,9 +34,9 @@ exports[`parse then stringify > swaps identifier 1`] = `"Product({dimensions: (1
 
 exports[`parse then stringify > swaps value 1`] = `"Product({dimensions: (18.5, 15.2, 7.8), weight: Kilograms(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ("music", DeprecatedTag("hi-fi")), date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]')})"`;
 
-exports[`stringify then parse > properly serializes then deserializes to Duper 1`] = `"Tcp({chunk: Stream(b""), port: 5173, connections: [IPv4Socket("192.168.0.50:12345"), IPv46ocket("[2001:1d8::1]:29876")], date: PlainDate('2025-11-08')})"`;
+exports[`stringify then parse > properly serializes then deserializes to Duper 1`] = `"Tcp({chunk: Stream(b""), port: 5173, connections: [IPv4Socket("192.168.0.50:12345"), IPv46ocket("[2001:1d8::1]:29876")], date: '2025-11-08'})"`;
 
-exports[`stringify then parse > properly serializes then deserializes to JSON-safe 1`] = `"Tcp({chunk: Stream(b""), port: 5173, connections: [IPv4Socket("192.168.0.50:12345"), IPv46ocket("[2001:1d8::1]:29876")], date: PlainDate('2025-11-08')})"`;
+exports[`stringify then parse > properly serializes then deserializes to JSON-safe 1`] = `"Tcp({chunk: Stream(b""), port: 5173, connections: [IPv4Socket("192.168.0.50:12345"), IPv46ocket("[2001:1d8::1]:29876")], date: '2025-11-08'})"`;
 
 exports[`stringify then parse > properly serializes then deserializes to JSON-safe 2`] = `
 {

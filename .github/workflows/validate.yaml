@@ -152,7 +152,7 @@ jobs:
       - name: Test with Vitest
         working-directory: ./duper-js-wasm
         run: |
-          npm run test
+          npm test
   test-csharp:
     name: Run C# tests
     runs-on: ubuntu-latest
