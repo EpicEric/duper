@@ -3,6 +3,7 @@ resolver = "3"
 members = [
   "axum_duper",
   "duper",
+  "duper-js-node",
   "duper-js-wasm",
   "duper-python",
   "duper_uniffi",
@@ -13,4 +14,4 @@ members = [
 
 [profile.release]
 lto = true
-strip = "debuginfo"
+strip = "symbols"

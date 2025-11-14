@@ -1,0 +1,62 @@
+{
+  "name": "@duper-js/node",
+  "version": "0.1.0",
+  "description": "The format that's super!",
+  "keywords": [
+    "duper",
+    "serialization",
+    "wasm"
+  ],
+  "homepage": "https://duper.dev.br",
+  "bugs": {
+    "url": "https://github.com/EpicEric/duper/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EpicEric/duper.git"
+  },
+  "license": "MIT",
+  "author": "Eric Rodrigues Pires <eric@eric.dev.br>",
+  "main": "index.js",
+  "browser": "browser.js",
+  "files": [
+    "index.d.ts",
+    "index.js",
+    "browser.js"
+  ],
+  "napi": {
+    "binaryName": "node",
+    "targets": [
+      "x86_64-pc-windows-msvc",
+      "x86_64-apple-darwin",
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-apple-darwin",
+      "aarch64-pc-windows-msvc"
+    ]
+  },
+  "engines": {
+    "node": ">= 10.23.0 < 11 || >= 12.19.0 < 13 || >= 14.12.0 < 15 || >= 15.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "build": "napi build --platform --release",
+    "debug": "napi build --platform",
+    "prepublishOnly": "napi prepublish -t npm",
+    "preversion": "napi build --platform && git add .",
+    "version": "napi version"
+  },
+  "devDependencies": {
+    "@emnapi/core": "^1.5.0",
+    "@emnapi/runtime": "^1.5.0",
+    "@napi-rs/cli": "^3.2.0",
+    "@oxc-node/core": "^0.0.34",
+    "@taplo/cli": "^0.7.0",
+    "@tybys/wasm-util": "^0.10.0",
+    "typescript": "^5.9.2"
+  }
+}

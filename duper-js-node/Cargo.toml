@@ -1,0 +1,24 @@
+[package]
+name = "duper-js-node"
+description = "The format that's super!"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+repository = "https://github.com/EpicEric/duper"
+homepage = "https://duper.dev.br"
+readme = "README.md"
+categories = ["encoding", "parser-implementations"]
+keywords = ["duper", "serialization", "wasm"]
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+duper = { path = "../duper" }
+napi = "3.0.0"
+napi-derive = "3.0.0"
+
+[build-dependencies]
+napi-build = "2"
