@@ -14,7 +14,7 @@ keywords = ["duper", "serialization", "python"]
 publish = false
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 duper = { path = "../duper" }
