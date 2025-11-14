@@ -34,13 +34,14 @@
     "README.md"
   ],
   "scripts": {
-    "build": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen ../target/wasm32-unknown-unknown/release/duper_js_wasm.wasm --out-dir ./pkg --target bundler",
-    "optimize": "wasm-opt -Os ./pkg/duper_js_wasm_bg.wasm -o ./pkg/duper_js_wasm_bg.wasm",
+    "build": "uniffi-bindgen-react-native build web",
+    "optimize": "wasm-opt -Os ./src/generated/wasm-bindgen/index_bg.wasm -o ./src/generated/wasm-bindgen/index_bg.wasm",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "prepublishOnly": "npm run build && npm run optimize"
   },
   "devDependencies": {
+    "uniffi-bindgen-react-native": "^0.29.3-1",
     "vite": "^7.1.12",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.5.0",

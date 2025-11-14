@@ -1,0 +1,12 @@
+rust:
+  directory: ../duper_uniffi
+  manifestPath: Cargo.toml
+  web:
+    ts: src/generated/web
+  bindings:
+    ts: src/generated/rn
+
+web:
+  manifestPath: rust/Cargo.toml
+  wasmCrateName: duper-js-wasm
+  workspace: true

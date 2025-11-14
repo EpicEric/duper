@@ -1,2 +1,4 @@
 node_modules/
 pkg/
+rust/
+src/generated/
