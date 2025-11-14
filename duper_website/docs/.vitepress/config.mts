@@ -55,6 +55,7 @@ export default async () => {
           text: "Language guides",
           items: [
             { text: "JavaScript", link: "/guide-javascript" },
+            { text: ".NET (alpha)", link: "/guide-dotnet" },
             { text: "Python", link: "/guide-python" },
             { text: "Rust", link: "/guide-rust" },
           ],
