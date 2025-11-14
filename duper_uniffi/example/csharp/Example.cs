@@ -26,7 +26,7 @@ namespace Example
     public bool DarkMode { get; set; }
     [Duper("Locale")]
     public required string @language { get; set; }
-    public Dictionary<string, string>? @metadata { get; set; }
+    public Dictionary<string, string?>? @metadata { get; set; }
   }
 
   public class Example
