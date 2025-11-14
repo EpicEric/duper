@@ -176,6 +176,6 @@ jobs:
         run: |
           cargo build
       - name: Test with xUnit
-        working-directory: ./duper_uniffi/tests/csharp
+        working-directory: ./duper_uniffi/tests/dotnet
         run: |
           dotnet test
