@@ -1,3 +1,16 @@
+# .NET guide (alpha)
+
+Get started with Duper in .NET / C# with the [`EpicEric.Duper`](https://www.nuget.org/packages/EpicEric.Duper) package.
+
+## Installation
+
+```bash
+dotnet add package EpicEric.Duper
+```
+
+## Usage
+
+```c#
 using System.Net;
 using Duper;
 
@@ -33,7 +46,7 @@ namespace Example
   {
     public static void Main(string[] args)
     {
-      UserProfile? userProfile = DuperSerializer.Deserialize<UserProfile>("""
+      UserProfile userProfile = DuperSerializer.Deserialize<UserProfile>("""
         UserProfile({
           id: Uuid("f111c275-b4ce-4392-8e5b-19067ce39b53"),
           username: "EpicEric",
@@ -60,3 +73,4 @@ namespace Example
     }
   }
 }
+```

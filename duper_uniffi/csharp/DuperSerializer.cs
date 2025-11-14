@@ -1,5 +1,6 @@
 ﻿namespace Duper;
 
+using System.Collections;
 using System.Reflection;
 using Ffi;
 
@@ -176,6 +177,19 @@ public class DuperSerializer
         }
         return list;
       }
+      else if (t.IsArray)
+      {
+        Type itemType = t.GetElementType() ?? throw new ApplicationException($"No element type found for {t}"); ;
+        var arrayListType = typeof(List<>).MakeGenericType([itemType]);
+        var arrayList = Activator.CreateInstance(arrayListType) ?? throw new ApplicationException("No constructor found for List");
+        var addMethod = arrayListType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for List");
+        foreach (var item in array.value)
+        {
+          addMethod.Invoke(arrayList, [DeserializeInner(item, itemType)]);
+        }
+        var toArrayMethod = arrayListType.GetMethod("ToArray") ?? throw new ApplicationException("No ToArray method found for List");
+        return toArrayMethod.Invoke(arrayList, null);
+      }
       foreach (Type interfaceType in t.GetInterfaces())
       {
         if (interfaceType.IsGenericType &&
@@ -184,7 +198,7 @@ public class DuperSerializer
         {
           Type itemType = interfaceType.GetGenericArguments().Single();
           var list = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
-          var ilist = (list as System.Collections.IList) ?? throw new ApplicationException("IList cast shouldn't fail");
+          var ilist = (list as IList) ?? throw new ApplicationException("IList cast shouldn't fail");
           foreach (var item in array.value)
           {
             ilist.Add(DeserializeInner(item, itemType));
@@ -233,6 +247,19 @@ public class DuperSerializer
         }
         return list;
       }
+      else if (t.IsArray)
+      {
+        Type itemType = t.GetElementType() ?? throw new ApplicationException($"No element type found for {t}"); ;
+        var arrayListType = typeof(List<>).MakeGenericType([itemType]);
+        var arrayList = Activator.CreateInstance(arrayListType) ?? throw new ApplicationException("No constructor found for List");
+        var addMethod = arrayListType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for List");
+        foreach (var item in tuple.value)
+        {
+          addMethod.Invoke(arrayList, [DeserializeInner(item, itemType)]);
+        }
+        var toArrayMethod = arrayListType.GetMethod("ToArray") ?? throw new ApplicationException("No ToArray method found for List");
+        return toArrayMethod.Invoke(arrayList, null);
+      }
       foreach (Type interfaceType in t.GetInterfaces())
       {
         if (interfaceType.IsGenericType &&
@@ -241,10 +268,10 @@ public class DuperSerializer
         {
           Type itemType = interfaceType.GetGenericArguments().Single();
           var list = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
-          var addMethod = interfaceType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for IList");
+          var ilist = (list as IList) ?? throw new ApplicationException("IList cast shouldn't fail");
           foreach (var item in tuple.value)
           {
-            addMethod.Invoke(list, [DeserializeInner(item, itemType)]);
+            ilist.Add(DeserializeInner(item, itemType));
           }
           return list;
         }
@@ -282,6 +309,8 @@ public class DuperSerializer
       }
       throw new ApplicationException($"Cannot cast bytes to {t}");
     }
+
+    // Temporal
     else if (duperValue is DuperValue.Temporal temporal)
     {
       if (typeof(string).IsAssignableTo(t))
@@ -525,7 +554,7 @@ public class DuperSerializer
     else if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IList<>))
     {
       Type itemType = t.GetGenericArguments().Single();
-      System.Collections.IList valueList = (value as System.Collections.IList) ?? throw new ApplicationException("IList cast shouldn't fail");
+      IList valueList = (value as IList) ?? throw new ApplicationException("IList cast shouldn't fail");
       DuperValue[] arrayValue = new DuperValue[valueList.Count];
       for (int i = 0; i < valueList.Count; i++)
       {
@@ -543,7 +572,7 @@ public class DuperSerializer
       }
       Type valueType = generics[1];
       Dictionary<string, DuperValue> objValue = [];
-      System.Collections.IDictionary valueDict = (value as System.Collections.IDictionary) ?? throw new ApplicationException("IDictionary cast shouldn't fail");
+      IDictionary valueDict = (value as IDictionary) ?? throw new ApplicationException("IDictionary cast shouldn't fail");
       foreach (var key in valueDict.Keys)
       {
         objValue[(string)key] = SerializeInner(valueDict[key], valueType, null);

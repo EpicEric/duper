@@ -322,7 +322,13 @@ pub(crate) fn duration<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a,
 
 pub(crate) fn unspecified<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
 {
-    choice((instant(), plain_year_month(), plain_month_day(), duration()))
+    choice((
+        instant(),
+        plain_year_month(),
+        plain_month_day(),
+        plain_time(),
+        duration(),
+    ))
 }
 
 // Atoms

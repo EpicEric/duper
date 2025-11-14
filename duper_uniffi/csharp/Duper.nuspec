@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>EpicEric.Duper</id>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
     <title>Duper</title>
     <authors>Eric Rodrigues Pires &lt;eric@eric.dev.br&gt;</authors>
     <license type="expression">MIT</license>
@@ -11,7 +11,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>The format that's super!</description>
     <readme>README.md</readme>
-    <releaseNotes>Initial release.</releaseNotes>
+    <releaseNotes>Better handling of arrays.</releaseNotes>
     <copyright>Copyright 2025</copyright>
     <tags>Duper encoding format serialization parsing</tags>
     <dependencies>

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Missing handling for PlainTime in Temporal parser.
+
 ## 0.4.0 (2025-11-11)
 
 ### Added
