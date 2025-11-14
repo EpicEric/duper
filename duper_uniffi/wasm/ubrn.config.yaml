@@ -1,0 +1,15 @@
+rust:
+  directory: ../
+  manifestPath: Cargo.toml
+  web:
+    ts: ../../duper-js-wasm/generated/web
+  bindings:
+    ts: ../../duper-js-wasm/generated/rn
+
+bindings:
+  uniffiToml: ../uniffi.toml
+
+web:
+  manifestPath: ../../duper-js-wasm/Cargo.toml
+  wasmCrateName: duper-js-wasm
+  workspace: true

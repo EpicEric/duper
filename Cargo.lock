@@ -459,10 +459,10 @@ dependencies = [
 
 [[package]]
 name = "duper-js-wasm"
-version = "0.0.0"
+version = "0.4.0"
 dependencies = [
- "duper",
- "js-sys",
+ "duper_uniffi",
+ "uniffi-runtime-javascript",
  "wasm-bindgen",
 ]
 
@@ -1684,6 +1684,16 @@ dependencies = [
  "uniffi_core",
  "uniffi_macros",
  "uniffi_pipeline",
+]
+
+[[package]]
+name = "uniffi-runtime-javascript"
+version = "0.29.3-1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6be59d9b1cc31b6e144beccf854321e27fcadf86fdd09d5db8085a4c6b78884"
+dependencies = [
+ "uniffi_core",
+ "wasm-bindgen",
 ]
 
 [[package]]

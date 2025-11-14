@@ -1,0 +1,38 @@
+{
+	"name": "@duper-js/wasm",
+	"version": "0.4.0",
+	"description": "The format that's super!",
+	"keywords": [
+		"duper",
+		"serialization",
+		"wasm"
+	],
+	"homepage": "https://duper.dev.br",
+	"bugs": {
+		"url": "https://github.com/EpicEric/duper/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/EpicEric/duper.git"
+	},
+	"license": "MIT",
+	"author": "Eric Rodrigues Pires <eric@eric.dev.br>",
+	"type": "module",
+	"scripts": {
+		"build": "uniffi-bindgen-react-native build web",
+		"optimize": "wasm-opt -Os ./pkg/duper_js_wasm_bg.wasm -o ./pkg/duper_js_wasm_bg.wasm",
+		"test": "vitest run",
+		"test:watch": "vitest watch"
+	},
+	"browser": "src/index.web.ts",
+	"devDependencies": {
+		"uniffi-bindgen-react-native": "^0.29.3-1",
+		"vite": "^7.1.12",
+		"vite-plugin-top-level-await": "^1.6.0",
+		"vite-plugin-wasm": "^3.5.0",
+		"vitest": "^4.0.6"
+	},
+	"dependencies": {
+		"@js-temporal/polyfill": "^0.5.1"
+	}
+}
