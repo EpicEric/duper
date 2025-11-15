@@ -459,7 +459,7 @@ dependencies = [
 
 [[package]]
 name = "duper-js-wasm"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "duper_uniffi",
  "uniffi-runtime-javascript",

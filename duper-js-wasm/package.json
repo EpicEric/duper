@@ -1,6 +1,6 @@
 {
   "name": "@duper-js/wasm",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "The format that's super!",
   "keywords": [
     "duper",
@@ -34,7 +34,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "uniffi-bindgen-react-native build web",
+    "bindgen": "uniffi-bindgen-react-native build web",
+    "build": "npm run bindgen && npm run optimize",
     "optimize": "wasm-opt -Os ./src/generated/wasm-bindgen/index_bg.wasm -o ./src/generated/wasm-bindgen/index_bg.wasm",
     "test": "vitest run",
     "test:watch": "vitest watch",
@@ -46,8 +47,5 @@
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.5.0",
     "vitest": "^4.0.6"
-  },
-  "dependencies": {
-    "@js-temporal/polyfill": "^0.5.1"
   }
 }
