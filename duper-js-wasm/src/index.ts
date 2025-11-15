@@ -2,10 +2,16 @@ import * as duperFfi from "./index.web";
 
 await duperFfi.uniffiInitAsync();
 
+/**
+ * Duper-specific errors.
+ */
 export type DuperError = duperFfi.DuperError;
 
 const duperSymbol: unique symbol = Symbol();
 
+/**
+ * A valid Duper value.
+ */
 export type DuperValue =
   | {
       [duperSymbol]: "$__duper";
@@ -45,7 +51,7 @@ export type DuperValue =
   | {
       [duperSymbol]: "$__duper";
       type: "Temporal";
-      value: string;
+      value: any;
       identifier?: string;
       toJSON(): any;
     }
@@ -78,11 +84,28 @@ export type DuperValue =
       toJSON(): any;
     };
 
-type NonDuper = { [duperSymbol]?: never; [key: string]: unknown };
+type NonDuper =
+  | null
+  | undefined
+  | string
+  | boolean
+  | number
+  | bigint
+  | symbol
+  | { [duperSymbol]?: never; [key: string]: unknown };
 
+/**
+ * The possible types that a Duper value may have.
+ */
 export type DuperType = DuperValue extends { type: infer T } ? T : never;
 
 export const DuperValue = {
+  /**
+   * Creates a Duper object.
+   *
+   * @param value The key/value mapping.
+   * @param identifier The identifier.
+   */
   Object: (
     value: Record<string, DuperValue | NonDuper>,
     identifier?: string
@@ -93,23 +116,41 @@ export const DuperValue = {
     identifier,
     toJSON: () =>
       Object.fromEntries(
-        Object.entries(value).map(([key, val]) => [key, (val.toJSON as any)()])
+        Object.entries(value).map(([key, val]) => [key, (val as any).toJSON()])
       ),
   }),
+  /**
+   * Creates a Duper array.
+   *
+   * @param value The value list.
+   * @param identifier The identifier.
+   */
   Array: (value: (DuperValue | NonDuper)[], identifier?: string) => ({
     [duperSymbol]: "$__duper" as const,
     type: "Array" as const,
     value,
     identifier,
-    toJSON: () => value.map((val) => (val.toJSON as any)()),
+    toJSON: () => value.map((val) => (val as any).toJSON()),
   }),
+  /**
+   * Creates a Duper tuple.
+   *
+   * @param value The value list.
+   * @param identifier The identifier.
+   */
   Tuple: (value: (DuperValue | NonDuper)[], identifier?: string) => ({
     [duperSymbol]: "$__duper" as const,
     type: "Tuple" as const,
     value,
     identifier,
-    toJSON: () => value.map((val) => (val.toJSON as any)()),
+    toJSON: () => value.map((val) => (val as any).toJSON()),
   }),
+  /**
+   * Creates a Duper string.
+   *
+   * @param value The value.
+   * @param identifier The identifier.
+   */
   String: (value: string, identifier?: string) => ({
     [duperSymbol]: "$__duper" as const,
     type: "String" as const,
@@ -117,26 +158,200 @@ export const DuperValue = {
     identifier,
     toJSON: () => value,
   }),
-  Bytes: (value: Uint8Array, identifier?: string) => ({
-    [duperSymbol]: "$__duper" as const,
-    type: "Bytes" as const,
-    value,
-    identifier,
-    toJSON: () => {
-      const array = new Array<number>(value.byteLength);
-      value.forEach((val) => {
-        array.push(val);
-      });
-      return array;
-    },
-  }),
-  Temporal: (value: string, identifier?: string) => ({
-    [duperSymbol]: "$__duper" as const,
-    type: "Temporal" as const,
-    value,
-    identifier,
-    toJSON: () => value,
-  }),
+  /**
+   * Creates a Duper byte string.
+   *
+   * @param value The value.
+   * @param identifier The identifier.
+   */
+  Bytes: (value: Uint8Array | string | number[], identifier?: string) => {
+    if (typeof value === "string") {
+      const utf8 = new Uint8Array(value.length);
+      new TextEncoder().encodeInto(value, utf8);
+      return {
+        [duperSymbol]: "$__duper" as const,
+        type: "Bytes" as const,
+        value: utf8,
+        identifier,
+        toJSON: () => {
+          const array = new Array<number>(utf8.byteLength);
+          utf8.forEach((val) => {
+            array.push(val);
+          });
+          return array;
+        },
+      };
+    } else if (value instanceof Uint8Array) {
+      return {
+        [duperSymbol]: "$__duper" as const,
+        type: "Bytes" as const,
+        value,
+        identifier,
+        toJSON: () => {
+          const array = new Array<number>(value.byteLength);
+          value.forEach((val) => {
+            array.push(val);
+          });
+          return array;
+        },
+      };
+    }
+    const array = new Uint8Array(value.length);
+    array.set(value);
+    return {
+      [duperSymbol]: "$__duper" as const,
+      type: "Bytes" as const,
+      value: array,
+      identifier,
+      toJSON: () => value,
+    };
+  },
+  /**
+   * Creates a Duper Temporal value.
+   *
+   * @param value The value.
+   * @param identifier The identifier.
+   */
+  Temporal: (value: any, identifier?: string) => {
+    if ("Temporal" in globalThis) {
+      const Temporal = (globalThis as any).Temporal;
+      switch (identifier) {
+        case "Instant": {
+          const v =
+            value instanceof Temporal.Instant
+              ? value
+              : typeof value === "string"
+              ? Temporal.Instant.from(value)
+              : value;
+          return {
+            [duperSymbol]: "$__duper" as const,
+            type: "Temporal" as const,
+            value: v,
+            identifier,
+            toJSON: () => v.toJSON(),
+          };
+        }
+        case "ZonedDateTime": {
+          const v =
+            value instanceof Temporal.ZonedDateTime
+              ? value
+              : typeof value === "string"
+              ? Temporal.ZonedDateTime.from(value)
+              : value;
+          return {
+            [duperSymbol]: "$__duper" as const,
+            type: "Temporal" as const,
+            value: v,
+            identifier,
+            toJSON: () => v.toJSON(),
+          };
+        }
+        case "PlainDate": {
+          const v =
+            value instanceof Temporal.PlainDate
+              ? value
+              : typeof value === "string"
+              ? Temporal.PlainDate.from(value)
+              : value;
+          return {
+            [duperSymbol]: "$__duper" as const,
+            type: "Temporal" as const,
+            value: v,
+            identifier,
+            toJSON: () => v.toJSON(),
+          };
+        }
+        case "PlainTime": {
+          const v =
+            value instanceof Temporal.PlainTime
+              ? value
+              : typeof value === "string"
+              ? Temporal.PlainTime.from(value)
+              : value;
+          return {
+            [duperSymbol]: "$__duper" as const,
+            type: "Temporal" as const,
+            value: v,
+            identifier,
+            toJSON: () => v.toJSON(),
+          };
+        }
+        case "PlainDateTime": {
+          const v =
+            value instanceof Temporal.PlainDateTime
+              ? value
+              : typeof value === "string"
+              ? Temporal.PlainDateTime.from(value)
+              : value;
+          return {
+            [duperSymbol]: "$__duper" as const,
+            type: "Temporal" as const,
+            value: v,
+            identifier,
+            toJSON: () => v.toJSON(),
+          };
+        }
+        case "PlainYearMonth": {
+          const v =
+            value instanceof Temporal.PlainYearMonth
+              ? value
+              : typeof value === "string"
+              ? Temporal.PlainYearMonth.from(value)
+              : value;
+          return {
+            [duperSymbol]: "$__duper" as const,
+            type: "Temporal" as const,
+            value: v,
+            identifier,
+            toJSON: () => v.toJSON(),
+          };
+        }
+        case "PlainMonthDay": {
+          const v =
+            value instanceof Temporal.PlainMonthDay
+              ? value
+              : typeof value === "string"
+              ? Temporal.PlainMonthDay.from(value)
+              : value;
+          return {
+            [duperSymbol]: "$__duper" as const,
+            type: "Temporal" as const,
+            value: v,
+            identifier,
+            toJSON: () => v.toJSON(),
+          };
+        }
+        case "Duration": {
+          const v =
+            value instanceof Temporal.Duration
+              ? value
+              : typeof value === "string"
+              ? Temporal.Duration.from(value)
+              : value;
+          return {
+            [duperSymbol]: "$__duper" as const,
+            type: "Temporal" as const,
+            value: v,
+            identifier,
+            toJSON: () => v.toJSON(),
+          };
+        }
+      }
+    }
+    return {
+      [duperSymbol]: "$__duper" as const,
+      type: "Temporal" as const,
+      value,
+      identifier,
+      toJSON: () => value,
+    };
+  },
+  /**
+   * Creates a Duper integer.
+   *
+   * @param value The value.
+   * @param identifier The identifier.
+   */
   Integer: (value: bigint | number | string, identifier?: string) => ({
     [duperSymbol]: "$__duper" as const,
     type: "Integer" as const,
@@ -147,6 +362,12 @@ export const DuperValue = {
       return float == value ? float : value.toString();
     },
   }),
+  /**
+   * Creates a Duper integer.
+   *
+   * @param value The value.
+   * @param identifier The identifier.
+   */
   Float: (value: bigint | number, identifier?: string) => ({
     [duperSymbol]: "$__duper" as const,
     type: "Float" as const,
@@ -154,6 +375,12 @@ export const DuperValue = {
     identifier,
     toJSON: () => value,
   }),
+  /**
+   * Creates a Duper boolean.
+   *
+   * @param value The value.
+   * @param identifier The identifier.
+   */
   Boolean: (value: boolean, identifier?: string) => ({
     [duperSymbol]: "$__duper" as const,
     type: "Boolean" as const,
@@ -161,6 +388,12 @@ export const DuperValue = {
     identifier,
     toJSON: () => value,
   }),
+  /**
+   * Creates a Duper null value.
+   *
+   * @param value The value.
+   * @param identifier The identifier.
+   */
   Null: (value?: null, identifier?: string) => ({
     [duperSymbol]: "$__duper" as const,
     type: "Null" as const,
@@ -174,7 +407,12 @@ function toFfi(
   value: DuperValue | NonDuper,
   convertingToJSON?: boolean
 ): duperFfi.DuperValue {
-  if (!convertingToJSON && value[duperSymbol] === "$__duper") {
+  if (
+    !convertingToJSON &&
+    value &&
+    typeof value === "object" &&
+    value[duperSymbol] === "$__duper"
+  ) {
     switch (value.type) {
       case "Object": {
         const map = new Map();
@@ -221,7 +459,7 @@ function toFfi(
       case "Temporal": {
         return duperFfi.DuperValue.Temporal.new({
           identifier: value.identifier,
-          value: value.value,
+          value: value.value.toString(),
         });
       }
       case "Integer": {
@@ -275,6 +513,70 @@ function toFfi(
       identifier: undefined,
       value,
     });
+  } else if (
+    "Temporal" in globalThis &&
+    value instanceof (globalThis as any).Temporal.Instant
+  ) {
+    return duperFfi.DuperValue.Temporal.new({
+      identifier: "Instant",
+      value: value.toString(),
+    });
+  } else if (
+    "Temporal" in globalThis &&
+    value instanceof (globalThis as any).Temporal.ZonedDateTime
+  ) {
+    return duperFfi.DuperValue.Temporal.new({
+      identifier: "ZonedDateTime",
+      value: value.toString(),
+    });
+  } else if (
+    "Temporal" in globalThis &&
+    value instanceof (globalThis as any).Temporal.PlainDate
+  ) {
+    return duperFfi.DuperValue.Temporal.new({
+      identifier: "PlainDate",
+      value: value.toString(),
+    });
+  } else if (
+    "Temporal" in globalThis &&
+    value instanceof (globalThis as any).Temporal.PlainTime
+  ) {
+    return duperFfi.DuperValue.Temporal.new({
+      identifier: "PlainTime",
+      value: value.toString(),
+    });
+  } else if (
+    "Temporal" in globalThis &&
+    value instanceof (globalThis as any).Temporal.PlainDateTime
+  ) {
+    return duperFfi.DuperValue.Temporal.new({
+      identifier: "PlainDateTime",
+      value: value.toString(),
+    });
+  } else if (
+    "Temporal" in globalThis &&
+    value instanceof (globalThis as any).Temporal.PlainYearMonth
+  ) {
+    return duperFfi.DuperValue.Temporal.new({
+      identifier: "PlainYearMonth",
+      value: value.toString(),
+    });
+  } else if (
+    "Temporal" in globalThis &&
+    value instanceof (globalThis as any).Temporal.PlainMonthDay
+  ) {
+    return duperFfi.DuperValue.Temporal.new({
+      identifier: "PlainMonthDay",
+      value: value.toString(),
+    });
+  } else if (
+    "Temporal" in globalThis &&
+    value instanceof (globalThis as any).Temporal.Duration
+  ) {
+    return duperFfi.DuperValue.Temporal.new({
+      identifier: "Duration",
+      value: value.toString(),
+    });
   } else if (value instanceof Date) {
     throw new Error(
       `Invalid Date value; convert it into a Temporal value first`
@@ -286,6 +588,8 @@ function toFfi(
     });
   } else if (
     !convertingToJSON &&
+    value &&
+    typeof value === "object" &&
     "toJSON" in value &&
     typeof value.toJSON === "function"
   ) {
@@ -300,7 +604,7 @@ function toFfi(
       value: map,
     });
   }
-  throw new Error(`Unknown value ${value}`);
+  throw new Error(`Unknown value ${String(value)}`);
 }
 
 function fromFfi(value: duperFfi.DuperValue): DuperValue {
@@ -355,6 +659,8 @@ function fromFfi(value: duperFfi.DuperValue): DuperValue {
 }
 
 /**
+ * Options available to the `stringify` function.
+ *
  * @property {string | number} [indent] - Optional whitespace string to use as
  * indentation, or the number of spaces to use as indentation.
  * @property {boolean} [stripIdentifiers] - Whether Duper identifiers should be
@@ -369,7 +675,7 @@ type StringifyOptions =
       minify?: false;
     }
   | {
-      indent?: undefined;
+      indent?: never;
       stripIdentifiers?: boolean;
       minify: true;
     };

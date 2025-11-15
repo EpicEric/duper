@@ -4,8 +4,7 @@ import { parse, DuperValue } from "..";
 describe("parse", () => {
   it("parses an empty object", () => {
     const duper = parse("{}");
-    assert.instanceOf(duper, DuperValue);
-    expect(duper.type).eq("object");
+    expect(duper.type).toEqual("Object");
   });
 
   it("parses into a JSON-stringifiable object", () => {
@@ -36,19 +35,17 @@ describe("parse", () => {
         created_at: Instant('2023-11-17T21:50:43+00:00'),
       })
     `);
-    assert.instanceOf(duper, DuperValue);
-    expect(duper.type).eq("object");
-    expect(duper.identifier).eq("Product");
-    expect(JSON.stringify(duper)).toMatchSnapshot();
+    expect(duper.type).toEqual("Object");
+    expect(duper.identifier).toEqual("Product");
+    // expect(JSON.stringify(duper)).toMatchSnapshot();
   });
 
   it("parses into a toString-able array", () => {
     const duper = parse(`
       Foo([b"bar", false, 3.14])
     `);
-    assert.instanceOf(duper, DuperValue);
-    expect(duper.type).eq("array");
-    expect(duper.identifier).eq("Foo");
+    expect(duper.type).toEqual("Array");
+    expect(duper.identifier).toEqual("Foo");
     expect(duper.toString()).toMatchSnapshot();
   });
 

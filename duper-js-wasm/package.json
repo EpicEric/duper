@@ -3,8 +3,10 @@
   "version": "0.4.0",
   "description": "The format that's super!",
   "keywords": [
-    "duper",
+    "Duper",
     "serialization",
+    "encoding",
+    "format",
     "wasm"
   ],
   "homepage": "https://duper.dev.br",
@@ -18,30 +20,22 @@
   "license": "MIT",
   "author": "Eric Rodrigues Pires <eric@eric.dev.br>",
   "type": "module",
-  "main": "./pkg/duper_js_wasm.js",
-  "types": "./pkg/duper_js_wasm.d.ts",
-  "exports": {
-    ".": {
-      "import": "./pkg/duper_js_wasm.js",
-      "types": "./pkg/duper_js_wasm.d.ts"
-    },
-    "./wasm": {
-      "import": "./pkg/duper_js_wasm_bg.wasm"
-    }
-  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
-    "pkg/*",
+    "dist",
     "README.md"
   ],
   "scripts": {
     "bindgen": "uniffi-bindgen-react-native build web",
-    "build": "npm run bindgen && npm run optimize",
-    "optimize": "wasm-opt -Os ./src/generated/wasm-bindgen/index_bg.wasm -o ./src/generated/wasm-bindgen/index_bg.wasm",
+    "optimize": "wasm-opt -Os ./dist/generated/wasm-bindgen/index_bg.wasm -o ./dist/generated/wasm-bindgen/index_bg.wasm",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && npm run bindgen && tsc && cp -r ./src/generated/wasm-bindgen ./dist/generated/wasm-bindgen && npm run optimize",
     "test": "vitest run",
-    "test:watch": "vitest watch",
-    "prepublishOnly": "npm run build && npm run optimize"
+    "test:watch": "vitest watch"
   },
   "devDependencies": {
+    "typescript": "^5.9.3",
     "uniffi-bindgen-react-native": "^0.29.3-1",
     "vite": "^7.1.12",
     "vite-plugin-top-level-await": "^1.6.0",
