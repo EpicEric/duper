@@ -1,6 +1,17 @@
-import * as duperFfi from "./index.web";
+export * from "./generated/duper";
+import * as duperFfi from "./generated/duper";
 
-await duperFfi.uniffiInitAsync();
+import initAsync from "./generated/wasm-bindgen/index.js";
+import wasmPath from "./generated/wasm-bindgen/index_bg.wasm";
+
+export async function init() {
+  await initAsync({ module_or_path: wasmPath });
+
+  // Initialize the generated bindings: mostly checksums, but also callbacks.
+  // - the boolean flag ensures this loads exactly once, even if the JS code
+  //   is reloaded (e.g. during development with metro).
+  duperFfi.default.initialize();
+}
 
 /**
  * Duper-specific errors.

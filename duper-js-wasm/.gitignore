@@ -1,4 +1,4 @@
 dist/
 node_modules/
-pkg/
 src/generated/
+src/index.web.ts

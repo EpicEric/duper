@@ -12,9 +12,8 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true,
-    "resolveJsonModule": true
+    "sourceMap": true
   },
   "include": ["src/**/*"],
-  "exclude": ["examples", "tests", "dist", "node_modules"]
+  "exclude": ["src/index.web.ts", "examples", "tests", "dist", "node_modules"]
 }
