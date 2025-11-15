@@ -34,7 +34,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen ../target/wasm32-unknown-unknown/release/duper_js_wasm.wasm --out-dir ./pkg --target bundler",
+    "bindgen": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen ../target/wasm32-unknown-unknown/release/duper_js_wasm.wasm --out-dir ./pkg --target bundler",
     "optimize": "wasm-opt -Os ./pkg/duper_js_wasm_bg.wasm -o ./pkg/duper_js_wasm_bg.wasm",
     "test": "vitest run",
     "test:watch": "vitest watch",

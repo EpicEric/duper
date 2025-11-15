@@ -83,9 +83,9 @@ pub fn parse(input: &str, parse_any: bool) -> Result<DuperValue, DuperError> {
 }
 
 pub struct SerializeOptions {
-    indent: Option<String>,
-    strip_identifiers: bool,
-    minify: bool,
+    pub indent: Option<String>,
+    pub strip_identifiers: bool,
+    pub minify: bool,
 }
 
 pub fn serialize(
