@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-
 use duper::{
     DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTemporal, DuperTuple,
     visitor::DuperVisitor,
 };
 
-use crate::DuperValue;
+use crate::{DuperObjectEntry, DuperValue};
 
 pub(crate) struct UniffiVisitor;
 
@@ -17,9 +15,12 @@ impl DuperVisitor for UniffiVisitor {
         identifier: Option<&DuperIdentifier<'a>>,
         object: &DuperObject<'a>,
     ) -> Self::Value {
-        let mut value = HashMap::with_capacity(object.len());
+        let mut value = Vec::with_capacity(object.len());
         for (key, val) in object.iter() {
-            value.insert(key.as_ref().to_string(), val.accept(self).into());
+            value.push(DuperObjectEntry {
+                key: key.as_ref().to_string(),
+                value: val.accept(self).into(),
+            });
         }
         DuperValue::Object {
             identifier: identifier.map(|identifier| identifier.as_ref().to_string()),

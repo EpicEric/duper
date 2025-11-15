@@ -1345,6 +1345,35 @@ class FfiConverterByteArray : FfiConverterRustBuffer<byte[]>
     }
 }
 
+internal record DuperObjectEntry(string @key, DuperValue @value) { }
+
+class FfiConverterTypeDuperObjectEntry : FfiConverterRustBuffer<DuperObjectEntry>
+{
+    public static FfiConverterTypeDuperObjectEntry INSTANCE =
+        new FfiConverterTypeDuperObjectEntry();
+
+    public override DuperObjectEntry Read(BigEndianStream stream)
+    {
+        return new DuperObjectEntry(
+            @key: FfiConverterString.INSTANCE.Read(stream),
+            @value: FfiConverterTypeDuperValue.INSTANCE.Read(stream)
+        );
+    }
+
+    public override int AllocationSize(DuperObjectEntry value)
+    {
+        return 0
+            + FfiConverterString.INSTANCE.AllocationSize(value.@key)
+            + FfiConverterTypeDuperValue.INSTANCE.AllocationSize(value.@value);
+    }
+
+    public override void Write(DuperObjectEntry value, BigEndianStream stream)
+    {
+        FfiConverterString.INSTANCE.Write(value.@key, stream);
+        FfiConverterTypeDuperValue.INSTANCE.Write(value.@value, stream);
+    }
+}
+
 internal record SerializeOptions(string? @indent, bool @stripIdentifiers, bool @minify) { }
 
 class FfiConverterTypeSerializeOptions : FfiConverterRustBuffer<SerializeOptions>
@@ -1488,8 +1517,7 @@ class FfiConverterTypeDuperError
 
 internal record DuperValue
 {
-    public record Object(string? @identifier, Dictionary<string, DuperValue> @value)
-        : DuperValue { }
+    public record Object(string? @identifier, DuperObjectEntry[] @value) : DuperValue { }
 
     public record Array(string? @identifier, DuperValue[] @value) : DuperValue { }
 
@@ -1522,7 +1550,7 @@ class FfiConverterTypeDuperValue : FfiConverterRustBuffer<DuperValue>
             case 1:
                 return new DuperValue.Object(
                     FfiConverterOptionalString.INSTANCE.Read(stream),
-                    FfiConverterDictionaryStringTypeDuperValue.INSTANCE.Read(stream)
+                    FfiConverterSequenceTypeDuperObjectEntry.INSTANCE.Read(stream)
                 );
             case 2:
                 return new DuperValue.Array(
@@ -1583,7 +1611,7 @@ class FfiConverterTypeDuperValue : FfiConverterRustBuffer<DuperValue>
             case DuperValue.Object variant_value:
                 return 4
                     + FfiConverterOptionalString.INSTANCE.AllocationSize(variant_value.@identifier)
-                    + FfiConverterDictionaryStringTypeDuperValue.INSTANCE.AllocationSize(
+                    + FfiConverterSequenceTypeDuperObjectEntry.INSTANCE.AllocationSize(
                         variant_value.@value
                     );
             case DuperValue.Array variant_value:
@@ -1642,7 +1670,7 @@ class FfiConverterTypeDuperValue : FfiConverterRustBuffer<DuperValue>
             case DuperValue.Object variant_value:
                 stream.WriteInt(1);
                 FfiConverterOptionalString.INSTANCE.Write(variant_value.@identifier, stream);
-                FfiConverterDictionaryStringTypeDuperValue.INSTANCE.Write(
+                FfiConverterSequenceTypeDuperObjectEntry.INSTANCE.Write(
                     variant_value.@value,
                     stream
                 );
@@ -1782,6 +1810,58 @@ class FfiConverterOptionalTypeSerializeOptions : FfiConverterRustBuffer<Serializ
     }
 }
 
+class FfiConverterSequenceTypeDuperObjectEntry : FfiConverterRustBuffer<DuperObjectEntry[]>
+{
+    public static FfiConverterSequenceTypeDuperObjectEntry INSTANCE =
+        new FfiConverterSequenceTypeDuperObjectEntry();
+
+    public override DuperObjectEntry[] Read(BigEndianStream stream)
+    {
+        var length = stream.ReadInt();
+        if (length == 0)
+        {
+            return [];
+        }
+
+        var result = new DuperObjectEntry[(length)];
+        var readFn = FfiConverterTypeDuperObjectEntry.INSTANCE.Read;
+        for (int i = 0; i < length; i++)
+        {
+            result[i] = readFn(stream);
+        }
+        return result;
+    }
+
+    public override int AllocationSize(DuperObjectEntry[] value)
+    {
+        var sizeForLength = 4;
+
+        // details/1-empty-list-as-default-method-parameter.md
+        if (value == null)
+        {
+            return sizeForLength;
+        }
+
+        var allocationSizeFn = FfiConverterTypeDuperObjectEntry.INSTANCE.AllocationSize;
+        var sizeForItems = value.Sum(item => allocationSizeFn(item));
+        return sizeForLength + sizeForItems;
+    }
+
+    public override void Write(DuperObjectEntry[] value, BigEndianStream stream)
+    {
+        // details/1-empty-list-as-default-method-parameter.md
+        if (value == null)
+        {
+            stream.WriteInt(0);
+            return;
+        }
+
+        stream.WriteInt(value.Length);
+        var writerFn = FfiConverterTypeDuperObjectEntry.INSTANCE.Write;
+        value.ForEach(item => writerFn(item, stream));
+    }
+}
+
 class FfiConverterSequenceTypeDuperValue : FfiConverterRustBuffer<DuperValue[]>
 {
     public static FfiConverterSequenceTypeDuperValue INSTANCE =
@@ -1831,66 +1911,6 @@ class FfiConverterSequenceTypeDuperValue : FfiConverterRustBuffer<DuperValue[]>
         stream.WriteInt(value.Length);
         var writerFn = FfiConverterTypeDuperValue.INSTANCE.Write;
         value.ForEach(item => writerFn(item, stream));
-    }
-}
-
-class FfiConverterDictionaryStringTypeDuperValue
-    : FfiConverterRustBuffer<Dictionary<string, DuperValue>>
-{
-    public static FfiConverterDictionaryStringTypeDuperValue INSTANCE =
-        new FfiConverterDictionaryStringTypeDuperValue();
-
-    public override Dictionary<string, DuperValue> Read(BigEndianStream stream)
-    {
-        var len = stream.ReadInt();
-        var result = new Dictionary<string, DuperValue>(len);
-        var readerKey = FfiConverterString.INSTANCE.Read;
-        var readerValue = FfiConverterTypeDuperValue.INSTANCE.Read;
-        for (int i = 0; i < len; i++)
-        {
-            var key = readerKey(stream);
-            var value = readerValue(stream);
-            result[key] = value;
-        }
-
-        return result;
-    }
-
-    public override int AllocationSize(Dictionary<string, DuperValue> value)
-    {
-        var sizeForLength = 4;
-
-        // details/1-empty-list-as-default-method-parameter.md
-        if (value == null)
-        {
-            return sizeForLength;
-        }
-
-        var allocationKeySizeFn = FfiConverterString.INSTANCE.AllocationSize;
-        var allocationKValueSizeFn = FfiConverterTypeDuperValue.INSTANCE.AllocationSize;
-        var sizeForItems = value.Sum(item =>
-            allocationKeySizeFn(item.Key) + allocationKValueSizeFn(item.Value)
-        );
-        return sizeForLength + sizeForItems;
-    }
-
-    public override void Write(Dictionary<string, DuperValue> value, BigEndianStream stream)
-    {
-        // details/1-empty-list-as-default-method-parameter.md
-        if (value == null)
-        {
-            stream.WriteInt(0);
-            return;
-        }
-
-        stream.WriteInt(value.Count);
-        var writerKey = FfiConverterString.INSTANCE.Write;
-        var writerValue = FfiConverterTypeDuperValue.INSTANCE.Write;
-        foreach (var item in value)
-        {
-            writerKey(item.Key, stream);
-            writerValue(item.Value, stream);
-        }
     }
 }
 #pragma warning restore 8625

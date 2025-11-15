@@ -72,7 +72,7 @@ public class DuperSerializer
         var addMethod = concreteType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for Dictionary");
         foreach (var item in obj.value)
         {
-          addMethod.Invoke(dict, [item.Key, DeserializeInner(item.Value, valueType)]);
+          addMethod.Invoke(dict, [item.key, DeserializeInner(item.value, valueType)]);
         }
         return dict;
       }
@@ -93,13 +93,18 @@ public class DuperSerializer
           var addMethod = interfaceType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for IDictionary");
           foreach (var item in obj.value)
           {
-            addMethod.Invoke(dict, [item.Key, DeserializeInner(item.Value, valueType)]);
+            addMethod.Invoke(dict, [item.key, DeserializeInner(item.value, valueType)]);
           }
           return dict;
         }
       }
       // Create class instance
       object instance = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
+      Dictionary<string, DuperValue> classFields = new(obj.value.Length);
+      foreach (var entry in obj.value)
+      {
+        classFields.Add(entry.key, entry.value);
+      }
       foreach (var field in t.GetFields())
       {
         string key = field.Name;
@@ -115,7 +120,7 @@ public class DuperSerializer
             break;
           }
         }
-        var item = obj.value[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
+        var item = classFields[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
         field.SetValue(instance, DeserializeInner(item, field.FieldType));
       }
       foreach (var prop in t.GetProperties())
@@ -133,7 +138,7 @@ public class DuperSerializer
             break;
           }
         }
-        var item = obj.value[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
+        var item = classFields[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
         prop.SetValue(instance, DeserializeInner(item, prop.PropertyType));
       }
       return instance;
@@ -571,13 +576,13 @@ public class DuperSerializer
         throw new ApplicationException($"Cannot serialize dictionary with non-string keys to Duper");
       }
       Type valueType = generics[1];
-      Dictionary<string, DuperValue> objValue = [];
       IDictionary valueDict = (value as IDictionary) ?? throw new ApplicationException("IDictionary cast shouldn't fail");
+      List<DuperObjectEntry> objValue = new(valueDict.Count);
       foreach (var key in valueDict.Keys)
       {
-        objValue[(string)key] = SerializeInner(valueDict[key], valueType, null);
+        objValue.Add(new DuperObjectEntry((string)key, SerializeInner(valueDict[key], valueType, null)));
       }
-      return new DuperValue.Object(identifier, objValue);
+      return new DuperValue.Object(identifier, [.. objValue]);
     }
 
     Type? iformattable = null;
@@ -607,13 +612,13 @@ public class DuperSerializer
           throw new ApplicationException($"Cannot serialize dictionary with non-string keys to Duper");
         }
         Type valueType = generics[1];
-        Dictionary<string, DuperValue> objValue = [];
-        System.Collections.IDictionary valueDict = (value as System.Collections.IDictionary) ?? throw new ApplicationException("IDictionary cast shouldn't fail");
+        IDictionary valueDict = (value as IDictionary) ?? throw new ApplicationException("IDictionary cast shouldn't fail");
+        List<DuperObjectEntry> objValue = new(valueDict.Count);
         foreach (var key in valueDict.Keys)
         {
-          objValue[(string)key] = SerializeInner(valueDict[key], valueType, null);
+          objValue.Add(new DuperObjectEntry((string)key, SerializeInner(valueDict[key], valueType, null)));
         }
-        return new DuperValue.Object(identifier, objValue);
+        return new DuperValue.Object(identifier, [.. objValue]);
       }
       else if (interfaceType == typeof(IFormattable))
       {
@@ -632,7 +637,7 @@ public class DuperSerializer
       }
     }
 
-    Dictionary<string, DuperValue> classDict = [];
+    List<DuperObjectEntry> classDict = [];
 
     foreach (var field in t.GetFields())
     {
@@ -651,7 +656,7 @@ public class DuperSerializer
           break;
         }
       }
-      classDict[key] = SerializeInner(field.GetValue(value), field.FieldType, fieldIdentifier);
+      classDict.Add(new DuperObjectEntry(key, SerializeInner(field.GetValue(value), field.FieldType, fieldIdentifier)));
     }
 
     foreach (var prop in t.GetProperties())
@@ -671,10 +676,10 @@ public class DuperSerializer
           break;
         }
       }
-      classDict[key] = SerializeInner(prop.GetValue(value), prop.PropertyType, propIdentifier);
+      classDict.Add(new DuperObjectEntry(key, SerializeInner(prop.GetValue(value), prop.PropertyType, propIdentifier)));
     }
 
-    return new DuperValue.Object(identifier, classDict);
+    return new DuperValue.Object(identifier, [.. classDict]);
   }
 
   private static string FormatViaGeneric<T>(T value) where T : IFormattable

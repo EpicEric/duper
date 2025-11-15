@@ -1,6 +1,6 @@
 [Enum]
 interface DuperValue {
-  Object(string? identifier, record<string, DuperValue> value);
+  Object(string? identifier, sequence<DuperObjectEntry> value);
   Array(string? identifier, sequence<DuperValue> value);
   Tuple(string? identifier, sequence<DuperValue> value);
   String(string? identifier, string value);
@@ -10,6 +10,11 @@ interface DuperValue {
   Float(string? identifier, double value);
   Boolean(string? identifier, boolean value);
   Null(string? identifier);
+};
+
+dictionary DuperObjectEntry {
+  string key;
+  DuperValue value;
 };
 
 [Error]

@@ -5,7 +5,7 @@ use duper::{
     DuperTemporal, DuperTuple, DuperValue,
 };
 
-use crate::{DuperError, DuperValue as Value};
+use crate::{DuperError, DuperObjectEntry, DuperValue as Value};
 
 impl Value {
     pub(crate) fn serialize(self) -> Result<DuperValue<'static>, DuperError> {
@@ -17,7 +17,9 @@ impl Value {
                 inner: DuperInner::Object(DuperObject::try_from(
                     value
                         .into_iter()
-                        .map(|(key, val)| val.serialize().map(|val| (DuperKey::from(key), val)))
+                        .map(|DuperObjectEntry { key, value }| {
+                            value.serialize().map(|val| (DuperKey::from(key), val))
+                        })
                         .collect::<Result<Vec<_>, _>>()?,
                 )?),
             }),

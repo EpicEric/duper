@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use duper::{
     DuperIdentifierTryFromError, DuperObjectTryFromError, DuperParser, DuperTemporalTryFromError,
     PrettyPrinter, Serializer,
@@ -10,10 +8,15 @@ use crate::parse::UniffiVisitor;
 mod parse;
 mod serialize;
 
+pub struct DuperObjectEntry {
+    pub key: String,
+    pub value: DuperValue,
+}
+
 pub enum DuperValue {
     Object {
         identifier: Option<String>,
-        value: HashMap<String, DuperValue>,
+        value: Vec<DuperObjectEntry>,
     },
     Array {
         identifier: Option<String>,
@@ -89,7 +92,6 @@ pub fn serialize(
     value: DuperValue,
     options: Option<SerializeOptions>,
 ) -> Result<String, DuperError> {
-    let value = value.serialize()?;
     let SerializeOptions {
         indent,
         strip_identifiers,
@@ -107,10 +109,10 @@ pub fn serialize(
         } else {
             Ok(PrettyPrinter::new(strip_identifiers, indent.as_ref())
                 .map_err(DuperError::SerializeOptions)?
-                .pretty_print(value))
+                .pretty_print(value.serialize()?))
         }
     } else {
-        Ok(Serializer::new(strip_identifiers, minify).serialize(value))
+        Ok(Serializer::new(strip_identifiers, minify).serialize(value.serialize()?))
     }
 }
 
