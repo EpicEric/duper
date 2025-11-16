@@ -9,5 +9,5 @@ export default {
     format: "esm",
     sourcemap: true,
   },
-  plugins: [typescript(), wasm(), terser()],
+  plugins: [typescript(), wasm({ maxFileSize: 100_000_000 }), terser()],
 };

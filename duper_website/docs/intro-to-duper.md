@@ -83,7 +83,7 @@ We can get rid of the quotes for simple keys, use trailing commas, and include c
   },
   image_thumbnail: b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=",
   tags: ["electronics", "audio", "wireless"],
-  release_date: "2023-11-15",
+  release_date: '2023-11-15',
   /* Warranty is optional */
   warranty_period: null,
   customer_ratings: {
@@ -115,7 +115,7 @@ Product({
   },
   image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
   tags: ["electronics", "audio", "wireless"],
-  release_date: Date("2023-11-15"),
+  release_date: PlainDate('2023-11-15'),
   /* Warranty is optional */
   warranty_period: null,
   customer_ratings: {
