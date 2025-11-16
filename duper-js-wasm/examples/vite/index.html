@@ -6,8 +6,7 @@
   </head>
   <body>
     <script type="module">
-      import init, { parse, stringify, DuperValue } from "@duper-js/wasm";
-      await init();
+      import { parse, stringify, DuperValue } from "@duper-js/wasm";
 
       // Parse some input
       const input = `
@@ -26,7 +25,7 @@
           },
           image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
           tags: ["electronics", "audio", "wireless"],
-          release_date: Date("2023-11-15"),
+          release_date: PlainDate('2023-11-15'),
           /* Warranty is optional */
           warranty_period: null,
           customer_ratings: {
@@ -39,21 +38,21 @@
       `;
       const duper = parse(input);
       console.log(duper.identifier); // Product
-      console.log(duper.inner.in_stock.type); // boolean
+      console.log(duper.value.in_stock.type); // boolean
 
       // Convert to JSON
       console.log(JSON.stringify(duper));
 
       // Patch the Duper value and pretty-print it
-      const newTags = [
-        new DuperValue("music"),
-        new DuperValue("hi-fi", "DeprecatedTag", "string"),
-      ];
-      duper.inner.tags.setValue(newTags, "tuple");
-      duper.inner.image_thumbnail.identifier = null;
-      duper.inner.weight.identifier = "Pounds";
-      delete duper.inner.dimensions;
-      duper.inner.test = new DuperValue({ foo: new DuperValue("bar") });
+      const newTags = DuperValue.Tuple([
+        DuperValue.String("music"),
+        DuperValue.String("hi-fi", "DeprecatedTag"),
+      ]);
+      duper.value.tags = newTags;
+      duper.value.image_thumbnail.identifier = null;
+      duper.value.weight.identifier = "Pounds";
+      delete duper.value.dimensions;
+      duper.value.test = DuperValue.Object({ foo: DuperValue.String("bar") });
       console.log(stringify(duper, { indent: "  " }));
     </script>
   </body>
