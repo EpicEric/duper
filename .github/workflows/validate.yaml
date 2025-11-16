@@ -33,7 +33,7 @@ jobs:
           rustup component add rustfmt
       - name: Run rustfmt
         run: |
-          cargo fmt --check --all
+          cargo fmt --check -p axum_duper -p duper -p duper_uniffi -p duper-python -p serde_duper -p serde_duper_macros
   ruff:
     name: Check Ruff formatting on minimum Python version
     runs-on: ubuntu-latest
@@ -144,11 +144,16 @@ jobs:
         uses: taiki-e/install-action@a24ba45235ed716ff76646268742990dc9458860 # v2.62.42
         with:
           tool: wasm-bindgen
+      - name: Cache Node dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ./duper-js-wasm/node_modules
+          key: ${{ runner.os }}-wasm-dependencies
       - name: Install Node dependencies and build WASM
         working-directory: ./duper-js-wasm
         run: |
           npm install
-          npm run build
+          npm run build:ci
       - name: Test with Vitest
         working-directory: ./duper-js-wasm
         run: |
