@@ -1,8 +1,9 @@
-import init from "./generated/wasm-bindgen/index";
-import wasmPath from "./generated/wasm-bindgen/index_bg.wasm";
+import { initSync } from "./generated/wasm-bindgen/index";
+import wasmModule from "./generated/wasm-bindgen/index_bg.wasm";
 import * as duperFfi from "./generated/duper";
 
-await init({ module_or_path: await (wasmPath as any)() });
+initSync({ module: wasmModule });
+duperFfi.default.initialize();
 
 /**
  * Duper-specific errors.
