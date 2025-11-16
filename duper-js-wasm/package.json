@@ -31,8 +31,8 @@
     "optimize": "wasm-opt -Os ./src/generated/wasm-bindgen/index_bg.wasm -o ./src/generated/wasm-bindgen/index_bg.wasm",
     "clean": "rm -rf dist",
     "build": "npm run clean && npm run bindgen && npm run optimize && rollup -c",
-    "test": "vitest run",
-    "test:watch": "vitest watch"
+    "build:ci": "npm run clean && npm run bindgen && rollup -c",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@rollup/plugin-terser": "^0.4.4",
