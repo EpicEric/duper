@@ -3,5 +3,6 @@ Cargo.lock
 vitest.config.ts
 src/
 examples/
+rust/
 tests/
 .gitignore

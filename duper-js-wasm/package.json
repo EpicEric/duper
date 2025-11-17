@@ -30,13 +30,13 @@
     "bindgen": "uniffi-bindgen-react-native build web",
     "optimize": "wasm-opt -Os ./src/generated/wasm-bindgen/index_bg.wasm -o ./src/generated/wasm-bindgen/index_bg.wasm",
     "clean": "rm -rf dist",
-    "build": "npm run clean && npm run bindgen && npm run optimize && node esbuild.js && tsc",
-    "build:ci": "npm run clean && npm run bindgen && node esbuild.js && tsc",
+    "bundle": "node esbuild.js && tsc && cp -r ./src/generated/wasm-bindgen ./dist/generated/wasm-bindgen && sed -i 's/.\\/wasm-bindgen/.\\/generated\\/wasm-bindgen/' ./dist/index.js",
+    "build": "npm run clean && npm run bindgen && npm run optimize && npm run bundle",
+    "build:ci": "npm run clean && npm run bindgen && npm run bundle",
     "test": "vitest run"
   },
   "devDependencies": {
     "esbuild": "^0.27.0",
-    "esbuild-plugin-wasm": "^1.1.0",
     "typescript": "^5.9.3",
     "uniffi-bindgen-react-native": "^0.29.3-1",
     "vite": "^7.1.12",
