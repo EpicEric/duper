@@ -7,4 +7,9 @@ export default defineConfig({
     wasm(),
     topLevelAwait()
   ],
+  server: {
+    fs: {
+      allow: ['../..'],
+    },
+  }
 });

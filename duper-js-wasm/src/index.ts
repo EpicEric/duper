@@ -1,8 +1,5 @@
-import { initSync } from "./generated/wasm-bindgen/index";
-import wasmModule from "./generated/wasm-bindgen/index_bg.wasm";
 import * as duperFfi from "./generated/duper";
 
-initSync({ module: wasmModule });
 duperFfi.default.initialize();
 
 /**
