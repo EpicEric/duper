@@ -170,7 +170,7 @@ public class DuperSerializer
           return constructor.Invoke(tupleObjects);
         }
       }
-      else if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IList<>))
+      else if (t.IsGenericType && (t.GetGenericTypeDefinition() == typeof(IEnumerable<>) || t.GetGenericTypeDefinition() == typeof(IList<>)))
       {
         Type itemType = t.GetGenericArguments().Single();
         var concreteType = typeof(List<>).MakeGenericType(t.GetGenericArguments());
@@ -240,7 +240,7 @@ public class DuperSerializer
           return constructor.Invoke(tupleObjects);
         }
       }
-      else if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IList<>))
+      else if (t.IsGenericType && (t.GetGenericTypeDefinition() == typeof(IEnumerable<>) || t.GetGenericTypeDefinition() == typeof(IList<>)))
       {
         Type itemType = t.GetGenericArguments().Single();
         var concreteType = typeof(List<>).MakeGenericType(t.GetGenericArguments());
@@ -584,6 +584,17 @@ public class DuperSerializer
       }
       return new DuperValue.Object(identifier, [.. objValue]);
     }
+    else if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+    {
+      Type itemType = t.GetGenericArguments().Single();
+      IEnumerable valueEnumerable = (value as IEnumerable) ?? throw new ApplicationException("IEnumerable cast shouldn't fail");
+      List<DuperValue> arrayValue = [];
+      foreach (var element in valueEnumerable)
+      {
+        arrayValue.Add(SerializeInner(element, itemType, null));
+      }
+      return new DuperValue.Array(identifier, [.. arrayValue]);
+    }
 
     Type? iformattable = null;
     foreach (Type interfaceType in t.GetInterfaces())
@@ -593,7 +604,7 @@ public class DuperSerializer
           == typeof(IList<>))
       {
         Type itemType = interfaceType.GetGenericArguments().Single();
-        System.Collections.IList valueList = (value as System.Collections.IList) ?? throw new ApplicationException("IList cast shouldn't fail");
+        IList valueList = (value as IList) ?? throw new ApplicationException("IList cast shouldn't fail");
         DuperValue[] arrayValue = new DuperValue[valueList.Count];
         for (int i = 0; i < valueList.Count; i++)
         {
@@ -619,6 +630,19 @@ public class DuperSerializer
           objValue.Add(new DuperObjectEntry((string)key, SerializeInner(valueDict[key], valueType, null)));
         }
         return new DuperValue.Object(identifier, [.. objValue]);
+      }
+      else if (interfaceType.IsGenericType &&
+          interfaceType.GetGenericTypeDefinition()
+          == typeof(IEnumerable<>))
+      {
+        Type itemType = t.GetGenericArguments().Single();
+        IEnumerable valueEnumerable = (value as IEnumerable) ?? throw new ApplicationException("IEnumerable cast shouldn't fail");
+        List<DuperValue> arrayValue = [];
+        foreach (var element in valueEnumerable)
+        {
+          arrayValue.Add(SerializeInner(element, itemType, null));
+        }
+        return new DuperValue.Array(identifier, [.. arrayValue]);
       }
       else if (interfaceType == typeof(IFormattable))
       {
