@@ -777,6 +777,15 @@ mod duper_parser_tests {
         ));
 
         let input = r#"
+            '2020-05-22[u-ca=hebrew]'
+        "#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(
+            duper.inner,
+            DuperInner::Temporal(DuperTemporal::Unspecified(_))
+        ));
+
+        let input = r#"
             PlainTimeDate('2022-11-09')  // Non-recognized identifier
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();

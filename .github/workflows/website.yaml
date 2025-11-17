@@ -55,7 +55,7 @@ jobs:
         run: |
           npm install
           npm run wasm:build
-          npm run wasm:package
+          npm run wasm:bindgen
           ../binaryen/bin/wasm-opt -Os ./pkg/duper_website_bg.wasm -o ./pkg/duper_website_bg.wasm
           npm run build
       - name: Upload artifact
