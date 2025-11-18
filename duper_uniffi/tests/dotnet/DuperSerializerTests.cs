@@ -238,7 +238,7 @@ public class DuperSerializerTests
         {
           0 => X,
           1 => Y,
-          _ => throw new ArgumentOutOfRangeException("index"),
+          _ => throw new ArgumentOutOfRangeException(nameof(index)),
         };
       }
       set
