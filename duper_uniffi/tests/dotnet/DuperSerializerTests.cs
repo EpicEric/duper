@@ -216,4 +216,63 @@ public class DuperSerializerTests
     Assert.Contains(@"last_logins: [(""192.168.1.100"", Instant('2024-03-20T14:30:00.0000000+00:00'))]", serialized);
     Assert.Equal(388, serialized.Length);
   }
+
+  public struct Vector2
+  {
+    public enum Axis
+    {
+      X,
+      Y
+    }
+
+    public float X;
+    public float Y;
+
+    private static readonly Vector2 _zero = new(0f, 0f);
+
+    public float this[int index]
+    {
+      readonly get
+      {
+        return index switch
+        {
+          0 => X,
+          1 => Y,
+          _ => throw new ArgumentOutOfRangeException("index"),
+        };
+      }
+      set
+      {
+        switch (index)
+        {
+          case 0:
+            X = value;
+            break;
+          case 1:
+            Y = value;
+            break;
+          default:
+            throw new ArgumentOutOfRangeException("index");
+        }
+      }
+    }
+
+    public static Vector2 Zero => _zero;
+
+    public Vector2(float x, float y)
+    {
+      X = x;
+      Y = y;
+    }
+  }
+
+  [Fact]
+  public void DuperSerializer_Vector2()
+  {
+    string serialized = DuperSerializer.Serialize(new Vector2(1f, 2f));
+    Assert.Equal("{X: 1.0, Y: 2.0}", serialized);
+
+    Vector2? deserialized = DuperSerializer.Deserialize<Vector2>("{Y: 3.0, X: 0.5}");
+    Assert.Equal(new Vector2(0.5f, 3f), deserialized);
+  }
 }

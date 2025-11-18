@@ -2,6 +2,7 @@
 
 using System.Collections;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Ffi;
 
 public class DuperSerializer
@@ -70,7 +71,7 @@ public class DuperSerializer
         var concreteType = typeof(Dictionary<,>).MakeGenericType(generics);
         var dict = Activator.CreateInstance(concreteType) ?? throw new ApplicationException("No constructor found for Dictionary");
         var addMethod = concreteType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for Dictionary");
-        foreach (var item in obj.value)
+        foreach (DuperObjectEntry item in obj.value)
         {
           addMethod.Invoke(dict, [item.key, DeserializeInner(item.value, valueType)]);
         }
@@ -91,7 +92,7 @@ public class DuperSerializer
           Type valueType = generics[1];
           var dict = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
           var addMethod = interfaceType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for IDictionary");
-          foreach (var item in obj.value)
+          foreach (DuperObjectEntry item in obj.value)
           {
             addMethod.Invoke(dict, [item.key, DeserializeInner(item.value, valueType)]);
           }
@@ -100,12 +101,12 @@ public class DuperSerializer
       }
       // Create class instance
       Dictionary<string, DuperValue> classFields = new(obj.value.Length);
-      foreach (var entry in obj.value)
+      foreach (DuperObjectEntry entry in obj.value)
       {
         classFields.Add(entry.key, entry.value);
       }
       ConstructorInfo? parameterlessConstructor = null;
-      foreach (var constructor in t.GetConstructors())
+      foreach (ConstructorInfo constructor in t.GetConstructors())
       {
         var parameters = constructor.GetParameters();
         if (parameters.Length == 0)
@@ -117,7 +118,7 @@ public class DuperSerializer
           try
           {
             List<object?> paramArray = new(parameters.Length);
-            foreach (var param in parameters)
+            foreach (ParameterInfo param in parameters)
             {
               string? key = param.Name;
               Attribute[] attrs = Attribute.GetCustomAttributes(param);
@@ -150,7 +151,7 @@ public class DuperSerializer
       if (parameterlessConstructor != null)
       {
         object instance = parameterlessConstructor.Invoke([]);
-        foreach (var field in t.GetFields())
+        foreach (FieldInfo field in t.GetFields())
         {
           string key = field.Name;
           Attribute[] attrs = Attribute.GetCustomAttributes(field);
@@ -165,10 +166,10 @@ public class DuperSerializer
               break;
             }
           }
-          var item = classFields[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
+          var item = classFields[key];
           field.SetValue(instance, DeserializeInner(item, field.FieldType));
         }
-        foreach (var prop in t.GetProperties())
+        foreach (PropertyInfo prop in t.GetProperties())
         {
           string key = prop.Name;
           Attribute[] attrs = Attribute.GetCustomAttributes(prop);
@@ -183,11 +184,36 @@ public class DuperSerializer
               break;
             }
           }
-          var item = classFields[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
+          var item = classFields[key];
           prop.SetValue(instance, DeserializeInner(item, prop.PropertyType));
         }
         return instance;
       }
+      // Last resort: create uninitialized object and fill its fields
+      try
+      {
+        object instance = RuntimeHelpers.GetUninitializedObject(t);
+        foreach (FieldInfo field in t.GetFields())
+        {
+          string key = field.Name;
+          Attribute[] attrs = Attribute.GetCustomAttributes(field);
+          foreach (Attribute attr in attrs)
+          {
+            if (attr is DuperAttribute a)
+            {
+              if (a.Key != null)
+              {
+                key = a.Key;
+              }
+              break;
+            }
+          }
+          var item = classFields[key];
+          field.SetValue(instance, DeserializeInner(item, field.FieldType));  // WIP
+        }
+        return instance;
+      }
+      catch { }
       throw new ApplicationException($"No valid constructors found for {t}");
     }
 
@@ -223,7 +249,7 @@ public class DuperSerializer
         var concreteType = typeof(List<>).MakeGenericType(t.GetGenericArguments());
         var list = Activator.CreateInstance(concreteType) ?? throw new ApplicationException("No constructor found for List");
         var addMethod = concreteType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for List");
-        foreach (var item in array.value)
+        foreach (DuperValue item in array.value)
         {
           addMethod.Invoke(list, [DeserializeInner(item, itemType)]);
         }
@@ -235,7 +261,7 @@ public class DuperSerializer
         var arrayListType = typeof(List<>).MakeGenericType([itemType]);
         var arrayList = Activator.CreateInstance(arrayListType) ?? throw new ApplicationException("No constructor found for List");
         var addMethod = arrayListType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for List");
-        foreach (var item in array.value)
+        foreach (DuperValue item in array.value)
         {
           addMethod.Invoke(arrayList, [DeserializeInner(item, itemType)]);
         }
@@ -251,7 +277,7 @@ public class DuperSerializer
           Type itemType = interfaceType.GetGenericArguments().Single();
           var list = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
           var ilist = (list as IList) ?? throw new ApplicationException("IList cast shouldn't fail");
-          foreach (var item in array.value)
+          foreach (DuperValue item in array.value)
           {
             ilist.Add(DeserializeInner(item, itemType));
           }
@@ -293,7 +319,7 @@ public class DuperSerializer
         var concreteType = typeof(List<>).MakeGenericType(t.GetGenericArguments());
         var list = Activator.CreateInstance(concreteType) ?? throw new ApplicationException("No constructor found for List");
         var addMethod = concreteType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for List");
-        foreach (var item in tuple.value)
+        foreach (DuperValue item in tuple.value)
         {
           addMethod.Invoke(list, [DeserializeInner(item, itemType)]);
         }
@@ -305,7 +331,7 @@ public class DuperSerializer
         var arrayListType = typeof(List<>).MakeGenericType([itemType]);
         var arrayList = Activator.CreateInstance(arrayListType) ?? throw new ApplicationException("No constructor found for List");
         var addMethod = arrayListType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for List");
-        foreach (var item in tuple.value)
+        foreach (DuperValue item in tuple.value)
         {
           addMethod.Invoke(arrayList, [DeserializeInner(item, itemType)]);
         }
@@ -321,7 +347,7 @@ public class DuperSerializer
           Type itemType = interfaceType.GetGenericArguments().Single();
           var list = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
           var ilist = (list as IList) ?? throw new ApplicationException("IList cast shouldn't fail");
-          foreach (var item in tuple.value)
+          foreach (DuperValue item in tuple.value)
           {
             ilist.Add(DeserializeInner(item, itemType));
           }
@@ -708,13 +734,13 @@ public class DuperSerializer
       }
     }
 
-    List<DuperObjectEntry> classDict = [];
+    List<DuperObjectEntry> classEntries = [];
     Dictionary<string, DuperAttribute> duperAttributes = [];
 
     // Records: Check for Duper attribute in constructor parameters
-    foreach (var constructor in t.GetConstructors())
+    foreach (ConstructorInfo constructor in t.GetConstructors())
     {
-      foreach (var parameter in constructor.GetParameters())
+      foreach (ParameterInfo parameter in constructor.GetParameters())
       {
         string? name = parameter.Name;
         if (name == null)
@@ -733,12 +759,11 @@ public class DuperSerializer
       }
     }
 
-    foreach (var field in t.GetFields())
+    foreach (FieldInfo field in t.GetFields())
     {
       string key = field.Name;
       string? fieldIdentifier = null;
-      duperAttributes.TryGetValue(field.Name, out DuperAttribute? duperAttribute);
-      if (duperAttribute != null)
+      if (duperAttributes.TryGetValue(field.Name, out DuperAttribute? duperAttribute))
       {
         fieldIdentifier = duperAttribute.Identifier;
         if (duperAttribute.Key != null)
@@ -759,15 +784,24 @@ public class DuperSerializer
           break;
         }
       }
-      classDict.Add(new DuperObjectEntry(key, SerializeInner(field.GetValue(value), field.FieldType, fieldIdentifier)));
+      classEntries.Add(new DuperObjectEntry(key, SerializeInner(field.GetValue(value), field.FieldType, fieldIdentifier)));
     }
 
-    foreach (var prop in t.GetProperties())
+    foreach (PropertyInfo prop in t.GetProperties())
     {
+      if (prop.GetIndexParameters().Length > 0)
+      {
+        continue;
+      }
+      // Simple check to prevent infinite recursion
+      // TO-DO: Improve this check
+      if (prop.PropertyType == t)
+      {
+        continue;
+      }
       string key = prop.Name;
       string? propIdentifier = null;
-      duperAttributes.TryGetValue(prop.Name, out DuperAttribute? duperAttribute);
-      if (duperAttribute != null)
+      if (duperAttributes.TryGetValue(prop.Name, out DuperAttribute? duperAttribute))
       {
         propIdentifier = duperAttribute.Identifier;
         if (duperAttribute.Key != null)
@@ -788,10 +822,10 @@ public class DuperSerializer
           break;
         }
       }
-      classDict.Add(new DuperObjectEntry(key, SerializeInner(prop.GetValue(value), prop.PropertyType, propIdentifier)));
+      classEntries.Add(new DuperObjectEntry(key, SerializeInner(prop.GetValue(value), prop.PropertyType, propIdentifier)));
     }
 
-    return new DuperValue.Object(identifier, [.. classDict]);
+    return new DuperValue.Object(identifier, [.. classEntries]);
   }
 
   private static string FormatViaGeneric<T>(T value) where T : IFormattable
