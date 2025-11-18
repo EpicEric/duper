@@ -96,6 +96,9 @@ public class DuperSerializerTests
     Assert.Equal([true, false], output3);
     List<byte[]?>? output4 = DuperSerializer.Deserialize<List<byte[]?>>(@"(b""a"", null)");
     Assert.Equal([[0x61], null], output4);
+    IEnumerable<string>? output5 = DuperSerializer.Deserialize<IEnumerable<string>>(@"(""foo"", ""bar"")");
+    Assert.NotNull(output5);
+    Assert.Equal(["foo", "bar"], output5);
 
     Assert.Equal(@"(""hello"", null)", DuperSerializer.Serialize<(string, object?)>(("hello", null)));
   }
@@ -111,11 +114,17 @@ public class DuperSerializerTests
     Assert.Equal([true, false], output3);
     List<byte[]?>? output4 = DuperSerializer.Deserialize<List<byte[]?>>(@"[b""a"", null]");
     Assert.Equal([[0x61], null], output4);
+    IEnumerable<string>? output5 = DuperSerializer.Deserialize<IEnumerable<string>>(@"[""foo"", ""bar""]");
+    Assert.NotNull(output5);
+    Assert.Equal(["foo", "bar"], output5);
 
     Assert.Equal("[12, 34]", DuperSerializer.Serialize<int[]>([12, 34]));
     Assert.Equal("[true, false]", DuperSerializer.Serialize<IList<bool>>([true, false]));
     Assert.Equal(@"[b""a"", null]", DuperSerializer.Serialize<List<byte[]?>>([[0x61], null]));
+    Assert.Equal(@"[""foo"", ""bar""]", DuperSerializer.Serialize<IEnumerable<string>>(["foo", "bar"]));
   }
+
+  public record Person(string FirstName, [Duper(Key = "last_name")] string LastName);
 
   [Fact]
   public void DuperSerializer_Object()
@@ -124,9 +133,12 @@ public class DuperSerializerTests
     Assert.Equivalent(new Dictionary<string, int?[]>() { { "hello", [null, 14] } }, output);
     Dictionary<string, (bool, string)>? output2 = DuperSerializer.Deserialize<Dictionary<string, (bool, string)>>(@"{""super duper"": (true, ""cool"")}");
     Assert.Equivalent(new Dictionary<string, (bool, string)>() { { "super duper", (true, "cool") } }, output2);
+    Person? output3 = DuperSerializer.Deserialize<Person>(@"{""FirstName"": ""John"", ""last_name"": ""Doe""}");
+    Assert.Equal(new Person("John", "Doe"), output3);
 
     Assert.Equal(@"{hello: [null, 14]}", DuperSerializer.Serialize(new Dictionary<string, int?[]>() { { "hello", [null, 14] } }));
     Assert.Equal(@"{""super duper"": (true, ""cool"")}", DuperSerializer.Serialize(new Dictionary<string, (bool, string)>() { { "super duper", (true, "cool") } }));
+    Assert.Equal(@"{FirstName: ""John"", last_name: ""Doe""}", DuperSerializer.Serialize(new Person("John", "Doe")));
   }
 
   [Duper("UserProfile")]
@@ -203,5 +215,64 @@ public class DuperSerializerTests
     Assert.Contains(@"bio: r#""Hello! I'm a super ""duper"" user!""#", serialized);
     Assert.Contains(@"last_logins: [(""192.168.1.100"", Instant('2024-03-20T14:30:00.0000000+00:00'))]", serialized);
     Assert.Equal(388, serialized.Length);
+  }
+
+  public struct Vector2
+  {
+    public enum Axis
+    {
+      X,
+      Y
+    }
+
+    public float X;
+    public float Y;
+
+    private static readonly Vector2 _zero = new(0f, 0f);
+
+    public float this[int index]
+    {
+      readonly get
+      {
+        return index switch
+        {
+          0 => X,
+          1 => Y,
+          _ => throw new ArgumentOutOfRangeException(nameof(index)),
+        };
+      }
+      set
+      {
+        switch (index)
+        {
+          case 0:
+            X = value;
+            break;
+          case 1:
+            Y = value;
+            break;
+          default:
+            throw new ArgumentOutOfRangeException("index");
+        }
+      }
+    }
+
+    public static Vector2 Zero => _zero;
+
+    public Vector2(float x, float y)
+    {
+      X = x;
+      Y = y;
+    }
+  }
+
+  [Fact]
+  public void DuperSerializer_Vector2()
+  {
+    string serialized = DuperSerializer.Serialize(new Vector2(1f, 2f));
+    Assert.Equal("{X: 1.0, Y: 2.0}", serialized);
+
+    Vector2? deserialized = DuperSerializer.Deserialize<Vector2>("{Y: 3.0, X: 0.5}");
+    Assert.Equal(new Vector2(0.5f, 3f), deserialized);
   }
 }

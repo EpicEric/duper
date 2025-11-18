@@ -2,6 +2,7 @@
 
 using System.Collections;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Ffi;
 
 public class DuperSerializer
@@ -27,26 +28,45 @@ public class DuperSerializer
       || t2 == typeof(ValueTuple<,,,,,,,>);
   }
 
+  private enum DeserializeObject
+  {
+    Constructor,
+    Uninit,
+  }
+
+  /// <summary>
+  /// Parses the provided Duper string into a value of the specified type.
+  /// </summary>
+  /// <param name="input">The Duper string to deserialize.</param>
+  /// <returns>A parsed value of type <cref>T</cref> or null.</returns>
+  /// <exception cref="DuperDeserializeException"></exception>
   public static T? Deserialize<T>(string @input)
   {
-    DuperValue duperValue = Duper.Parse(input, true);
-    Type t = typeof(T);
-    object? value = DeserializeInner(duperValue, typeof(T));
-    if (value == null)
+    try
     {
-      if (!t.IsValueType || Nullable.GetUnderlyingType(t) != null)
+      DuperValue duperValue = Duper.Parse(input, true);
+      Type t = typeof(T);
+      object? value = DeserializeInner(duperValue, typeof(T), []);
+      if (value == null)
       {
-        return default;
+        if (!t.IsValueType || Nullable.GetUnderlyingType(t) != null)
+        {
+          return default;
+        }
+        throw new DuperDeserializeException.InvalidTypeException($"Cannot cast null to non-nullable {t}");
       }
-      throw new ApplicationException($"Cannot cast null to non-nullable {t}");
+      else
+      {
+        return (T)value;
+      }
     }
-    else
+    catch (DuperException.Parse exception)
     {
-      return (T)value;
+      throw new DuperDeserializeException.ParseException("Deserialization failed.", exception);
     }
   }
 
-  private static object? DeserializeInner(DuperValue duperValue, Type t)
+  private static object? DeserializeInner(DuperValue duperValue, Type t, Dictionary<Type, DeserializeObject> tCache)
   {
     // Null
     if (duperValue is DuperValue.Null)
@@ -64,15 +84,15 @@ public class DuperSerializer
         Type keyType = generics[0];
         if (keyType != typeof(string))
         {
-          throw new ApplicationException($"Cannot parse object to dictionary with non-string keys");
+          throw new DuperDeserializeException.InvalidTypeException($"Cannot parse object to dictionary with non-string keys");
         }
         Type valueType = generics[1];
         var concreteType = typeof(Dictionary<,>).MakeGenericType(generics);
         var dict = Activator.CreateInstance(concreteType) ?? throw new ApplicationException("No constructor found for Dictionary");
         var addMethod = concreteType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for Dictionary");
-        foreach (var item in obj.value)
+        foreach (DuperObjectEntry item in obj.value)
         {
-          addMethod.Invoke(dict, [item.key, DeserializeInner(item.value, valueType)]);
+          addMethod.Invoke(dict, [item.key, DeserializeInner(item.value, valueType, tCache)]);
         }
         return dict;
       }
@@ -86,26 +106,124 @@ public class DuperSerializer
           Type keyType = generics[0];
           if (keyType != typeof(string))
           {
-            throw new ApplicationException($"Cannot parse object to dictionary with non-string keys");
+            throw new DuperDeserializeException.InvalidTypeException($"Cannot parse object to dictionary with non-string keys");
           }
           Type valueType = generics[1];
           var dict = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
           var addMethod = interfaceType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for IDictionary");
-          foreach (var item in obj.value)
+          foreach (DuperObjectEntry item in obj.value)
           {
-            addMethod.Invoke(dict, [item.key, DeserializeInner(item.value, valueType)]);
+            addMethod.Invoke(dict, [item.key, DeserializeInner(item.value, valueType, tCache)]);
           }
           return dict;
         }
       }
-      // Create class instance
-      object instance = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
+      // Attempt to create class instance
       Dictionary<string, DuperValue> classFields = new(obj.value.Length);
-      foreach (var entry in obj.value)
+      foreach (DuperObjectEntry entry in obj.value)
       {
         classFields.Add(entry.key, entry.value);
       }
-      foreach (var field in t.GetFields())
+      bool cacheHit = tCache.TryGetValue(t, out DeserializeObject deserializeMethod);
+      // Attempt to create via constructor(s)
+      if (!cacheHit || deserializeMethod == DeserializeObject.Constructor)
+      {
+        ConstructorInfo? parameterlessConstructor = null;
+        foreach (ConstructorInfo constructor in t.GetConstructors())
+        {
+          var parameters = constructor.GetParameters();
+          if (parameters.Length == 0)
+          {
+            parameterlessConstructor = constructor;
+          }
+          else
+          {
+            try
+            {
+              bool badConstructor = false;
+              List<object?> paramArray = new(parameters.Length);
+              foreach (ParameterInfo param in parameters)
+              {
+                string? key = param.Name;
+                Attribute[] attrs = Attribute.GetCustomAttributes(param);
+                foreach (Attribute attr in attrs)
+                {
+                  if (attr is DuperAttribute a)
+                  {
+                    if (a.Key != null)
+                    {
+                      key = a.Key;
+                    }
+                    break;
+                  }
+                }
+                if (key == null || !classFields.TryGetValue(key, out DuperValue? classField))
+                {
+                  badConstructor = true;
+                  break;
+                }
+                paramArray.Add(DeserializeInner(classField, param.ParameterType, tCache));
+              }
+              if (badConstructor)
+              {
+                continue;
+              }
+              object instance = constructor.Invoke([.. paramArray]);
+              tCache[t] = DeserializeObject.Constructor;
+              return instance;
+            }
+            catch (Exception)
+            {
+              continue;
+            }
+          }
+        }
+        if (parameterlessConstructor != null)
+        {
+          object instance = parameterlessConstructor.Invoke([]);
+          foreach (FieldInfo field in t.GetFields())
+          {
+            string key = field.Name;
+            Attribute[] attrs = Attribute.GetCustomAttributes(field);
+            foreach (Attribute attr in attrs)
+            {
+              if (attr is DuperAttribute a)
+              {
+                if (a.Key != null)
+                {
+                  key = a.Key;
+                }
+                break;
+              }
+            }
+            var item = classFields[key];
+            field.SetValue(instance, DeserializeInner(item, field.FieldType, tCache));
+          }
+          foreach (PropertyInfo prop in t.GetProperties())
+          {
+            string key = prop.Name;
+            Attribute[] attrs = Attribute.GetCustomAttributes(prop);
+            foreach (Attribute attr in attrs)
+            {
+              if (attr is DuperAttribute a)
+              {
+                if (a.Key != null)
+                {
+                  key = a.Key;
+                }
+                break;
+              }
+            }
+            var item = classFields[key];
+            prop.SetValue(instance, DeserializeInner(item, prop.PropertyType, tCache));
+          }
+          tCache[t] = DeserializeObject.Constructor;
+          return instance;
+        }
+      }
+      // Last resort: create uninitialized object and fill its fields
+      object uninitInstance = RuntimeHelpers.GetUninitializedObject(t);
+      foreach (FieldInfo field in t.GetFields())
       {
         string key = field.Name;
         Attribute[] attrs = Attribute.GetCustomAttributes(field);
@@ -120,28 +238,17 @@ public class DuperSerializer
             break;
           }
         }
-        var item = classFields[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
-        field.SetValue(instance, DeserializeInner(item, field.FieldType));
-      }
-      foreach (var prop in t.GetProperties())
-      {
-        string key = prop.Name;
-        Attribute[] attrs = Attribute.GetCustomAttributes(prop);
-        foreach (Attribute attr in attrs)
+        if (classFields.TryGetValue(key, out var item))
         {
-          if (attr is DuperAttribute a)
-          {
-            if (a.Key != null)
-            {
-              key = a.Key;
-            }
-            break;
-          }
+          field.SetValue(uninitInstance, DeserializeInner(item, field.FieldType, tCache));
         }
-        var item = classFields[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
-        prop.SetValue(instance, DeserializeInner(item, prop.PropertyType));
+        else
+        {
+          throw new DuperDeserializeException.InvalidTypeException($"No valid constructors found for {t}");
+        }
       }
-      return instance;
+      tCache[t] = DeserializeObject.Uninit;
+      return uninitInstance;
     }
 
     // Array
@@ -153,32 +260,32 @@ public class DuperSerializer
         var tupleFields = t.GetFields();
         if (tupleFields.Length != array.value.Length)
         {
-          throw new ApplicationException($"Mismatched tuple sizes: Duper has length {array.value.Length}, target has length {tupleFields.Length}");
+          throw new DuperDeserializeException.InvalidTypeException($"Mismatched tuple sizes: Duper has length {array.value.Length}, target has length {tupleFields.Length}");
         }
         object?[] tupleObjects = new object[tupleFields.Length];
         for (int i = 0; i < tupleFields.Length; i++)
         {
-          tupleObjects[i] = DeserializeInner(array.value[i], tupleFields[i].FieldType);
+          tupleObjects[i] = DeserializeInner(array.value[i], tupleFields[i].FieldType, tCache);
         }
         var constructor = t.GetConstructor(t.GetGenericArguments());
         if (constructor == null)
         {
-          throw new ApplicationException($"No constructor found for tuple {t}");
+          throw new DuperDeserializeException.InvalidTypeException($"No constructor found for tuple {t}");
         }
         else
         {
           return constructor.Invoke(tupleObjects);
         }
       }
-      else if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IList<>))
+      else if (t.IsGenericType && (t.GetGenericTypeDefinition() == typeof(IEnumerable<>) || t.GetGenericTypeDefinition() == typeof(IList<>)))
       {
         Type itemType = t.GetGenericArguments().Single();
         var concreteType = typeof(List<>).MakeGenericType(t.GetGenericArguments());
         var list = Activator.CreateInstance(concreteType) ?? throw new ApplicationException("No constructor found for List");
         var addMethod = concreteType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for List");
-        foreach (var item in array.value)
+        foreach (DuperValue item in array.value)
         {
-          addMethod.Invoke(list, [DeserializeInner(item, itemType)]);
+          addMethod.Invoke(list, [DeserializeInner(item, itemType, tCache)]);
         }
         return list;
       }
@@ -188,9 +295,9 @@ public class DuperSerializer
         var arrayListType = typeof(List<>).MakeGenericType([itemType]);
         var arrayList = Activator.CreateInstance(arrayListType) ?? throw new ApplicationException("No constructor found for List");
         var addMethod = arrayListType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for List");
-        foreach (var item in array.value)
+        foreach (DuperValue item in array.value)
         {
-          addMethod.Invoke(arrayList, [DeserializeInner(item, itemType)]);
+          addMethod.Invoke(arrayList, [DeserializeInner(item, itemType, tCache)]);
         }
         var toArrayMethod = arrayListType.GetMethod("ToArray") ?? throw new ApplicationException("No ToArray method found for List");
         return toArrayMethod.Invoke(arrayList, null);
@@ -204,14 +311,14 @@ public class DuperSerializer
           Type itemType = interfaceType.GetGenericArguments().Single();
           var list = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
           var ilist = (list as IList) ?? throw new ApplicationException("IList cast shouldn't fail");
-          foreach (var item in array.value)
+          foreach (DuperValue item in array.value)
           {
-            ilist.Add(DeserializeInner(item, itemType));
+            ilist.Add(DeserializeInner(item, itemType, tCache));
           }
           return list;
         }
       }
-      throw new ApplicationException($"Cannot cast array to {t}");
+      throw new DuperDeserializeException.InvalidTypeException($"Cannot cast array to {t}");
     }
 
     // Tuple
@@ -223,32 +330,32 @@ public class DuperSerializer
         var tupleFields = t.GetFields();
         if (tupleFields.Length != tuple.value.Length)
         {
-          throw new ApplicationException($"Mismatched tuple sizes: Duper has length {tuple.value.Length}, target has length {tupleFields.Length}");
+          throw new DuperDeserializeException.InvalidTypeException($"Mismatched tuple sizes: Duper has length {tuple.value.Length}, target has length {tupleFields.Length}");
         }
         object?[] tupleObjects = new object[tupleFields.Length];
         for (int i = 0; i < tupleFields.Length; i++)
         {
-          tupleObjects[i] = DeserializeInner(tuple.value[i], tupleFields[i].FieldType);
+          tupleObjects[i] = DeserializeInner(tuple.value[i], tupleFields[i].FieldType, tCache);
         }
         var constructor = t.GetConstructor(t.GetGenericArguments());
         if (constructor == null)
         {
-          throw new ApplicationException($"No constructor found for tuple {t}");
+          throw new DuperDeserializeException.InvalidTypeException($"No constructor found for tuple {t}");
         }
         else
         {
           return constructor.Invoke(tupleObjects);
         }
       }
-      else if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IList<>))
+      else if (t.IsGenericType && (t.GetGenericTypeDefinition() == typeof(IEnumerable<>) || t.GetGenericTypeDefinition() == typeof(IList<>)))
       {
         Type itemType = t.GetGenericArguments().Single();
         var concreteType = typeof(List<>).MakeGenericType(t.GetGenericArguments());
         var list = Activator.CreateInstance(concreteType) ?? throw new ApplicationException("No constructor found for List");
         var addMethod = concreteType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for List");
-        foreach (var item in tuple.value)
+        foreach (DuperValue item in tuple.value)
         {
-          addMethod.Invoke(list, [DeserializeInner(item, itemType)]);
+          addMethod.Invoke(list, [DeserializeInner(item, itemType, tCache)]);
         }
         return list;
       }
@@ -258,9 +365,9 @@ public class DuperSerializer
         var arrayListType = typeof(List<>).MakeGenericType([itemType]);
         var arrayList = Activator.CreateInstance(arrayListType) ?? throw new ApplicationException("No constructor found for List");
         var addMethod = arrayListType.GetMethod("Add") ?? throw new ApplicationException("No Add method found for List");
-        foreach (var item in tuple.value)
+        foreach (DuperValue item in tuple.value)
         {
-          addMethod.Invoke(arrayList, [DeserializeInner(item, itemType)]);
+          addMethod.Invoke(arrayList, [DeserializeInner(item, itemType, tCache)]);
         }
         var toArrayMethod = arrayListType.GetMethod("ToArray") ?? throw new ApplicationException("No ToArray method found for List");
         return toArrayMethod.Invoke(arrayList, null);
@@ -274,14 +381,14 @@ public class DuperSerializer
           Type itemType = interfaceType.GetGenericArguments().Single();
           var list = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
           var ilist = (list as IList) ?? throw new ApplicationException("IList cast shouldn't fail");
-          foreach (var item in tuple.value)
+          foreach (DuperValue item in tuple.value)
           {
-            ilist.Add(DeserializeInner(item, itemType));
+            ilist.Add(DeserializeInner(item, itemType, tCache));
           }
           return list;
         }
       }
-      throw new ApplicationException($"Cannot cast tuple to {t}");
+      throw new DuperDeserializeException.InvalidTypeException($"Cannot cast tuple to {t}");
     }
 
     // String
@@ -302,7 +409,7 @@ public class DuperSerializer
           return parseMethod.Invoke(null, [str.value]);
         }
       }
-      throw new ApplicationException($"Cannot cast string to {t}");
+      throw new DuperDeserializeException.InvalidTypeException($"Cannot cast string to {t}");
     }
 
     // Bytes
@@ -312,7 +419,7 @@ public class DuperSerializer
       {
         return bytes.value;
       }
-      throw new ApplicationException($"Cannot cast bytes to {t}");
+      throw new DuperDeserializeException.InvalidTypeException($"Cannot cast bytes to {t}");
     }
 
     // Temporal
@@ -346,7 +453,7 @@ public class DuperSerializer
         // TO-DO: Proper conversion from Temporal value
         return DateTimeOffset.Parse(temporal.value);
       }
-      throw new ApplicationException($"Cannot cast temporal to {t}");
+      throw new DuperDeserializeException.InvalidTypeException($"Cannot cast temporal to {t}");
     }
 
     // Integer
@@ -368,7 +475,7 @@ public class DuperSerializer
       {
         return (float)integer.value;
       }
-      throw new ApplicationException($"Cannot cast integer to {t}");
+      throw new DuperDeserializeException.InvalidTypeException($"Cannot cast integer to {t}");
     }
 
     // Float
@@ -382,7 +489,7 @@ public class DuperSerializer
       {
         return (float)flt.value;
       }
-      throw new ApplicationException($"Cannot cast float to {t}");
+      throw new DuperDeserializeException.InvalidTypeException($"Cannot cast float to {t}");
     }
 
     // Boolean
@@ -392,13 +499,13 @@ public class DuperSerializer
       {
         return boolean.value;
       }
-      throw new ApplicationException($"Cannot cast boolean to {t}");
+      throw new DuperDeserializeException.InvalidTypeException($"Cannot cast boolean to {t}");
     }
 
     // Fail-safe
     else
     {
-      throw new ApplicationException($"Unknown Duper value type {duperValue.GetType()}");
+      throw new DuperDeserializeException.InvalidTypeException($"Unknown Duper value type {duperValue.GetType()}");
     }
   }
 
@@ -407,6 +514,14 @@ public class DuperSerializer
     return T.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
   }
 
+  /// <summary>
+  /// Options for serialization via <cref>DuperSerializer.Serialize</cref>.
+  /// </summary>
+  /// <param name="Indent">Optional whitespace string to use as indentation.</param>
+  /// <param name="StripIdentifiers">Whether Duper identifiers should be removed
+  /// from the stringified value.</param>
+  /// <param name="Minify">Whether to minify the value. Not compatible with
+  /// <cref>Indent</cref>.</param>
   public record SerializerOptions(
       string? Indent,
       bool StripIdentifiers,
@@ -414,6 +529,12 @@ public class DuperSerializer
   )
   { }
 
+  /// <summary>
+  /// Converts the provided value into a Duper string.
+  /// </summary>
+  /// <param name="value">The value to serialize.</param>
+  /// <returns>The Duper string.</returns>
+  /// <exception cref="ApplicationException"></exception>
   public static string Serialize<T>(T @value)
   {
     Type t = typeof(T);
@@ -428,9 +549,31 @@ public class DuperSerializer
       }
     }
     var duperValue = SerializeInner(value, t, identifier);
-    return Duper.Serialize(duperValue, null);
+    try
+    {
+      return Duper.Serialize(duperValue, null);
+    }
+    catch (DuperException.InvalidIdentifier exception)
+    {
+      throw new DuperSerializeException.InvalidIdentifierException("Serialization failed.", exception);
+    }
+    catch (DuperException.InvalidObject exception)
+    {
+      throw new DuperSerializeException.InvalidObjectException("Serialization failed.", exception);
+    }
+    catch (DuperException.InvalidTemporal exception)
+    {
+      throw new DuperSerializeException.InvalidTemporalException("Serialization failed.", exception);
+    }
   }
 
+  /// <summary>
+  /// Converts the provided value into a Duper string with the provided options.
+  /// </summary>
+  /// <param name="value">The value to serialize.</param>
+  /// <param name="options">Options for serialization.</param>
+  /// <returns>The Duper string.</returns>
+  /// <exception cref="DuperSerializeException"></exception>
   public static string Serialize<T>(T? @value, SerializerOptions @options)
   {
     Type t = typeof(T);
@@ -445,7 +588,26 @@ public class DuperSerializer
       }
     }
     var duperValue = SerializeInner(value, t, identifier);
-    return Duper.Serialize(duperValue, new Ffi.SerializeOptions(options.Indent, options.StripIdentifiers, options.Minify));
+    try
+    {
+      return Duper.Serialize(duperValue, new SerializeOptions(options.Indent, options.StripIdentifiers, options.Minify));
+    }
+    catch (DuperException.SerializeOptions exception)
+    {
+      throw new DuperSerializeException.SerializeOptionsException("Serialization failed.", exception);
+    }
+    catch (DuperException.InvalidIdentifier exception)
+    {
+      throw new DuperSerializeException.InvalidIdentifierException("Serialization failed.", exception);
+    }
+    catch (DuperException.InvalidObject exception)
+    {
+      throw new DuperSerializeException.InvalidObjectException("Serialization failed.", exception);
+    }
+    catch (DuperException.InvalidTemporal exception)
+    {
+      throw new DuperSerializeException.InvalidTemporalException("Serialization failed.", exception);
+    }
   }
 
   private static DuperValue SerializeInner(object? @value, Type t, string? identifier)
@@ -551,8 +713,16 @@ public class DuperSerializer
       for (int i = 0; i < tupleFields.Length; i++)
       {
         var field = tupleFields[i];
-        // TO-DO: Tuple identifiers
-        tupleValue[i] = SerializeInner(field.GetValue(value), field.FieldType, null);
+        string? fieldIdentifier = null;
+        foreach (Attribute attr in field.GetCustomAttributes())
+        {
+          if (attr is DuperAttribute a)
+          {
+            fieldIdentifier = a.Identifier;
+            break;
+          }
+        }
+        tupleValue[i] = SerializeInner(field.GetValue(value), field.FieldType, fieldIdentifier);
       }
       return new DuperValue.Tuple(identifier, tupleValue);
     }
@@ -573,7 +743,7 @@ public class DuperSerializer
       Type keyType = generics[0];
       if (keyType != typeof(string))
       {
-        throw new ApplicationException($"Cannot serialize dictionary with non-string keys to Duper");
+        throw new DuperSerializeException.InvalidValueException($"Cannot serialize dictionary with non-string keys to Duper");
       }
       Type valueType = generics[1];
       IDictionary valueDict = (value as IDictionary) ?? throw new ApplicationException("IDictionary cast shouldn't fail");
@@ -584,6 +754,17 @@ public class DuperSerializer
       }
       return new DuperValue.Object(identifier, [.. objValue]);
     }
+    else if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+    {
+      Type itemType = t.GetGenericArguments().Single();
+      IEnumerable valueEnumerable = (value as IEnumerable) ?? throw new ApplicationException("IEnumerable cast shouldn't fail");
+      List<DuperValue> arrayValue = [];
+      foreach (var element in valueEnumerable)
+      {
+        arrayValue.Add(SerializeInner(element, itemType, null));
+      }
+      return new DuperValue.Array(identifier, [.. arrayValue]);
+    }
 
     Type? iformattable = null;
     foreach (Type interfaceType in t.GetInterfaces())
@@ -593,7 +774,7 @@ public class DuperSerializer
           == typeof(IList<>))
       {
         Type itemType = interfaceType.GetGenericArguments().Single();
-        System.Collections.IList valueList = (value as System.Collections.IList) ?? throw new ApplicationException("IList cast shouldn't fail");
+        IList valueList = (value as IList) ?? throw new ApplicationException("IList cast shouldn't fail");
         DuperValue[] arrayValue = new DuperValue[valueList.Count];
         for (int i = 0; i < valueList.Count; i++)
         {
@@ -609,7 +790,7 @@ public class DuperSerializer
         Type keyType = generics[0];
         if (keyType != typeof(string))
         {
-          throw new ApplicationException($"Cannot serialize dictionary with non-string keys to Duper");
+          throw new DuperSerializeException.InvalidValueException($"Cannot serialize dictionary with non-string keys to Duper");
         }
         Type valueType = generics[1];
         IDictionary valueDict = (value as IDictionary) ?? throw new ApplicationException("IDictionary cast shouldn't fail");
@@ -619,6 +800,19 @@ public class DuperSerializer
           objValue.Add(new DuperObjectEntry((string)key, SerializeInner(valueDict[key], valueType, null)));
         }
         return new DuperValue.Object(identifier, [.. objValue]);
+      }
+      else if (interfaceType.IsGenericType &&
+          interfaceType.GetGenericTypeDefinition()
+          == typeof(IEnumerable<>))
+      {
+        Type itemType = t.GetGenericArguments().Single();
+        IEnumerable valueEnumerable = (value as IEnumerable) ?? throw new ApplicationException("IEnumerable cast shouldn't fail");
+        List<DuperValue> arrayValue = [];
+        foreach (var element in valueEnumerable)
+        {
+          arrayValue.Add(SerializeInner(element, itemType, null));
+        }
+        return new DuperValue.Array(identifier, [.. arrayValue]);
       }
       else if (interfaceType == typeof(IFormattable))
       {
@@ -637,12 +831,43 @@ public class DuperSerializer
       }
     }
 
-    List<DuperObjectEntry> classDict = [];
+    List<DuperObjectEntry> classEntries = [];
+    Dictionary<string, DuperAttribute> duperAttributes = [];
 
-    foreach (var field in t.GetFields())
+    // Records: Check for Duper attribute in constructor parameters
+    foreach (ConstructorInfo constructor in t.GetConstructors())
+    {
+      foreach (ParameterInfo parameter in constructor.GetParameters())
+      {
+        string? name = parameter.Name;
+        if (name == null)
+        {
+          continue;
+        }
+        Attribute[] fieldAttrs = Attribute.GetCustomAttributes(parameter);
+        foreach (Attribute attr in fieldAttrs)
+        {
+          if (attr is DuperAttribute a)
+          {
+            duperAttributes.Add(name, a);
+            break;
+          }
+        }
+      }
+    }
+
+    foreach (FieldInfo field in t.GetFields())
     {
       string key = field.Name;
       string? fieldIdentifier = null;
+      if (duperAttributes.TryGetValue(field.Name, out DuperAttribute? duperAttribute))
+      {
+        fieldIdentifier = duperAttribute.Identifier;
+        if (duperAttribute.Key != null)
+        {
+          key = duperAttribute.Key;
+        }
+      }
       Attribute[] fieldAttrs = Attribute.GetCustomAttributes(field);
       foreach (Attribute attr in fieldAttrs)
       {
@@ -656,13 +881,31 @@ public class DuperSerializer
           break;
         }
       }
-      classDict.Add(new DuperObjectEntry(key, SerializeInner(field.GetValue(value), field.FieldType, fieldIdentifier)));
+      classEntries.Add(new DuperObjectEntry(key, SerializeInner(field.GetValue(value), field.FieldType, fieldIdentifier)));
     }
 
-    foreach (var prop in t.GetProperties())
+    foreach (PropertyInfo prop in t.GetProperties())
     {
+      if (prop.GetIndexParameters().Length > 0)
+      {
+        continue;
+      }
+      // Simple check to prevent infinite recursion on types containing static instances of themselves
+      // TO-DO: Improve this check
+      if (prop.PropertyType == t)
+      {
+        continue;
+      }
       string key = prop.Name;
       string? propIdentifier = null;
+      if (duperAttributes.TryGetValue(prop.Name, out DuperAttribute? duperAttribute))
+      {
+        propIdentifier = duperAttribute.Identifier;
+        if (duperAttribute.Key != null)
+        {
+          key = duperAttribute.Key;
+        }
+      }
       Attribute[] fieldAttrs = Attribute.GetCustomAttributes(prop);
       foreach (Attribute attr in fieldAttrs)
       {
@@ -676,10 +919,10 @@ public class DuperSerializer
           break;
         }
       }
-      classDict.Add(new DuperObjectEntry(key, SerializeInner(prop.GetValue(value), prop.PropertyType, propIdentifier)));
+      classEntries.Add(new DuperObjectEntry(key, SerializeInner(prop.GetValue(value), prop.PropertyType, propIdentifier)));
     }
 
-    return new DuperValue.Object(identifier, [.. classDict]);
+    return new DuperValue.Object(identifier, [.. classEntries]);
   }
 
   private static string FormatViaGeneric<T>(T value) where T : IFormattable
