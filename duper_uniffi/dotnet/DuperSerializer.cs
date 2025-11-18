@@ -99,49 +99,96 @@ public class DuperSerializer
         }
       }
       // Create class instance
-      object instance = Activator.CreateInstance(t) ?? throw new ApplicationException($"No constructor found for {t}");
       Dictionary<string, DuperValue> classFields = new(obj.value.Length);
       foreach (var entry in obj.value)
       {
         classFields.Add(entry.key, entry.value);
       }
-      foreach (var field in t.GetFields())
+      ConstructorInfo? parameterlessConstructor = null;
+      foreach (var constructor in t.GetConstructors())
       {
-        string key = field.Name;
-        Attribute[] attrs = Attribute.GetCustomAttributes(field);
-        foreach (Attribute attr in attrs)
+        var parameters = constructor.GetParameters();
+        if (parameters.Length == 0)
         {
-          if (attr is DuperAttribute a)
+          parameterlessConstructor = constructor;
+        }
+        else
+        {
+          try
           {
-            if (a.Key != null)
+            List<object?> paramArray = new(parameters.Length);
+            foreach (var param in parameters)
             {
-              key = a.Key;
+              string? key = param.Name;
+              Attribute[] attrs = Attribute.GetCustomAttributes(param);
+              foreach (Attribute attr in attrs)
+              {
+                if (attr is DuperAttribute a)
+                {
+                  if (a.Key != null)
+                  {
+                    key = a.Key;
+                  }
+                  break;
+                }
+              }
+              if (key == null)
+              {
+                continue;
+              }
+              paramArray.Add(DeserializeInner(classFields[key], param.ParameterType));
             }
-            break;
+            object instance = constructor.Invoke([.. paramArray]);
+            return instance;
+          }
+          catch
+          {
+            continue;
           }
         }
-        var item = classFields[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
-        field.SetValue(instance, DeserializeInner(item, field.FieldType));
       }
-      foreach (var prop in t.GetProperties())
+      if (parameterlessConstructor != null)
       {
-        string key = prop.Name;
-        Attribute[] attrs = Attribute.GetCustomAttributes(prop);
-        foreach (Attribute attr in attrs)
+        object instance = parameterlessConstructor.Invoke([]);
+        foreach (var field in t.GetFields())
         {
-          if (attr is DuperAttribute a)
+          string key = field.Name;
+          Attribute[] attrs = Attribute.GetCustomAttributes(field);
+          foreach (Attribute attr in attrs)
           {
-            if (a.Key != null)
+            if (attr is DuperAttribute a)
             {
-              key = a.Key;
+              if (a.Key != null)
+              {
+                key = a.Key;
+              }
+              break;
             }
-            break;
           }
+          var item = classFields[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
+          field.SetValue(instance, DeserializeInner(item, field.FieldType));
         }
-        var item = classFields[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
-        prop.SetValue(instance, DeserializeInner(item, prop.PropertyType));
+        foreach (var prop in t.GetProperties())
+        {
+          string key = prop.Name;
+          Attribute[] attrs = Attribute.GetCustomAttributes(prop);
+          foreach (Attribute attr in attrs)
+          {
+            if (attr is DuperAttribute a)
+            {
+              if (a.Key != null)
+              {
+                key = a.Key;
+              }
+              break;
+            }
+          }
+          var item = classFields[key] ?? throw new ApplicationException($"No key {key} found in Duper object");
+          prop.SetValue(instance, DeserializeInner(item, prop.PropertyType));
+        }
+        return instance;
       }
-      return instance;
+      throw new ApplicationException($"No valid constructors found for {t}");
     }
 
     // Array
@@ -662,11 +709,43 @@ public class DuperSerializer
     }
 
     List<DuperObjectEntry> classDict = [];
+    Dictionary<string, DuperAttribute> duperAttributes = [];
+
+    // Records: Check for Duper attribute in constructor parameters
+    foreach (var constructor in t.GetConstructors())
+    {
+      foreach (var parameter in constructor.GetParameters())
+      {
+        string? name = parameter.Name;
+        if (name == null)
+        {
+          continue;
+        }
+        Attribute[] fieldAttrs = Attribute.GetCustomAttributes(parameter);
+        foreach (Attribute attr in fieldAttrs)
+        {
+          if (attr is DuperAttribute a)
+          {
+            duperAttributes.Add(name, a);
+            break;
+          }
+        }
+      }
+    }
 
     foreach (var field in t.GetFields())
     {
       string key = field.Name;
       string? fieldIdentifier = null;
+      duperAttributes.TryGetValue(field.Name, out DuperAttribute? duperAttribute);
+      if (duperAttribute != null)
+      {
+        fieldIdentifier = duperAttribute.Identifier;
+        if (duperAttribute.Key != null)
+        {
+          key = duperAttribute.Key;
+        }
+      }
       Attribute[] fieldAttrs = Attribute.GetCustomAttributes(field);
       foreach (Attribute attr in fieldAttrs)
       {
@@ -687,6 +766,15 @@ public class DuperSerializer
     {
       string key = prop.Name;
       string? propIdentifier = null;
+      duperAttributes.TryGetValue(prop.Name, out DuperAttribute? duperAttribute);
+      if (duperAttribute != null)
+      {
+        propIdentifier = duperAttribute.Identifier;
+        if (duperAttribute.Key != null)
+        {
+          key = duperAttribute.Key;
+        }
+      }
       Attribute[] fieldAttrs = Attribute.GetCustomAttributes(prop);
       foreach (Attribute attr in fieldAttrs)
       {
