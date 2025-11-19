@@ -7,7 +7,7 @@ DuperValue({
   inner: (DuperValue({
     identifier: "Inner",
     inner: (),
-    type: "tuple",
+    type: "Tuple",
   })),
-  type: "tuple",
+  type: "Tuple",
 })

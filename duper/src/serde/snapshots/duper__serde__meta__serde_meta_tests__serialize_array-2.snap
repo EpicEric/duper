@@ -8,8 +8,8 @@ DuperValue({
     DuperValue({
       identifier: "Inner",
       inner: [],
-      type: "array",
+      type: "Array",
     }),
   ],
-  type: "array",
+  type: "Array",
 })

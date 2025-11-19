@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`stringify stringifies a basic object 1`] = `"{in_stock: true, name: "Wireless Headphones", price: 129.99, tags: ["electronics", "audio"]}"`;
+
+exports[`stringify stringifies nested structures 1`] = `"["foo", {bar: ["baz", {qux: null}]}]"`;

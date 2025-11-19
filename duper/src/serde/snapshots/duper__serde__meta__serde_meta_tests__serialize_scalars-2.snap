@@ -8,38 +8,38 @@ DuperValue({
     DuperValue({
       identifier: "MyString",
       inner: "Hello world!",
-      type: "string",
+      type: "String",
     }),
     DuperValue({
       identifier: "MyBytes",
       inner: br"/\",
-      type: "bytes",
+      type: "Bytes",
     }),
     DuperValue({
       identifier: "MyTemporal",
       inner: "2022-02-28T03:06:00.092121729Z",
-      type: "temporal",
+      type: "Temporal",
     }),
     DuperValue({
       identifier: "MyInt",
       inner: 1337,
-      type: "integer",
+      type: "Integer",
     }),
     DuperValue({
       identifier: "MyFloat",
       inner: 8.25,
-      type: "float",
+      type: "Float",
     }),
     DuperValue({
       identifier: "MyBool",
       inner: true,
-      type: "boolean",
+      type: "Boolean",
     }),
     DuperValue({
       identifier: "Mysterious",
       inner: null,
-      type: "null",
+      type: "Null",
     }),
   ],
-  type: "array",
+  type: "Array",
 })

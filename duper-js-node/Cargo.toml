@@ -1,0 +1,28 @@
+[package]
+name = "duper-js-node"
+description = "Node.JS bindings for Duper, the format that's super!"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+repository = "https://github.com/EpicEric/duper"
+homepage = "https://duper.dev.br"
+readme = "README.md"
+categories = ["encoding", "parser-implementations"]
+keywords = ["duper", "serialization", "node", "napi"]
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1"
+duper = { path = "../duper", version = "0.5.0", features = ["serde"] }
+napi = { version = "3", features = ["anyhow", "serde-json"] }
+napi-derive = "3"
+serde_core = "1"
+serde_json = "1"
+thiserror = "2"
+
+[build-dependencies]
+napi-build = "2"

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Breaking:** Change meta-`serde` types to titlecase.
+
 ## 0.4.3 (2025-11-30)
 
 ### Changed

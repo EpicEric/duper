@@ -122,6 +122,39 @@ jobs:
         run: |
           uv run maturin develop
           uv run pytest -vv
+  test-node:
+    name: Run Node.JS tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Fetch MSRV
+        run: |
+          rustup toolchain install ${RUST_MSRV}-x86_64-unknown-linux-gnu
+          rustup override set ${RUST_MSRV}-x86_64-unknown-linux-gnu
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: Cache Node dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ./duper-js-node/node_modules
+          key: ${{ runner.os }}-node-dependencies
+      - name: Install Node dependencies and build
+        working-directory: ./duper-js-node
+        run: |
+          npm install
+          npm run build
+          npm run bundle
+      - name: Test with Jest
+        working-directory: ./duper-js-node
+        run: |
+          npm test
   test-wasm:
     name: Run WASM tests
     runs-on: ubuntu-latest

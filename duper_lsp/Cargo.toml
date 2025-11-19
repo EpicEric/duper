@@ -14,7 +14,7 @@ readme = "README.md"
 async-lsp = { version = "0.2.2", features = ["tokio"] }
 base64 = "0.22.1"
 clap = { version = "4.5.53", features = ["derive"] }
-duper = { version = "0.4.2", path = "../duper" }
+duper = { version = "0.5.0", path = "../duper" }
 duperfmt = { version = "0.1.1", path = "../duperfmt" }
 futures = "0.3.31"
 line-index = "0.1.2"
