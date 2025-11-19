@@ -1,0 +1,23 @@
+[package]
+name = "duper-js-node"
+description = "Node.JS bindings for Duper."
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+repository = "https://github.com/EpicEric/duper"
+homepage = "https://duper.dev.br"
+readme = "README.md"
+categories = ["encoding", "parser-implementations"]
+keywords = ["duper", "serialization", "node", "napi"]
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = "3"
+napi-derive = "3"
+
+[build-dependencies]
+napi-build = "2"

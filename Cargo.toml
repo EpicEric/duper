@@ -3,6 +3,7 @@ resolver = "3"
 members = [
   "axum_duper",
   "duper",
+  "duper-js-node",
   "duper-js-wasm/rust",
   "duper-python",
   "duper_uniffi",

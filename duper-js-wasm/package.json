@@ -1,7 +1,7 @@
 {
   "name": "@duper-js/wasm",
   "version": "0.4.0",
-  "description": "The format that's super!",
+  "description": "WASM bindings for Duper.",
   "keywords": [
     "Duper",
     "serialization",
