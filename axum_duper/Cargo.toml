@@ -15,7 +15,7 @@ keywords = ["duper", "serde", "axum"]
 [dependencies]
 axum = { version = "0.8", default-features = false }
 serde_core = "1"
-duper = { path = "../duper", version = "0.4.0", features = ["serde"] }
+duper = { path = "../duper", version = "0.5.0", features = ["serde"] }
 
 [dev-dependencies]
 serde = { version = "1.0.228", features = ["derive"] }

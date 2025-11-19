@@ -2,16 +2,15 @@ import esbuild from "esbuild";
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
-  entryPoints: ["src/index.ts"],
+  entryPoints: ["lib/index.ts"],
   outdir: "dist",
-  assetNames: "[name][ext]",
-  platform: "neutral",
-  external: ["./wasm-bindgen/index.js"],
+  assetNames: "[name]",
+  platform: "node",
+  loader: { ".node": "copy" },
   mainFields: ["main"],
-  format: "esm",
+  format: "cjs",
   bundle: true,
-  plugins: [],
-  minify: true,
+  // minify: true,
 };
 
 await esbuild.build(buildOptions);

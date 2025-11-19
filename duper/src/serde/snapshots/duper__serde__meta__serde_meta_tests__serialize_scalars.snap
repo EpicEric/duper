@@ -8,38 +8,38 @@ DuperValue({
     string: DuperValue({
       identifier: null,
       inner: "Hello world!",
-      type: "string",
+      type: "String",
     }),
     bytes: DuperValue({
       identifier: null,
       inner: br"/\",
-      type: "bytes",
+      type: "Bytes",
     }),
     temporal: DuperValue({
       identifier: "Instant",
       inner: "2022-02-28T03:06:00.092121729Z",
-      type: "temporal",
+      type: "Temporal",
     }),
     integer: DuperValue({
       identifier: null,
       inner: 1337,
-      type: "integer",
+      type: "Integer",
     }),
     float: DuperValue({
       identifier: null,
       inner: 8.25,
-      type: "float",
+      type: "Float",
     }),
     boolean: DuperValue({
       identifier: null,
       inner: true,
-      type: "boolean",
+      type: "Boolean",
     }),
     null: DuperValue({
       identifier: null,
       inner: null,
-      type: "null",
+      type: "Null",
     }),
   },
-  type: "object",
+  type: "Object",
 })

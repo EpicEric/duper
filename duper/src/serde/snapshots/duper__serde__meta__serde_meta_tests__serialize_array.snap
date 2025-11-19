@@ -5,5 +5,5 @@ expression: "serialize_meta(&DuperValue\n{ identifier: None, inner: DuperInner::
 DuperValue({
   identifier: null,
   inner: [],
-  type: "array",
+  type: "Array",
 })

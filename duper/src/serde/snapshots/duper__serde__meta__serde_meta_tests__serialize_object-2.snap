@@ -8,8 +8,8 @@ DuperValue({
     foo: DuperValue({
       identifier: "Inner",
       inner: {},
-      type: "object",
+      type: "Object",
     }),
   },
-  type: "object",
+  type: "Object",
 })

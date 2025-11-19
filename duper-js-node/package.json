@@ -1,0 +1,65 @@
+{
+  "name": "@duper-js/node",
+  "version": "0.1.0",
+  "description": "Node.JS bindings for Duper, the format that's super!",
+  "keywords": [
+    "Duper",
+    "serialization",
+    "encoding",
+    "format",
+    "NAPI",
+    "napi-rs"
+  ],
+  "homepage": "https://duper.dev.br",
+  "bugs": {
+    "url": "https://github.com/EpicEric/duper/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EpicEric/duper.git"
+  },
+  "license": "MIT",
+  "author": "Eric Rodrigues Pires <eric@eric.dev.br>",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "napi": {
+    "binaryName": "duper-js-node",
+    "targets": [
+      "aarch64-apple-darwin",
+      "aarch64-pc-windows-msvc",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-apple-darwin",
+      "x86_64-pc-windows-msvc",
+      "x86_64-unknown-linux-gnu"
+    ]
+  },
+  "engines": {
+    "node": ">= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "bundle": "rm -rf dist && node esbuild.mjs && tsc",
+    "build": "napi build --platform --output-dir lib/napi",
+    "build:release": "napi build --platform --output-dir lib/napi --release",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@emnapi/core": "^1.5.0",
+    "@emnapi/runtime": "^1.5.0",
+    "@napi-rs/cli": "^3.2.0",
+    "@oxc-node/core": "^0.0.34",
+    "@tybys/wasm-util": "^0.10.0",
+    "@types/jest": "^30.0.0",
+    "esbuild": "^0.27.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.9.3"
+  }
+}

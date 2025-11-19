@@ -11,6 +11,17 @@ use crate::{
     DuperTemporal, DuperTuple, DuperValue, serde::error::DuperSerdeError,
 };
 
+pub const TYPE_OBJECT: &str = "Object";
+pub const TYPE_ARRAY: &str = "Array";
+pub const TYPE_TUPLE: &str = "Tuple";
+pub const TYPE_STRING: &str = "String";
+pub const TYPE_BYTES: &str = "Bytes";
+pub const TYPE_TEMPORAL: &str = "Temporal";
+pub const TYPE_INTEGER: &str = "Integer";
+pub const TYPE_FLOAT: &str = "Float";
+pub const TYPE_BOOLEAN: &str = "Boolean";
+pub const TYPE_NULL: &str = "Null";
+
 impl<'a> DuperValue<'a> {
     /// A function that serializes the Duper value into a lossless struct
     /// containing the `identifier`, `inner`, and `type` fields.
@@ -23,43 +34,43 @@ impl<'a> DuperValue<'a> {
         match &self.inner {
             DuperInner::Object(object) => {
                 state.serialize_field("inner", &SerDuperObject(object))?;
-                state.serialize_field("type", "object")?;
+                state.serialize_field("type", TYPE_OBJECT)?;
             }
             DuperInner::Array(array) => {
                 state.serialize_field("inner", &SerDuperArray(array))?;
-                state.serialize_field("type", "array")?;
+                state.serialize_field("type", TYPE_ARRAY)?;
             }
             DuperInner::Tuple(tuple) => {
                 state.serialize_field("inner", &SerDuperTuple(tuple))?;
-                state.serialize_field("type", "tuple")?;
+                state.serialize_field("type", TYPE_TUPLE)?;
             }
             DuperInner::String(_) => {
                 state.serialize_field("inner", &self.inner)?;
-                state.serialize_field("type", "string")?;
+                state.serialize_field("type", TYPE_STRING)?;
             }
             DuperInner::Bytes(_) => {
                 state.serialize_field("inner", &self.inner)?;
-                state.serialize_field("type", "bytes")?;
+                state.serialize_field("type", TYPE_BYTES)?;
             }
             DuperInner::Temporal(temporal) => {
                 state.serialize_field("inner", temporal.as_ref())?;
-                state.serialize_field("type", "temporal")?;
+                state.serialize_field("type", TYPE_TEMPORAL)?;
             }
             DuperInner::Integer(_) => {
                 state.serialize_field("inner", &self.inner)?;
-                state.serialize_field("type", "integer")?;
+                state.serialize_field("type", TYPE_INTEGER)?;
             }
             DuperInner::Float(_) => {
                 state.serialize_field("inner", &self.inner)?;
-                state.serialize_field("type", "float")?;
+                state.serialize_field("type", TYPE_FLOAT)?;
             }
             DuperInner::Boolean(_) => {
                 state.serialize_field("inner", &self.inner)?;
-                state.serialize_field("type", "boolean")?;
+                state.serialize_field("type", TYPE_BOOLEAN)?;
             }
             DuperInner::Null => {
                 state.serialize_field("inner", &self.inner)?;
-                state.serialize_field("type", "null")?;
+                state.serialize_field("type", TYPE_NULL)?;
             }
         }
         state.end()
@@ -139,8 +150,27 @@ struct DeDuperValue<'b> {
     inner: DeDuperInner<'b>,
 }
 
+enum DeDuperArrayValue<'b> {
+    DuperValue(DeDuperValue<'b>),
+    U8(u8),
+}
+
+impl<'b> TryFrom<DeDuperArrayValue<'b>> for DuperValue<'b> {
+    type Error = DuperSerdeError;
+
+    fn try_from(value: DeDuperArrayValue<'b>) -> Result<Self, Self::Error> {
+        match value {
+            DeDuperArrayValue::DuperValue(duper_value) => duper_value.try_into(),
+            DeDuperArrayValue::U8(byte) => Ok(DuperValue {
+                identifier: None,
+                inner: DuperInner::Integer(byte.into()),
+            }),
+        }
+    }
+}
+
 struct DeDuperObject<'b>(Vec<(DuperKey<'b>, DeDuperValue<'b>)>);
-struct DeDuperArray<'b>(Vec<DeDuperValue<'b>>);
+struct DeDuperArray<'b>(Vec<DeDuperArrayValue<'b>>);
 struct DeDuperTuple<'b>(Vec<DeDuperValue<'b>>);
 enum DeDuperTemporal<'b> {
     Instant(Cow<'b, str>),
@@ -170,16 +200,16 @@ enum DeDuperInner<'b> {
 impl Display for DeDuperInner<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            DeDuperInner::Object(_) => "object",
-            DeDuperInner::Array(_) => "array",
-            DeDuperInner::Tuple(_) => "tuple",
-            DeDuperInner::String(_) => "string",
-            DeDuperInner::Bytes(_) => "bytes",
-            DeDuperInner::Temporal(_) => "temporal",
-            DeDuperInner::Integer(_) => "integer",
-            DeDuperInner::Float(_) => "float",
-            DeDuperInner::Boolean(_) => "boolean",
-            DeDuperInner::Null => "null",
+            DeDuperInner::Object(_) => TYPE_OBJECT,
+            DeDuperInner::Array(_) => TYPE_ARRAY,
+            DeDuperInner::Tuple(_) => TYPE_TUPLE,
+            DeDuperInner::String(_) => TYPE_STRING,
+            DeDuperInner::Bytes(_) => TYPE_BYTES,
+            DeDuperInner::Temporal(_) => TYPE_TEMPORAL,
+            DeDuperInner::Integer(_) => TYPE_INTEGER,
+            DeDuperInner::Float(_) => TYPE_FLOAT,
+            DeDuperInner::Boolean(_) => TYPE_BOOLEAN,
+            DeDuperInner::Null => TYPE_NULL,
         })
     }
 }
@@ -269,6 +299,240 @@ impl<'b> TryFrom<DeDuperValue<'b>> for DuperValue<'b> {
                 inner: DuperInner::Null,
             }),
         }
+    }
+}
+
+struct DeDuperArrayValueVisitor;
+
+impl<'de> Visitor<'de> for DeDuperArrayValueVisitor {
+    type Value = DeDuperArrayValue<'de>;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a meta Duper array value")
+    }
+
+    fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_bool(v)?,
+        ))
+    }
+
+    fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        if (0..=255).contains(&v) {
+            Ok(DeDuperArrayValue::U8(v as u8))
+        } else {
+            Ok(DeDuperArrayValue::DuperValue(
+                DeDuperValueVisitor.visit_i64(v)?,
+            ))
+        }
+    }
+
+    fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        if (0..=255).contains(&v) {
+            Ok(DeDuperArrayValue::U8(v as u8))
+        } else {
+            Ok(DeDuperArrayValue::DuperValue(
+                DeDuperValueVisitor.visit_i128(v)?,
+            ))
+        }
+    }
+
+    fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperArrayValue::U8(v))
+    }
+
+    fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        if v <= 255 {
+            Ok(DeDuperArrayValue::U8(v as u8))
+        } else {
+            Ok(DeDuperArrayValue::DuperValue(
+                DeDuperValueVisitor.visit_u16(v)?,
+            ))
+        }
+    }
+
+    fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        if v <= 255 {
+            Ok(DeDuperArrayValue::U8(v as u8))
+        } else {
+            Ok(DeDuperArrayValue::DuperValue(
+                DeDuperValueVisitor.visit_u32(v)?,
+            ))
+        }
+    }
+
+    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        if v <= 255 {
+            Ok(DeDuperArrayValue::U8(v as u8))
+        } else {
+            Ok(DeDuperArrayValue::DuperValue(
+                DeDuperValueVisitor.visit_u64(v)?,
+            ))
+        }
+    }
+
+    fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        if v <= 255 {
+            Ok(DeDuperArrayValue::U8(v as u8))
+        } else {
+            Ok(DeDuperArrayValue::DuperValue(
+                DeDuperValueVisitor.visit_u128(v)?,
+            ))
+        }
+    }
+
+    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        if (0.0..=255.0).contains(&v) && v.fract() == 0.0 {
+            Ok(DeDuperArrayValue::U8(v as u8))
+        } else {
+            Ok(DeDuperArrayValue::DuperValue(
+                DeDuperValueVisitor.visit_f64(v)?,
+            ))
+        }
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_str(v)?,
+        ))
+    }
+
+    fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_borrowed_str(v)?,
+        ))
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_string(v)?,
+        ))
+    }
+
+    fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_bytes(v)?,
+        ))
+    }
+
+    fn visit_borrowed_bytes<E>(self, v: &'de [u8]) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_borrowed_bytes(v)?,
+        ))
+    }
+
+    fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_byte_buf(v)?,
+        ))
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_none()?,
+        ))
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_some(deserializer)?,
+        ))
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_unit()?,
+        ))
+    }
+
+    fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_newtype_struct(deserializer)?,
+        ))
+    }
+
+    fn visit_seq<A>(self, seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_seq(seq)?,
+        ))
+    }
+
+    fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        Ok(DeDuperArrayValue::DuperValue(
+            DeDuperValueVisitor.visit_map(map)?,
+        ))
+    }
+}
+
+impl<'de> Deserialize<'de> for DeDuperArrayValue<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(DeDuperArrayValueVisitor {})
     }
 }
 
@@ -494,16 +758,16 @@ enum DeDuperType {
 impl Display for DeDuperType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            DeDuperType::Object => "object",
-            DeDuperType::Array => "array",
-            DeDuperType::Tuple => "tuple",
-            DeDuperType::String => "string",
-            DeDuperType::Bytes => "bytes",
-            DeDuperType::Temporal => "temporal",
-            DeDuperType::Integer => "integer",
-            DeDuperType::Float => "float",
-            DeDuperType::Boolean => "boolean",
-            DeDuperType::Null => "null",
+            DeDuperType::Object => TYPE_OBJECT,
+            DeDuperType::Array => TYPE_ARRAY,
+            DeDuperType::Tuple => TYPE_TUPLE,
+            DeDuperType::String => TYPE_STRING,
+            DeDuperType::Bytes => TYPE_BYTES,
+            DeDuperType::Temporal => TYPE_TEMPORAL,
+            DeDuperType::Integer => TYPE_INTEGER,
+            DeDuperType::Float => TYPE_FLOAT,
+            DeDuperType::Boolean => TYPE_BOOLEAN,
+            DeDuperType::Null => TYPE_NULL,
         })
     }
 }
@@ -513,16 +777,16 @@ impl<'b> TryFrom<&'b str> for DeDuperType {
 
     fn try_from(value: &'b str) -> Result<Self, Self::Error> {
         match value {
-            "object" => Ok(DeDuperType::Object),
-            "array" => Ok(DeDuperType::Array),
-            "tuple" => Ok(DeDuperType::Tuple),
-            "string" => Ok(DeDuperType::String),
-            "bytes" => Ok(DeDuperType::Bytes),
-            "temporal" => Ok(DeDuperType::Temporal),
-            "integer" => Ok(DeDuperType::Integer),
-            "float" => Ok(DeDuperType::Float),
-            "boolean" => Ok(DeDuperType::Boolean),
-            "null" => Ok(DeDuperType::Null),
+            TYPE_OBJECT => Ok(DeDuperType::Object),
+            TYPE_ARRAY => Ok(DeDuperType::Array),
+            TYPE_TUPLE => Ok(DeDuperType::Tuple),
+            TYPE_STRING => Ok(DeDuperType::String),
+            TYPE_BYTES => Ok(DeDuperType::Bytes),
+            TYPE_TEMPORAL => Ok(DeDuperType::Temporal),
+            TYPE_INTEGER => Ok(DeDuperType::Integer),
+            TYPE_FLOAT => Ok(DeDuperType::Float),
+            TYPE_BOOLEAN => Ok(DeDuperType::Boolean),
+            TYPE_NULL => Ok(DeDuperType::Null),
             _ => Err(value),
         }
     }
@@ -564,11 +828,11 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
                     if typ.is_some() {
                         return Err(Error::duplicate_field("type"));
                     }
-                    let typ_tag: &str = map.next_value()?;
-                    typ = Some(DeDuperType::try_from(typ_tag).map_err(|_|
+                    let typ_tag: String = map.next_value()?;
+                    typ = Some(DeDuperType::try_from(typ_tag.as_str()).map_err(|_|
                             Error::invalid_value(
-                                serde_core::de::Unexpected::Str(typ_tag),
-                                &"one of: object, array, tuple, string, bytes, temporal, integer, float, boolean, null",
+                                serde_core::de::Unexpected::Str(&typ_tag),
+                                &"one of: Object, Array, Tuple, String, Bytes, Temporal, Integer, Float, Boolean, Null",
                             ))?);
                 }
                 key => {
@@ -599,12 +863,26 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
             }
             (DeDuperInner::Null, DeDuperType::Null) => DeDuperInner::Null,
             // Swapped arrays/tuples
-            (DeDuperInner::Array(array), DeDuperType::Tuple) => {
-                DeDuperInner::Tuple(DeDuperTuple(array.0))
-            }
-            (DeDuperInner::Tuple(tuple), DeDuperType::Array) => {
-                DeDuperInner::Array(DeDuperArray(tuple.0))
-            }
+            (DeDuperInner::Array(array), DeDuperType::Tuple) => DeDuperInner::Tuple(DeDuperTuple(
+                array
+                    .0
+                    .into_iter()
+                    .map(|element| match element {
+                        DeDuperArrayValue::DuperValue(duper_value) => duper_value,
+                        DeDuperArrayValue::U8(byte) => DeDuperValue {
+                            identifier: None,
+                            inner: DeDuperInner::Integer(byte.into()),
+                        },
+                    })
+                    .collect(),
+            )),
+            (DeDuperInner::Tuple(tuple), DeDuperType::Array) => DeDuperInner::Array(DeDuperArray(
+                tuple
+                    .0
+                    .into_iter()
+                    .map(DeDuperArrayValue::DuperValue)
+                    .collect(),
+            )),
             // Safe integer wrappers
             (DeDuperInner::Float(float), DeDuperType::Integer)
                 if matches!(
@@ -652,6 +930,37 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
                     DeDuperInner::Temporal(DeDuperTemporal::Unspecified(string.into_inner()))
                 }
             },
+            // Bytes from array of numbers
+            (DeDuperInner::Array(array), DeDuperType::Bytes) => {
+                let mut bytes = Vec::with_capacity(array.0.len());
+                for element in array.0 {
+                    if let DeDuperArrayValue::U8(byte) = element {
+                        bytes.push(byte);
+                    } else {
+                        return Err(Error::custom(
+                            "'Array' contains non-byte values".to_string(),
+                        ));
+                    }
+                }
+                DeDuperInner::Bytes(DuperBytes(Cow::Owned(bytes)))
+            }
+            // Array from bytes
+            (DeDuperInner::Bytes(bytes), DeDuperType::Array) => DeDuperInner::Array(DeDuperArray(
+                bytes
+                    .0
+                    .iter()
+                    .map(|byte| {
+                        DeDuperArrayValue::DuperValue(DeDuperValue {
+                            identifier: None,
+                            inner: DeDuperInner::Integer((*byte).into()),
+                        })
+                    })
+                    .collect(),
+            )),
+            // Null from unit tuple
+            (DeDuperInner::Tuple(tuple), DeDuperType::Null) if tuple.0.is_empty() => {
+                DeDuperInner::Null
+            }
             // Fallback
             (inner, typ) => {
                 return Err(Error::custom(format!(

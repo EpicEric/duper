@@ -5,5 +5,5 @@ expression: serialized
 DuperValue({
   identifier: null,
   inner: {},
-  type: "object",
+  type: "Object",
 })

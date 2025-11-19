@@ -3,15 +3,17 @@ resolver = "3"
 members = [
   "axum_duper",
   "duper",
+  "duperfmt",
+  "duperq",
+  "duper-js-node",
   "duper-js-wasm/rust",
   "duper-python",
-  "duperfmt",
   "duper_lsp",
   "duper_uniffi",
   "duper_website",
   "serde_duper",
   "serde_duper_macros",
-  "tree-sitter-duper", "duperq",
+  "tree-sitter-duper",
 ]
 
 [profile.release]
