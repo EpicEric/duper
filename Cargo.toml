@@ -9,6 +9,7 @@ members = [
   "duper_website",
   "serde_duper",
   "serde_duper_macros",
+  "tree-sitter-duper",
 ]
 
 [profile.release]

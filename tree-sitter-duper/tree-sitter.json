@@ -1,0 +1,39 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
+  "grammars": [
+    {
+      "name": "duper",
+      "camelcase": "Duper",
+      "title": "Duper",
+      "scope": "source.duper",
+      "file-types": [
+        "duper"
+      ],
+      "injection-regex": "^duper$",
+      "class-name": "TreeSitterDuper"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "The format that's super!",
+    "authors": [
+      {
+        "name": "Eric Rodrigues Pires",
+        "email": "eric@eric.dev.br"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/EpicEric/duper"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": true,
+    "node": true,
+    "python": true,
+    "rust": true,
+    "swift": true,
+    "zig": false
+  }
+}
