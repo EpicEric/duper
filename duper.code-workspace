@@ -1,46 +1,4 @@
 {
-  "folders": [
-    {
-      "name": "/",
-      "path": "."
-    },
-    {
-      "name": "axum_duper",
-      "path": "axum_duper"
-    },
-    {
-      "name": "duper",
-      "path": "duper"
-    },
-    {
-      "name": "duper-js-wasm",
-      "path": "duper-js-wasm"
-    },
-    {
-      "name": "duper-python",
-      "path": "duper-python"
-    },
-    {
-      "name": "duper_uniffi",
-      "path": "duper_uniffi"
-    },
-    {
-      "name": "duper-vs-code",
-      "path": "duper-vs-code"
-    },
-    {
-      "name": "duper_website",
-      "path": "duper_website"
-    },
-    {
-      "name": "serde_duper",
-      "path": "serde_duper"
-    },
-    {
-      "name": "serde_duper_macros",
-      "path": "serde_duper_macros"
-    }
-  ],
   "settings": {
     "rust-analyzer.cargo.features": "all",
     "python.analysis.typeCheckingMode": "off"
