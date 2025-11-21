@@ -1,25 +1,26 @@
-use std::io::{Read, Write};
+use std::io::Write;
 
-use topiary_core::{Language, Operation, TopiaryQuery, formatter};
+use topiary_core::{Language, Operation, TopiaryQuery, formatter_tree};
+use tree_sitter::Tree;
 
 const DUPER_QUERY: &str = include_str!("./duper.scm");
 
 pub(crate) fn format_duper(
-    mut input: impl Read,
+    tree: Tree,
+    input: &str,
     mut output: impl Write,
     indent: Option<String>,
 ) -> Result<(), topiary_core::FormatterError> {
-    let grammar = tree_sitter_duper::LANGUAGE.into();
-    let query = TopiaryQuery::new(&grammar, DUPER_QUERY)?;
     let language = Language {
         name: "duper".to_owned(),
-        query,
-        grammar,
+        query: TopiaryQuery::new(&tree_sitter_duper::LANGUAGE.into(), DUPER_QUERY)?,
+        grammar: tree_sitter_duper::LANGUAGE.into(),
         indent,
     };
 
-    formatter(
-        &mut input,
+    formatter_tree(
+        tree.into(),
+        input,
         &mut output,
         &language,
         Operation::Format {
