@@ -56,6 +56,11 @@ TextMateGrammar({
           name: "constant.other.temporal.duper",
           begin: Regex("'"),
           end: Regex("'"),
+          patterns: [
+            {
+              match: Regex("."),
+            }
+          ]
         },
       ],
     },

@@ -23,7 +23,7 @@ impl DuperParser {
         let value = duper_trunk().parse(input).into_result()?;
         match &value.inner {
             DuperInner::Object(_) | DuperInner::Array(_) | DuperInner::Tuple(_) => Ok(value),
-            _ => todo!(),
+            _ => unreachable!(),
         }
     }
 

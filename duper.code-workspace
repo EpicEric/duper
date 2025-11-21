@@ -1,6 +1,0 @@
-{
-  "settings": {
-    "rust-analyzer.cargo.features": "all",
-    "python.analysis.typeCheckingMode": "off"
-  }
-}
