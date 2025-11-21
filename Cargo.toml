@@ -4,7 +4,7 @@ members = [
   "axum_duper",
   "duper",
   "duper-js-wasm/rust",
-  "duper-python",
+  "duper-python", "duper_lsp",
   "duper_uniffi",
   "duper_website",
   "serde_duper",

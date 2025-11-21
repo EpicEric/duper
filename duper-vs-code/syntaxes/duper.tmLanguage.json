@@ -2,7 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Duper",
   "scopeName": "source.duper",
-  "aliases": ["duper"],
+  "aliases": [
+    "duper"
+  ],
   "patterns": [
     {
       "include": "#values"
@@ -65,7 +67,12 @@
         {
           "name": "constant.other.temporal.duper",
           "begin": "'",
-          "end": "'"
+          "end": "'",
+          "patterns": [
+            {
+              "match": "."
+            }
+          ]
         }
       ]
     },
