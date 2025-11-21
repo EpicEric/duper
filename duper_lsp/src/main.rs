@@ -1,91 +1,110 @@
-use std::collections::HashMap;
 use std::ops::ControlFlow;
+use std::{collections::HashMap, mem};
 
 use async_lsp::{
-    client_monitor::ClientProcessMonitorLayer, concurrency::ConcurrencyLayer,
-    panic::CatchUnwindLayer, router::Router, server::LifecycleLayer, tracing::TracingLayer,
+    ClientSocket, LanguageClient, client_monitor::ClientProcessMonitorLayer,
+    concurrency::ConcurrencyLayer, panic::CatchUnwindLayer, router::Router, server::LifecycleLayer,
+    tracing::TracingLayer,
 };
+use line_index::{LineCol, LineIndex, WideEncoding, WideLineCol};
 use lsp_types::{
-    FileOperationFilter, FileOperationPattern, FileOperationRegistrationOptions, Hover,
-    HoverContents, HoverProviderCapability, InitializeResult, MarkedString, OneOf, Position, Range,
-    ServerCapabilities, ServerInfo, TextDocumentItem, TextDocumentSyncCapability,
-    TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit,
-    WorkspaceFileOperationsServerCapabilities, WorkspaceServerCapabilities, notification, request,
+    FileOperationFilter, FileOperationPattern, FileOperationRegistrationOptions, InitializeResult,
+    OneOf, Position, PositionEncodingKind, PublishDiagnosticsParams, Range, ServerCapabilities,
+    ServerInfo, TextDocumentItem, TextDocumentSyncCapability, TextDocumentSyncKind,
+    TextDocumentSyncOptions, TextEdit, Url, WorkspaceFileOperationsServerCapabilities,
+    WorkspaceServerCapabilities, notification, request,
 };
 use tower::ServiceBuilder;
-use tracing::{Level, debug, info};
+use tracing::{Level, debug};
+use tree_sitter::{InputEdit, Parser, Point, Tree};
 
-use crate::format::format_duper;
+use crate::{diagnostics::get_diagnostics, format::format_duper};
 
+mod diagnostics;
 mod format;
 
 struct ServerState {
-    // client: ClientSocket,
-    documents: HashMap<String, TextDocumentItem>,
+    client: ClientSocket,
+    is_utf8: bool,
+    parser: Parser,
+    documents: HashMap<String, (TextDocumentItem, Tree)>,
 }
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let (server, _) = async_lsp::MainLoop::new_server(|client| {
+        let mut parser = tree_sitter::Parser::new();
+        let language = tree_sitter_duper::LANGUAGE;
+        parser
+            .set_language(&language.into())
+            .expect("Error loading Duper parser");
         let mut router = Router::new(ServerState {
-            // client: client.clone(),
+            client: client.clone(),
+            is_utf8: false,
+            parser,
             documents: HashMap::new(),
         });
-        // TO-DO: Don't .unwrap() everything
         router
-            .request::<request::Initialize, _>(|_, params| async move {
+            .request::<request::Initialize, _>(|state, params| {
                 debug!(?params, "Initializing LSP...");
-                let filters = vec![FileOperationFilter {
-                    pattern: FileOperationPattern {
-                        glob: "**/*.duper".into(),
+                let is_utf8 = params.capabilities.general.is_some_and(|general| {
+                    general
+                        .position_encodings
+                        .unwrap_or_default()
+                        .contains(&PositionEncodingKind::UTF8)
+                });
+                state.is_utf8 = is_utf8;
+                async move {
+                    let filters = vec![FileOperationFilter {
+                        pattern: FileOperationPattern {
+                            glob: "**/*.duper".into(),
+                            ..Default::default()
+                        },
                         ..Default::default()
-                    },
-                    ..Default::default()
-                }];
-                let operation_options = Some(FileOperationRegistrationOptions { filters });
-                Ok(InitializeResult {
-                    capabilities: ServerCapabilities {
-                        hover_provider: Some(HoverProviderCapability::Simple(true)),
-                        text_document_sync: Some(TextDocumentSyncCapability::Options(
-                            TextDocumentSyncOptions {
-                                change: Some(TextDocumentSyncKind::FULL),
-                                open_close: Some(true),
-                                ..Default::default()
-                            },
-                        )),
-                        document_formatting_provider: Some(OneOf::Left(true)),
-                        workspace: Some(WorkspaceServerCapabilities {
-                            file_operations: Some(WorkspaceFileOperationsServerCapabilities {
-                                did_delete: operation_options.clone(),
-                                did_create: operation_options.clone(),
-                                did_rename: operation_options.clone(),
+                    }];
+                    let operation_options = Some(FileOperationRegistrationOptions { filters });
+                    Ok(InitializeResult {
+                        capabilities: ServerCapabilities {
+                            // hover_provider: Some(HoverProviderCapability::Simple(true)),
+                            text_document_sync: Some(TextDocumentSyncCapability::Options(
+                                TextDocumentSyncOptions {
+                                    change: Some(TextDocumentSyncKind::INCREMENTAL),
+                                    open_close: Some(true),
+                                    ..Default::default()
+                                },
+                            )),
+                            document_formatting_provider: Some(OneOf::Left(true)),
+                            workspace: Some(WorkspaceServerCapabilities {
+                                file_operations: Some(WorkspaceFileOperationsServerCapabilities {
+                                    did_delete: operation_options.clone(),
+                                    did_create: operation_options.clone(),
+                                    did_rename: operation_options.clone(),
+                                    ..Default::default()
+                                }),
                                 ..Default::default()
                             }),
+                            position_encoding: is_utf8.then_some(PositionEncodingKind::UTF8),
                             ..Default::default()
+                        },
+                        server_info: Some(ServerInfo {
+                            name: "Duper".into(),
+                            version: Some(env!("CARGO_PKG_VERSION").into()),
                         }),
-                        ..Default::default()
-                    },
-                    server_info: Some(ServerInfo {
-                        name: "Duper".into(),
-                        version: Some(env!("CARGO_PKG_VERSION").into()),
-                    }),
-                })
+                    })
+                }
             })
-            .request::<request::HoverRequest, _>(|_, _| async move {
-                Ok(Some(Hover {
-                    contents: HoverContents::Scalar(MarkedString::String(
-                        "I am a hover text!".into(),
-                    )),
-                    range: None,
-                }))
-            })
+            .request::<request::HoverRequest, _>(|_, _| async move { Ok(None) })
             .request::<request::Formatting, _>(|state, params| {
-                let document = state
-                    .documents
-                    .get(params.text_document.uri.as_str())
-                    .unwrap();
-                let input = document.text.clone();
+                let uri = params.text_document.uri.as_str();
+                let entry = state.documents.get(uri).cloned();
+                if entry.is_none() {
+                    debug!(uri, "Text document not found");
+                }
                 async move {
+                    let Some((document, tree)) = entry else {
+                        return Ok(None);
+                    };
+                    let input = document.text;
                     if input.trim().is_empty() {
                         return Ok(None);
                     }
@@ -95,36 +114,146 @@ async fn main() {
                         "\t".into()
                     };
                     let mut buf = Vec::new();
-                    format_duper(input.as_bytes(), &mut buf, Some(indent)).unwrap();
+                    if let Err(err) = format_duper(tree, &input, &mut buf, Some(indent)) {
+                        debug!(?err, "Failed to format Duper document");
+                        return Ok(None);
+                    }
 
-                    let lines = input.lines();
-                    let last_line = lines.clone().last().unwrap_or("");
-                    let end = Position::new(lines.count() as u32, last_line.len() as u32);
-                    let range = Range::new(Position::new(0, 0), end);
+                    let (line_count, last_line_len) = input
+                        .lines()
+                        .fold((0, 0), |acc, line| (acc.0 + 1, line.len()));
+                    let range = Range::new(
+                        Position::new(0, 0),
+                        Position::new(line_count, last_line_len as u32),
+                    );
                     Ok(Some(vec![TextEdit::new(
                         range,
-                        String::from_utf8(buf).unwrap(),
+                        String::from_utf8(buf).expect("formatting output is valid Duper"),
                     )]))
                 }
             })
             .notification::<notification::Initialized>(|_, _| ControlFlow::Continue(()))
             .notification::<notification::DidChangeConfiguration>(|_, _| ControlFlow::Continue(()))
             .notification::<notification::DidOpenTextDocument>(|state, params| {
-                info!(?params, "Notification DidOpenTextDocument");
-                state
-                    .documents
-                    .insert(params.text_document.uri.to_string(), params.text_document);
+                let uri = params.text_document.uri.to_string();
+                let tree = state
+                    .parser
+                    .parse(&params.text_document.text, None)
+                    .expect("parser was properly initialized");
+                let diagnostics = PublishDiagnosticsParams {
+                    uri: params.text_document.uri.clone(),
+                    diagnostics: get_diagnostics(&params.text_document.text, &tree, state.is_utf8),
+                    version: Some(params.text_document.version),
+                };
+                let _ = state.client.publish_diagnostics(diagnostics);
+                state.documents.insert(uri, (params.text_document, tree));
                 ControlFlow::Continue(())
             })
             .notification::<notification::DidChangeTextDocument>(|state, params| {
                 let uri = params.text_document.uri;
-                let document = state.documents.get_mut(uri.as_str()).unwrap();
+                let Some((document, tree)) = state.documents.get_mut(uri.as_str()) else {
+                    debug!(?uri, "Text document not found");
+                    return ControlFlow::Continue(());
+                };
+                let mut text = mem::take(&mut document.text);
+                let mut new_tree = Some(tree.clone());
+                for change in params.content_changes {
+                    if let Some(range) = change.range {
+                        let index = LineIndex::new(&text);
+                        let start_line_col = if state.is_utf8 {
+                            LineCol {
+                                line: range.start.line,
+                                col: range.start.character,
+                            }
+                        } else {
+                            index
+                                .to_utf8(
+                                    WideEncoding::Utf16,
+                                    WideLineCol {
+                                        line: range.start.line,
+                                        col: range.start.character,
+                                    },
+                                )
+                                .expect("integer overflow")
+                        };
+                        let end_line_col = if state.is_utf8 {
+                            LineCol {
+                                line: range.end.line,
+                                col: range.end.character,
+                            }
+                        } else {
+                            index
+                                .to_utf8(
+                                    WideEncoding::Utf16,
+                                    WideLineCol {
+                                        line: range.end.line,
+                                        col: range.end.character,
+                                    },
+                                )
+                                .expect("integer overflow")
+                        };
+
+                        let start_byte = index
+                            .offset(start_line_col)
+                            .expect("integer overflow")
+                            .into();
+                        let old_end_byte =
+                            index.offset(end_line_col).expect("integer overflow").into();
+                        let new_end_byte = start_byte + change.text.len();
+
+                        if let Some(new_tree) = &mut new_tree {
+                            let start_position = Point::new(
+                                start_line_col.line as usize,
+                                start_line_col.col as usize,
+                            );
+                            let old_end_position =
+                                Point::new(end_line_col.line as usize, end_line_col.col as usize);
+                            let (line_count, last_line_len) = change
+                                .text
+                                .lines()
+                                .fold((0, 0), |acc, line| (acc.0 + 1, line.len()));
+                            let new_end_position = if line_count > 1 {
+                                Point::new(
+                                    (start_line_col.line as usize) + (line_count - 1),
+                                    last_line_len,
+                                )
+                            } else {
+                                Point::new(
+                                    start_line_col.line as usize,
+                                    (start_line_col.col as usize) + last_line_len,
+                                )
+                            };
+
+                            new_tree.edit(&InputEdit {
+                                start_byte,
+                                old_end_byte,
+                                new_end_byte,
+                                start_position,
+                                old_end_position,
+                                new_end_position,
+                            });
+                        }
+                        text.replace_range(start_byte..old_end_byte, &change.text);
+                    } else {
+                        text = change.text;
+                        new_tree = None;
+                    }
+                }
+                *tree = state
+                    .parser
+                    .parse(&text, new_tree.as_ref())
+                    .expect("parser was properly initialized");
                 *document = TextDocumentItem::new(
-                    uri,
+                    uri.clone(),
                     "duper".to_owned(),
                     params.text_document.version,
-                    params.content_changes.into_iter().last().unwrap().text,
+                    text,
                 );
+                let _ = state.client.publish_diagnostics(PublishDiagnosticsParams {
+                    uri,
+                    diagnostics: get_diagnostics(&document.text, &tree, state.is_utf8),
+                    version: Some(params.text_document.version),
+                });
                 ControlFlow::Continue(())
             })
             .notification::<notification::DidCloseTextDocument>(|state, params| {
@@ -134,8 +263,19 @@ async fn main() {
             .notification::<notification::DidChangeWatchedFiles>(|_, _| ControlFlow::Continue(()))
             .notification::<notification::DidRenameFiles>(|state, params| {
                 for file in params.files {
-                    let document = state.documents.remove(&file.old_uri).unwrap();
-                    state.documents.insert(file.new_uri, document);
+                    let Some((document, tree)) = state.documents.remove(&file.old_uri) else {
+                        debug!(uri = file.old_uri, "Text document not found");
+                        continue;
+                    };
+                    let uri = Url::parse(&file.new_uri).expect("URI is valid");
+                    let diagnostics = get_diagnostics(&document.text, &tree, state.is_utf8);
+                    let version = Some(document.version);
+                    state.documents.insert(file.new_uri, (document, tree));
+                    let _ = state.client.publish_diagnostics(PublishDiagnosticsParams {
+                        uri,
+                        diagnostics,
+                        version,
+                    });
                 }
                 ControlFlow::Continue(())
             })
@@ -163,8 +303,8 @@ async fn main() {
 
     #[cfg(unix)]
     let (stdin, stdout) = (
-        async_lsp::stdio::PipeStdin::lock_tokio().unwrap(),
-        async_lsp::stdio::PipeStdout::lock_tokio().unwrap(),
+        async_lsp::stdio::PipeStdin::lock_tokio().expect("should allocate stdin"),
+        async_lsp::stdio::PipeStdout::lock_tokio().expect("should allocate stdout"),
     );
 
     #[cfg(not(unix))]
@@ -173,5 +313,8 @@ async fn main() {
         tokio_util::compat::TokioAsyncWriteCompatExt::compat_write(tokio::io::stdout()),
     );
 
-    server.run_buffered(stdin, stdout).await.unwrap();
+    server
+        .run_buffered(stdin, stdout)
+        .await
+        .expect("server was shut down");
 }

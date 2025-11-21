@@ -7,7 +7,7 @@
 //!
 //! ```duper
 //! DatabaseConfig({
-//!   host: IPV4("127.0.0.1"),
+//!   host: IPv4("127.0.0.1"),
 //!   port: Port(5432),
 //!   username: "admin",
 //!   password: SecureString("encrypted_data"),
@@ -36,11 +36,12 @@
 //!
 
 pub mod ast;
-mod escape;
-mod format;
+pub mod escape;
+pub mod format;
 mod parser;
 #[cfg(feature = "serde")]
 pub mod serde;
+pub mod validate;
 pub mod visitor;
 
 pub use ast::{
