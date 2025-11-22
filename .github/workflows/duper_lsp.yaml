@@ -14,11 +14,10 @@ env:
 
 jobs:
   build:
-    runs-on: ${{ matrix.platform.runner }}
     strategy:
       fail-fast: false
       matrix:
-        platform:
+        include:
           - runner: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             vscode-target: linux-x64
@@ -51,6 +50,8 @@ jobs:
             target: aarch64-apple-darwin
             vscode-target: darwin-arm64
             os: macos
+    name: Build and package (${{ matrix.vscode-target }})
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -60,21 +61,42 @@ jobs:
         run: |
           rustup toolchain install ${RUST_MSRV}
           rustup override set ${RUST_MSRV}
-          rustup target add ${{ matrix.platform.target }}
+          rustup target add ${{ matrix.target }}
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
-      - name: Build
+      - name: Install Zig
+        if: matrix.runner == 'ubuntu-24.04'
+        uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
+        with:
+          version: latest
+      - name: Install zigbuild
+        if: matrix.runner == 'ubuntu-24.04'
+        uses: taiki-e/install-action@a24ba45235ed716ff76646268742990dc9458860 # v2.62.42
+        with:
+          tool: cargo-zigbuild
+      - name: Install lld
+        if: matrix.os == 'macos'
         run: |
-          cargo build --locked --all-features --release --target ${{ matrix.platform.target }} --manifest-path duper_lsp/Cargo.toml
+          brew install lld
+      - name: Build with zigbuild
+        if: matrix.runner == 'ubuntu-24.04'
+        run: |
+          cargo zigbuild --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_lsp/Cargo.toml
+      - name: Build with cargo
+        if: matrix.runner != 'ubuntu-24.04'
+        run: |
+          cargo build --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_lsp/Cargo.toml
       - name: Copy binary to extension
-        if: matrix.target.os != 'windows'
+        if: matrix.os != 'windows'
         run: |
-          cp target/${{ matrix.platform.target }}/release/duper_lsp duper-vs-code/duper_lsp
+          cp target/${{ matrix.target }}/release/duper_lsp duper-vs-code/duper_lsp
+          mkdir dist
       - name: Copy binary to extension (Windows)
-        if: matrix.target.os == 'windows'
+        if: matrix.os == 'windows'
         shell: bash
         run: |
-          cp target/${{ matrix.platform.target }}/release/duper_lsp.exe duper-vs-code/duper_lsp.exe
+          cp target/${{ matrix.target }}/release/duper_lsp.exe duper-vs-code/duper_lsp.exe
+          mkdir dist
       - name: Setup Node
         uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
         with:
@@ -84,17 +106,23 @@ jobs:
         run: |
           npm install
           npm run build
-          npx vsce package --out "../dist/duper-vs-code-${{ matrix.platform.code-target }}.vsix" --target ${{ matrix.platform.code-target }}
+          npx vsce package --out "../dist/duper-vs-code-${{ matrix.vscode-target }}.vsix" --target ${{ matrix.vscode-target }}
       - name: Upload artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: dist-${{ matrix.platform.code-target }}
+          name: dist-${{ matrix.vscode-target }}
           path: dist
 
   release:
+    name: Release
     runs-on: ubuntu-24.04
     environment: vsce
+    needs: build
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: true
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: dist-linux-x64
