@@ -4,8 +4,25 @@
 //! tree-sitter [`Parser`], and then use the parser to parse some code:
 //!
 //! ```
-//! let code = r#"
-//! "#;
+//! let code = r##"
+//!   UserProfile({
+//!     id: Uuid("f111c275-bfce-f394-8e5b-19067ce39b53"),
+//!     username: "",
+//!     email: EmailAddress("eric@duper.dev.br"),
+//!     settings: {
+//!       "dark mode": false,
+//!       language: Locale("pt-BR"),
+//!       email: null,
+//!     },
+//!     score: 120.25,
+//!     // Support for bytes, woohoo!
+//!     avatar: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
+//!     bio: r#"Hello! I'm a super "duper" user!"#,
+//!     last_logins: [
+//!       (IPv4Address("192.168.1.100"), Instant('2024-02-29T14:30:00+00:00')),
+//!     ],
+//!   })
+//! "##;
 //! let mut parser = tree_sitter::Parser::new();
 //! let language = tree_sitter_duper::LANGUAGE;
 //! parser

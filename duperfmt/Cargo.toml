@@ -1,6 +1,6 @@
 [package]
 name = "duperfmt"
-description = "The Duper formatter."
+description = "Duper formatting library and CLI."
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"

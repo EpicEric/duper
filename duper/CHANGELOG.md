@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Expose `escape`, `format`, and `validate` modules.
+
 ### Fixed
 
 - Missing handling for PlainTime in Temporal parser.
