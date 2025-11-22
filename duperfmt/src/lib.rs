@@ -5,11 +5,12 @@ use tree_sitter::Tree;
 
 const DUPER_QUERY: &str = include_str!("./duper.scm");
 
-pub(crate) fn format_duper(
+pub fn format_duper(
     tree: Tree,
     input: &str,
     mut output: impl Write,
     indent: Option<String>,
+    debug: bool,
 ) -> Result<(), topiary_core::FormatterError> {
     let language = Language {
         name: "duper".to_owned(),
@@ -24,7 +25,7 @@ pub(crate) fn format_duper(
         &mut output,
         &language,
         Operation::Format {
-            skip_idempotence: true,
+            skip_idempotence: !debug,
             tolerate_parsing_errors: false,
         },
     )

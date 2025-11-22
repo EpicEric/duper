@@ -1,0 +1,20 @@
+[package]
+name = "duperfmt"
+description = "The Duper formatter."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+repository = "https://github.com/EpicEric/duper"
+homepage = "https://duper.dev.br"
+readme = "README.md"
+
+[dependencies]
+clap = { version = "4.5.53", features = ["derive"] }
+miette = { version = "7.6.0", features = ["fancy"] }
+thiserror = "2.0.17"
+topiary-core = "0.7.1"
+topiary-tree-sitter-facade = "0.7.1"
+tree-sitter = { version = "0.25.10", features = ["wasm"] }
+tree-sitter-duper = { version = "0.1.0", path = "../tree-sitter-duper" }

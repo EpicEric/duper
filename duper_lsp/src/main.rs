@@ -6,6 +6,8 @@ use async_lsp::{
     concurrency::ConcurrencyLayer, panic::CatchUnwindLayer, router::Router, server::LifecycleLayer,
     tracing::TracingLayer,
 };
+use clap::Parser as _;
+use duperfmt::format_duper;
 use line_index::{LineCol, LineIndex, WideEncoding, WideLineCol};
 use lsp_types::{
     FileOperationFilter, FileOperationPattern, FileOperationRegistrationOptions, InitializeResult,
@@ -16,22 +18,32 @@ use lsp_types::{
 };
 use tower::ServiceBuilder;
 use tracing::{Level, debug};
-use tree_sitter::{InputEdit, Parser, Point, Tree};
-
-use crate::{diagnostics::get_diagnostics, format::format_duper};
+use tree_sitter::{InputEdit, Point, Tree};
 
 mod diagnostics;
-mod format;
+
+use crate::diagnostics::get_diagnostics;
 
 struct ServerState {
     client: ClientSocket,
     is_utf8: bool,
-    parser: Parser,
+    parser: tree_sitter::Parser,
     documents: HashMap<String, (TextDocumentItem, Tree)>,
+}
+
+#[derive(clap::Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    /// Run in debug mode (i.e. comprehensive logging and check for formatting idempotency).
+    #[arg(short, long)]
+    debug: bool,
 }
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    let cli = Cli::parse();
+    let debug = cli.debug;
+
     let (server, _) = async_lsp::MainLoop::new_server(|client| {
         let mut parser = tree_sitter::Parser::new();
         let language = tree_sitter_duper::LANGUAGE;
@@ -94,7 +106,7 @@ async fn main() {
                 }
             })
             .request::<request::HoverRequest, _>(|_, _| async move { Ok(None) })
-            .request::<request::Formatting, _>(|state, params| {
+            .request::<request::Formatting, _>(move |state, params| {
                 let uri = params.text_document.uri.as_str();
                 let entry = state.documents.get(uri).cloned();
                 if entry.is_none() {
@@ -114,7 +126,7 @@ async fn main() {
                         "\t".into()
                     };
                     let mut buf = Vec::new();
-                    if let Err(err) = format_duper(tree, &input, &mut buf, Some(indent)) {
+                    if let Err(err) = format_duper(tree, &input, &mut buf, Some(indent), debug) {
                         debug!(?err, "Failed to format Duper document");
                         return Ok(None);
                     }
@@ -296,7 +308,7 @@ async fn main() {
     });
 
     tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
+        .with_max_level(if debug { Level::DEBUG } else { Level::INFO })
         .with_ansi(false)
         .with_writer(std::io::stderr)
         .init();

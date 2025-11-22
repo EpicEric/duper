@@ -7,12 +7,16 @@
       "request": "launch",
       "args": [
         "--disable-extensions",
+        "--extensionDevelopmentKind=node",
         "--extensionDevelopmentPath=${workspaceFolder}/duper-vs-code"
       ],
+      "env": {
+        "PATH": "${workspaceFolder}/target/debug:${env:PATH}"
+      },
       "outFiles": [
         "${workspaceFolder}/duper-vs-code/dist/**/*"
       ],
       "preLaunchTask": "npm: prelaunch - duper-vs-code"
     }
-  ]
+  ],
 }

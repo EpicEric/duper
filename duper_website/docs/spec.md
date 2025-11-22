@@ -175,7 +175,7 @@ A string may be either quoted or raw.
   str2: "\"You can quote me\"",
   str3: "Name\tJos\xE9\nLocation\tBR.",
   str4: "  padded  ",
-  str5: "ඞ",  // U+0D9E  SINHALA LETTER KANTAJA NAASIKYAYA
+  str5: "𝓓𝓾𝓹𝓮𝓻",
 }
 ```
 
