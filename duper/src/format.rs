@@ -7,7 +7,7 @@ use crate::{
     escape::{escape_bytes, escape_str, is_invisible_unicode},
 };
 
-pub(crate) fn format_key<'a>(key: &'a DuperKey<'a>) -> Cow<'a, str> {
+pub fn format_key<'a>(key: &'a DuperKey<'a>) -> Cow<'a, str> {
     if key.0.chars().all(|c| c.is_alphanumeric() || c == '_') {
         Cow::Borrowed(key.0.as_ref())
     } else {
@@ -15,7 +15,7 @@ pub(crate) fn format_key<'a>(key: &'a DuperKey<'a>) -> Cow<'a, str> {
     }
 }
 
-pub(crate) fn format_duper_string<'a>(string: &'a DuperString<'a>) -> Cow<'a, str> {
+pub fn format_duper_string<'a>(string: &'a DuperString<'a>) -> Cow<'a, str> {
     format_cow_str(&string.0)
 }
 
@@ -80,7 +80,7 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
     }
 }
 
-pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> {
+pub fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> {
     if bytes.0.is_empty() {
         // Empty bytes
         Cow::Borrowed(r#"b"""#)
@@ -158,7 +158,7 @@ pub(crate) fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> 
     }
 }
 
-pub(crate) fn format_temporal<'a>(temporal: &'a DuperTemporal<'a>) -> String {
+pub fn format_temporal<'a>(temporal: &'a DuperTemporal<'a>) -> String {
     let mut string = String::with_capacity(temporal.as_ref().len() + 2);
     string.push('\'');
     string.push_str(temporal.as_ref());
@@ -166,18 +166,18 @@ pub(crate) fn format_temporal<'a>(temporal: &'a DuperTemporal<'a>) -> String {
     string
 }
 
-pub(crate) fn format_integer(integer: i64) -> String {
+pub fn format_integer(integer: i64) -> String {
     integer.to_string()
 }
 
-pub(crate) fn format_float(float: f64) -> String {
+pub fn format_float(float: f64) -> String {
     ryu::Buffer::new().format(float).into()
 }
 
-pub(crate) fn format_boolean(bool: bool) -> &'static str {
+pub fn format_boolean(bool: bool) -> &'static str {
     if bool { "true" } else { "false" }
 }
 
-pub(crate) fn format_null() -> &'static str {
+pub fn format_null() -> &'static str {
     "null"
 }

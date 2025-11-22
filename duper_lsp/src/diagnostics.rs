@@ -1,0 +1,952 @@
+use std::{borrow::Cow, collections::HashSet, sync::LazyLock};
+
+use base64::Engine;
+use line_index::{LineCol, LineIndex, WideEncoding};
+use lsp_types::{Diagnostic, DiagnosticSeverity};
+use regex::Regex;
+use tracing::{error, warn};
+use tree_sitter::{Query, QueryCursor, StreamingIterator, Tree};
+
+const QUERY_ERRORS: LazyLock<Query> = LazyLock::new(|| {
+    let text = r"(ERROR) @error";
+    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid errors query");
+    query
+});
+
+const QUERY_MISSING: LazyLock<Query> = LazyLock::new(|| {
+    let text = r"(MISSING) @missing";
+    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid missing query");
+    query
+});
+
+const QUERY_OBJECT_KEYS: LazyLock<Query> = LazyLock::new(|| {
+    let text = r#"
+        (object
+            .
+            [(line_comment) (block_comment)]*
+            .
+            (
+                (object_entry
+                    (object_key [
+                        (plain_key) @plain
+                        (quoted_string
+                            (quoted_content) @quote
+                        )
+                        (raw_string
+                            (raw_content) @raw
+                        )
+                    ])
+                )
+                _*
+            )*
+        )"#;
+    let query =
+        Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid object keys query");
+    query
+});
+
+const QUERY_UNIDENTIFIED_QUOTED_STRINGS: LazyLock<Query> = LazyLock::new(|| {
+    let text = r#"
+        (duper_value
+            (string
+                (quoted_string
+                    (quoted_content) @quote)))"#;
+    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text)
+        .expect("valid unidentified quoted strings query");
+    query
+});
+
+const QUERY_QUOTED_BYTES: LazyLock<Query> = LazyLock::new(|| {
+    let text = r#"
+        (bytes
+            (quoted_bytes
+                (quoted_content) @quote))"#;
+    let query =
+        Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid quoted bytes query");
+    query
+});
+
+const QUERY_BASE64_BYTES: LazyLock<Query> = LazyLock::new(|| {
+    let text = r#"
+        (bytes
+            (base64_bytes
+                (base64_content) @base64))"#;
+    let query =
+        Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid base64 bytes query");
+    query
+});
+
+const QUERY_IDENTIFIED_TEMPORAL: LazyLock<Query> = LazyLock::new(|| {
+    let text = r#"
+        (duper_value
+            (identified_value
+                (identifier) @identifier
+                (temporal
+                    (temporal_content) @temporal)))"#;
+    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text)
+        .expect("valid identified Temporal query");
+    query
+});
+
+const QUERY_UNSPECIFIED_TEMPORAL: LazyLock<Query> = LazyLock::new(|| {
+    let text = r#"
+        (duper_value
+            (temporal
+                (temporal_content) @temporal))"#;
+    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text)
+        .expect("valid unspecified Temporal query");
+    query
+});
+
+const QUERY_IDENTIFIED_STRINGS: LazyLock<Query> = LazyLock::new(|| {
+    let text = r#"
+        (duper_value
+            (identified_value
+                (identifier) @identifier
+                (string [
+                    (quoted_string
+                        (quoted_content) @quote
+                    )
+                    (raw_string
+                        (raw_content) @raw
+                    )
+                ])))"#;
+    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text)
+        .expect("valid identified strings query");
+    query
+});
+
+const QUERY_INTEGERS: LazyLock<Query> = LazyLock::new(|| {
+    let text = r#"
+        (integer) @integer
+    "#;
+    let query =
+        Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid integers query");
+    query
+});
+
+const QUERY_FLOATS: LazyLock<Query> = LazyLock::new(|| {
+    let text = r#"
+        (float) @float
+    "#;
+    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid floats query");
+    query
+});
+
+const REGEX_UUID: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)^UUID(v?\d)?$").expect("valid UUID regex"));
+
+pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<Diagnostic> {
+    let mut diagnostics = vec![];
+    let index = LineIndex::new(source);
+
+    // Return errors
+    let query = QUERY_ERRORS;
+    let mut cursor = QueryCursor::new();
+    let mut captures = cursor.captures(&query, tree.root_node(), source.as_bytes());
+    while let Some((m, _)) = {
+        captures.advance();
+        captures.get()
+    } {
+        diagnostics.extend(m.captures.iter().map(|c| {
+            Diagnostic::new(
+                to_range(c.node.range(), &index, is_utf8),
+                Some(DiagnosticSeverity::ERROR),
+                None,
+                None,
+                "Syntax error".into(),
+                None,
+                None,
+            )
+        }));
+    }
+
+    // Return missing values
+    let query: LazyLock<Query> = QUERY_MISSING;
+    let mut cursor = QueryCursor::new();
+    let mut captures = cursor.captures(&query, tree.root_node(), source.as_bytes());
+    while let Some((m, _)) = {
+        captures.advance();
+        captures.get()
+    } {
+        diagnostics.extend(m.captures.iter().map(|c| {
+            Diagnostic::new(
+                to_range(c.node.range(), &index, is_utf8),
+                Some(DiagnosticSeverity::ERROR),
+                None,
+                None,
+                "Missing value".into(),
+                None,
+                None,
+            )
+        }));
+    }
+
+    // Check that objects don't have duplicate keys
+    let query = QUERY_OBJECT_KEYS;
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    while let Some(m) = {
+        matches.advance();
+        matches.get()
+    } {
+        let mut keys = HashSet::<Cow<'_, str>>::new();
+        for capture in m.captures {
+            let capture_name = query.capture_names()[capture.index as usize];
+            let node = capture.node;
+            match capture_name {
+                "plain" => match node.utf8_text(source.as_bytes()) {
+                    Ok(str) => {
+                        if keys.contains(str) {
+                            diagnostics.push(Diagnostic::new(
+                                to_range(node.range(), &index, is_utf8),
+                                Some(DiagnosticSeverity::ERROR),
+                                None,
+                                None,
+                                format!("Duplicate key"),
+                                None,
+                                None,
+                            ))
+                        } else {
+                            keys.insert(Cow::Borrowed(str));
+                        }
+                    }
+                    Err(err) => diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::ERROR),
+                        None,
+                        None,
+                        format!("Invalid UTF-8: {err}"),
+                        None,
+                        None,
+                    )),
+                },
+                "quote" => match node.utf8_text(source.as_bytes()) {
+                    Ok(escaped_str) => match duper::escape::unescape_str(escaped_str) {
+                        Ok(str) => {
+                            if keys.contains(str.as_ref()) {
+                                diagnostics.push(Diagnostic::new(
+                                    to_range(node.range(), &index, is_utf8),
+                                    Some(DiagnosticSeverity::ERROR),
+                                    None,
+                                    None,
+                                    format!("Duplicate key"),
+                                    None,
+                                    None,
+                                ))
+                            } else {
+                                keys.insert(str);
+                            }
+                        }
+                        Err(err) => diagnostics.push(Diagnostic::new(
+                            to_range(node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            format!("Invalid string: {err}"),
+                            None,
+                            None,
+                        )),
+                    },
+                    Err(err) => diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::ERROR),
+                        None,
+                        None,
+                        format!("Invalid UTF-8: {err}"),
+                        None,
+                        None,
+                    )),
+                },
+                "raw" => match node.utf8_text(source.as_bytes()) {
+                    Ok(str) => {
+                        if keys.contains(str) {
+                            diagnostics.push(Diagnostic::new(
+                                to_range(node.range(), &index, is_utf8),
+                                Some(DiagnosticSeverity::ERROR),
+                                None,
+                                None,
+                                format!("Duplicate key"),
+                                None,
+                                None,
+                            ))
+                        } else {
+                            keys.insert(Cow::Borrowed(str));
+                        }
+                    }
+                    Err(err) => diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::ERROR),
+                        None,
+                        None,
+                        format!("Invalid UTF-8: {err}"),
+                        None,
+                        None,
+                    )),
+                },
+                _ => {
+                    error!(
+                        names = ?query.capture_names(),
+                        index = capture.index,
+                        "Unknown capture name"
+                    )
+                }
+            }
+        }
+    }
+
+    // Check escaping on unidentified string values
+    let query = QUERY_UNIDENTIFIED_QUOTED_STRINGS;
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    while let Some(m) = {
+        matches.advance();
+        matches.get()
+    } {
+        for capture in m.captures {
+            let capture_name = query.capture_names()[capture.index as usize];
+            let node = capture.node;
+            match capture_name {
+                "quote" => match node.utf8_text(source.as_bytes()) {
+                    Ok(escaped_str) => {
+                        if let Err(err) = duper::escape::unescape_str(escaped_str) {
+                            diagnostics.push(Diagnostic::new(
+                                to_range(node.range(), &index, is_utf8),
+                                Some(DiagnosticSeverity::ERROR),
+                                None,
+                                None,
+                                format!("Invalid string: {err}"),
+                                None,
+                                None,
+                            ));
+                        }
+                    }
+                    Err(err) => diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::ERROR),
+                        None,
+                        None,
+                        format!("Invalid UTF-8: {err}"),
+                        None,
+                        None,
+                    )),
+                },
+                _ => {
+                    error!(
+                        names = ?query.capture_names(),
+                        index = capture.index,
+                        "Unknown capture name"
+                    )
+                }
+            }
+        }
+    }
+
+    // Check escaping on bytes values
+    let query = QUERY_QUOTED_BYTES;
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    while let Some(m) = {
+        matches.advance();
+        matches.get()
+    } {
+        for capture in m.captures {
+            let capture_name = query.capture_names()[capture.index as usize];
+            let node = capture.node;
+            match capture_name {
+                "quote" => match node.utf8_text(source.as_bytes()) {
+                    Ok(escaped_bytes) => {
+                        if let Err(err) = duper::escape::unescape_bytes(escaped_bytes) {
+                            diagnostics.push(Diagnostic::new(
+                                to_range(node.range(), &index, is_utf8),
+                                Some(DiagnosticSeverity::ERROR),
+                                None,
+                                None,
+                                format!("Invalid bytes: {err}"),
+                                None,
+                                None,
+                            ));
+                        }
+                    }
+                    Err(err) => diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::ERROR),
+                        None,
+                        None,
+                        format!("Invalid UTF-8: {err}"),
+                        None,
+                        None,
+                    )),
+                },
+                _ => {
+                    error!(
+                        names = ?query.capture_names(),
+                        index = capture.index,
+                        "Unknown capture name"
+                    )
+                }
+            }
+        }
+    }
+
+    // Check Base64 bytes values
+    let query = QUERY_BASE64_BYTES;
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    while let Some(m) = {
+        matches.advance();
+        matches.get()
+    } {
+        for capture in m.captures {
+            let capture_name = query.capture_names()[capture.index as usize];
+            let node = capture.node;
+            match capture_name {
+                "base64" => match node.utf8_text(source.as_bytes()) {
+                    Ok(encoded_bytes) => {
+                        let unpadded: String = encoded_bytes
+                            .chars()
+                            .filter(|c| !c.is_ascii_whitespace())
+                            .collect();
+                        if base64::engine::GeneralPurpose::new(
+                            &base64::alphabet::STANDARD,
+                            base64::engine::GeneralPurposeConfig::new().with_decode_padding_mode(
+                                base64::engine::DecodePaddingMode::RequireCanonical,
+                            ),
+                        )
+                        .decode(&unpadded)
+                        .is_err()
+                        {
+                            match base64::engine::GeneralPurpose::new(
+                                &base64::alphabet::STANDARD,
+                                base64::engine::GeneralPurposeConfig::new()
+                                    .with_decode_padding_mode(
+                                        base64::engine::DecodePaddingMode::Indifferent,
+                                    ),
+                            )
+                            .decode(&unpadded)
+                            {
+                                Ok(_) => diagnostics.push(Diagnostic::new(
+                                    to_range(node.range(), &index, is_utf8),
+                                    Some(DiagnosticSeverity::WARNING),
+                                    None,
+                                    None,
+                                    "Missing padding".into(),
+                                    None,
+                                    None,
+                                )),
+                                Err(err) => diagnostics.push(Diagnostic::new(
+                                    to_range(node.range(), &index, is_utf8),
+                                    Some(DiagnosticSeverity::ERROR),
+                                    None,
+                                    None,
+                                    format!("Invalid Base64 bytes: {err}"),
+                                    None,
+                                    None,
+                                )),
+                            }
+                        }
+                    }
+                    Err(err) => diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::ERROR),
+                        None,
+                        None,
+                        format!("Invalid UTF-8: {err}"),
+                        None,
+                        None,
+                    )),
+                },
+                _ => {
+                    error!(
+                        names = ?query.capture_names(),
+                        index = capture.index,
+                        "Unknown capture name"
+                    )
+                }
+            }
+        }
+    }
+
+    // Check identified Temporal values
+    let query = QUERY_IDENTIFIED_TEMPORAL;
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    while let Some(m) = {
+        matches.advance();
+        matches.get()
+    } {
+        let mut identifier: Option<(&str, tree_sitter::Node<'_>)> = None;
+        let mut value: Option<(&str, tree_sitter::Node<'_>)> = None;
+        for capture in m.captures {
+            let capture_name = query.capture_names()[capture.index as usize];
+            let node = capture.node;
+            match capture_name {
+                "identifier" => match node.utf8_text(source.as_bytes()) {
+                    Ok(parsed) => {
+                        identifier = Some((parsed, node));
+                    }
+                    Err(err) => diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::ERROR),
+                        None,
+                        None,
+                        format!("Invalid identifier: {err}"),
+                        None,
+                        None,
+                    )),
+                },
+                "temporal" => match node.utf8_text(source.as_bytes()) {
+                    Ok(parsed) => {
+                        value = Some((parsed.trim(), node));
+                    }
+                    Err(err) => diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::ERROR),
+                        None,
+                        None,
+                        format!("Invalid UTF-8: {err}"),
+                        None,
+                        None,
+                    )),
+                },
+                _ => {
+                    error!(
+                        names = ?query.capture_names(),
+                        index = capture.index,
+                        "Unknown capture name"
+                    )
+                }
+            }
+        }
+        if let (Some((identifier, identifier_node)), Some((temporal, temporal_node))) =
+            (identifier, value)
+        {
+            match identifier {
+                "Instant" => {
+                    if !duper::validate::is_valid_instant(temporal) {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(temporal_node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            "Invalid Instant".into(),
+                            None,
+                            None,
+                        ));
+                    }
+                }
+                "ZonedDateTime" => {
+                    if !duper::validate::is_valid_zoned_date_time(temporal) {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(temporal_node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            "Invalid ZonedDateTime".into(),
+                            None,
+                            None,
+                        ));
+                    }
+                }
+                "PlainDate" => {
+                    if !duper::validate::is_valid_plain_date(temporal) {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(temporal_node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            "Invalid PlainDate".into(),
+                            None,
+                            None,
+                        ));
+                    }
+                }
+                "PlainTime" => {
+                    if !duper::validate::is_valid_plain_time(temporal) {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(temporal_node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            "Invalid PlainTime".into(),
+                            None,
+                            None,
+                        ));
+                    }
+                }
+                "PlainDateTime" => {
+                    if !duper::validate::is_valid_plain_date_time(temporal) {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(temporal_node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            "Invalid PlainDateTime".into(),
+                            None,
+                            None,
+                        ));
+                    }
+                }
+                "PlainYearMonth" => {
+                    if !duper::validate::is_valid_plain_year_month(temporal) {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(temporal_node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            "Invalid PlainYearMonth".into(),
+                            None,
+                            None,
+                        ));
+                    }
+                }
+                "PlainMonthDay" => {
+                    if !duper::validate::is_valid_plain_month_day(temporal) {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(temporal_node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            "Invalid PlainMonthDay".into(),
+                            None,
+                            None,
+                        ));
+                    }
+                }
+                "Duration" => {
+                    if !duper::validate::is_valid_duration(temporal) {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(temporal_node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            "Invalid Duration".into(),
+                            None,
+                            None,
+                        ));
+                    }
+                }
+                _ => {
+                    diagnostics.push(Diagnostic::new(
+                        to_range(identifier_node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::HINT),
+                        None,
+                        None,
+                        "Identifier has no effect".into(),
+                        None,
+                        None,
+                    ));
+                    if !duper::validate::is_valid_unspecified_temporal(temporal) {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(temporal_node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            format!("Invalid Temporal value"),
+                            None,
+                            None,
+                        ));
+                    }
+                }
+            }
+        } else {
+            warn!(
+                ?identifier,
+                ?value,
+                "Unexpected condition: Temporal identifier and/or value are None"
+            );
+        }
+    }
+
+    // Check unspecified Temporal values
+    let query = QUERY_UNSPECIFIED_TEMPORAL;
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    while let Some(m) = {
+        matches.advance();
+        matches.get()
+    } {
+        for capture in m.captures {
+            let capture_name = query.capture_names()[capture.index as usize];
+            let node = capture.node;
+            match capture_name {
+                "temporal" => match node.utf8_text(source.as_bytes()) {
+                    Ok(parsed) if !duper::validate::is_valid_unspecified_temporal(parsed) => {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            "Invalid Temporal".into(),
+                            None,
+                            None,
+                        ));
+                    }
+                    Ok(_) => (),
+                    Err(err) => diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::ERROR),
+                        None,
+                        None,
+                        format!("Invalid UTF-8: {err}"),
+                        None,
+                        None,
+                    )),
+                },
+                _ => {
+                    error!(
+                        names = ?query.capture_names(),
+                        index = capture.index,
+                        "Unknown capture name"
+                    )
+                }
+            }
+        }
+    }
+
+    // Check integers
+    let query = QUERY_INTEGERS;
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    while let Some(m) = {
+        matches.advance();
+        matches.get()
+    } {
+        for capture in m.captures {
+            let capture_name = query.capture_names()[capture.index as usize];
+            let node = capture.node;
+            match capture_name {
+                "integer" => match node.utf8_text(source.as_bytes()) {
+                    Ok(parsed) if !duper::validate::is_valid_integer(parsed) => {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            "Integer cannot be represented with I64\n  = hint: consider using a string instead".into(),
+                            None,
+                            None,
+                        ));
+                    }
+                    Ok(_) => (),
+                    Err(err) => diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::ERROR),
+                        None,
+                        None,
+                        format!("Invalid UTF-8: {err}"),
+                        None,
+                        None,
+                    )),
+                },
+                _ => {
+                    error!(
+                        names = ?query.capture_names(),
+                        index = capture.index,
+                        "Unknown capture name"
+                    )
+                }
+            }
+        }
+    }
+
+    // Check floats
+    let query = QUERY_FLOATS;
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    while let Some(m) = {
+        matches.advance();
+        matches.get()
+    } {
+        for capture in m.captures {
+            let capture_name = query.capture_names()[capture.index as usize];
+            let node = capture.node;
+            match capture_name {
+                "float" => match node.utf8_text(source.as_bytes()) {
+                    Ok(parsed) if !duper::validate::is_valid_float(parsed) => {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            "Float cannot be represented with double".into(),
+                            None,
+                            None,
+                        ));
+                    }
+                    Ok(_) => (),
+                    Err(err) => diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::ERROR),
+                        None,
+                        None,
+                        format!("Invalid UTF-8: {err}"),
+                        None,
+                        None,
+                    )),
+                },
+                _ => {
+                    error!(
+                        names = ?query.capture_names(),
+                        index = capture.index,
+                        "Unknown capture name"
+                    )
+                }
+            }
+        }
+    }
+
+    // Check well-known string types
+    let query = QUERY_IDENTIFIED_STRINGS;
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    'm: while let Some(m) = {
+        matches.advance();
+        matches.get()
+    } {
+        let mut identifier: Option<&str> = None;
+        let mut value: Option<(Cow<'_, str>, tree_sitter::Node<'_>)> = None;
+        for capture in m.captures {
+            let capture_name = query.capture_names()[capture.index as usize];
+            let node = capture.node;
+            match capture_name {
+                "identifier" => match node.utf8_text(source.as_bytes()) {
+                    Ok(parsed) => {
+                        identifier = Some(parsed);
+                    }
+                    Err(err) => {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            format!("Invalid identifier: {err}"),
+                            None,
+                            None,
+                        ));
+                        continue 'm;
+                    }
+                },
+                "quote" => match node.utf8_text(source.as_bytes()) {
+                    Ok(escaped_str) => match duper::escape::unescape_str(escaped_str) {
+                        Ok(str) => {
+                            value = Some((str, node));
+                        }
+                        Err(err) => {
+                            diagnostics.push(Diagnostic::new(
+                                to_range(node.range(), &index, is_utf8),
+                                Some(DiagnosticSeverity::ERROR),
+                                None,
+                                None,
+                                format!("Invalid UTF-8: {err}"),
+                                None,
+                                None,
+                            ));
+                            continue 'm;
+                        }
+                    },
+                    Err(err) => {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            format!("Invalid UTF-8: {err}"),
+                            None,
+                            None,
+                        ));
+                        continue 'm;
+                    }
+                },
+                "raw" => match node.utf8_text(source.as_bytes()) {
+                    Ok(raw) => {
+                        value = Some((Cow::Borrowed(raw), node));
+                    }
+                    Err(err) => {
+                        diagnostics.push(Diagnostic::new(
+                            to_range(node.range(), &index, is_utf8),
+                            Some(DiagnosticSeverity::ERROR),
+                            None,
+                            None,
+                            format!("Invalid UTF-8: {err}"),
+                            None,
+                            None,
+                        ));
+                        continue 'm;
+                    }
+                },
+                _ => {
+                    error!(
+                        names = ?query.capture_names(),
+                        index = capture.index,
+                        "Unknown capture name"
+                    )
+                }
+            }
+        }
+        if let (Some(identifier), Some((string, node))) = (identifier, value.as_ref()) {
+            if REGEX_UUID.is_match(identifier) {
+                if let Err(err) = uuid::Uuid::try_parse(string) {
+                    diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::WARNING),
+                        None,
+                        None,
+                        format!("Invalid UUID: {err}"),
+                        None,
+                        None,
+                    ))
+                }
+            }
+            // TO-DO: Validate more well-known types
+        } else {
+            warn!(
+                ?identifier,
+                ?value,
+                "Unexpected condition: String identifier and/or value are None"
+            );
+        }
+    }
+
+    diagnostics
+}
+
+fn to_range(range: tree_sitter::Range, index: &LineIndex, is_utf8: bool) -> lsp_types::Range {
+    let start_line_col = LineCol {
+        line: range.start_point.row as u32,
+        col: range.start_point.column as u32,
+    };
+    let end_line_col = LineCol {
+        line: range.end_point.row as u32,
+        col: range.end_point.column as u32,
+    };
+    if is_utf8 {
+        lsp_types::Range::new(
+            lsp_types::Position {
+                line: start_line_col.line,
+                character: start_line_col.col,
+            },
+            lsp_types::Position {
+                line: end_line_col.line,
+                character: end_line_col.col,
+            },
+        )
+    } else {
+        let wide_start_line_col = index
+            .to_wide(WideEncoding::Utf16, start_line_col)
+            .expect("integer overflow");
+        let wide_end_line_col = index
+            .to_wide(WideEncoding::Utf16, end_line_col)
+            .expect("integer overflow");
+        lsp_types::Range::new(
+            lsp_types::Position {
+                line: wide_start_line_col.line,
+                character: wide_start_line_col.col,
+            },
+            lsp_types::Position {
+                line: wide_end_line_col.line,
+                character: wide_end_line_col.col,
+            },
+        )
+    }
+}

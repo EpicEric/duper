@@ -2,10 +2,7 @@
   "name": "duper-vs-code",
   "displayName": "Duper",
   "description": "Duper support for Visual Studio Code",
-  "version": "0.4.0",
-  "engines": {
-    "vscode": "^1.105.0"
-  },
+  "version": "0.5.0",
   "publisher": "epic-eric",
   "homepage": "https://duper.dev.br",
   "bugs": {
@@ -20,6 +17,10 @@
     "Programming Languages"
   ],
   "icon": "images/logo.png",
+  "engines": {
+    "vscode": "^1.105.0"
+  },
+  "main": "./dist/client.js",
   "contributes": {
     "languages": [
       {
@@ -44,6 +45,41 @@
         "scopeName": "source.duper",
         "path": "./syntaxes/duper.tmLanguage.json"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Duper",
+      "properties": {
+        "duper.lsp.bin": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Duper LSP binary (leave empty to auto-detect)"
+        },
+        "duper.lsp.args": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments to pass to the Duper LSP binary"
+        },
+        "duper.lsp.systemBinary": {
+          "type": "boolean",
+          "default": false,
+          "description": "Prefer using the Duper LSP binary from the system over the bundled one"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/vscode": "^1.105.0",
+    "@vscode/vsce": "^3.7.0",
+    "esbuild": "^0.27.0",
+    "ovsx": "^0.10.7",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "rm -rf dist && esbuild client=./src/client --bundle --outdir=dist --external:vscode --format=cjs --platform=node --minify",
+    "prelaunch": "cd .. && cargo build -p duper_lsp && cd - && npm run build"
   }
 }

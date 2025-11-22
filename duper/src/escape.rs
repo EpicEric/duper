@@ -2,7 +2,7 @@ use std::{ascii, borrow::Cow, fmt::Display};
 use unicode_general_category::{GeneralCategory, get_general_category};
 
 #[derive(Debug)]
-pub(crate) enum UnescapeError {
+pub enum UnescapeError {
     UnescapedTab,
     InvalidByteSequence(String),
     InvalidUnicode(String),
@@ -24,7 +24,7 @@ impl Display for UnescapeError {
 
 impl std::error::Error for UnescapeError {}
 
-pub(crate) fn unescape_str<'a>(input: &'a str) -> Result<Cow<'a, str>, UnescapeError> {
+pub fn unescape_str<'a>(input: &'a str) -> Result<Cow<'a, str>, UnescapeError> {
     if !input.contains('\\') {
         return Ok(Cow::Borrowed(input));
     }
@@ -113,7 +113,7 @@ pub(crate) fn unescape_str<'a>(input: &'a str) -> Result<Cow<'a, str>, UnescapeE
     Ok(Cow::Owned(result))
 }
 
-pub(crate) fn escape_str<'a>(input: &'a Cow<'a, str>) -> Cow<'a, str> {
+pub fn escape_str<'a>(input: &'a Cow<'a, str>) -> Cow<'a, str> {
     let mut result = None;
 
     for (i, char) in input.char_indices() {
@@ -202,7 +202,7 @@ pub(crate) fn escape_str<'a>(input: &'a Cow<'a, str>) -> Cow<'a, str> {
     }
 }
 
-pub(crate) fn unescape_bytes<'a>(input: &'a str) -> Result<Cow<'a, [u8]>, UnescapeError> {
+pub fn unescape_bytes<'a>(input: &'a str) -> Result<Cow<'a, [u8]>, UnescapeError> {
     if !input.contains('\\') {
         return Ok(Cow::Borrowed(input.as_bytes()));
     }
@@ -260,7 +260,7 @@ pub(crate) fn unescape_bytes<'a>(input: &'a str) -> Result<Cow<'a, [u8]>, Unesca
     Ok(Cow::Owned(result))
 }
 
-pub(crate) fn escape_bytes<'a>(input: &'a Cow<'a, [u8]>) -> Cow<'a, str> {
+pub fn escape_bytes<'a>(input: &'a Cow<'a, [u8]>) -> Cow<'a, str> {
     if input.iter().all(|&b| {
         b.is_ascii()
             && !matches!(b, b'"' | b'\\' | b'\x08' | b'\x0C' | b'\n' | b'\r' | b'\t')

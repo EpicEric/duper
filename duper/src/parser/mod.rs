@@ -23,7 +23,7 @@ impl DuperParser {
         let value = duper_trunk().parse(input).into_result()?;
         match &value.inner {
             DuperInner::Object(_) | DuperInner::Array(_) | DuperInner::Tuple(_) => Ok(value),
-            _ => todo!(),
+            _ => unreachable!(),
         }
     }
 
@@ -429,10 +429,10 @@ pub(crate) fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, c
             .replace('_', "")
             .parse()
             .map_err(|err| Rich::custom(span, err))?;
-        if float.is_infinite() {
-            Err(Rich::custom(span, "float cannot be represented in f64"))
-        } else {
+        if float.is_finite() {
             Ok(float)
+        } else {
+            Err(Rich::custom(span, "float cannot be represented in f64"))
         }
     })
 }

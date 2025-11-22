@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 (2025-11-22)
+
+### Added
+
+- Add language server via `duper_lsp`.
+
 ## 0.4.0 (2025-11-11)
 
 ### Changed

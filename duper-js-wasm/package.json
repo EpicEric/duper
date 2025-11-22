@@ -30,7 +30,7 @@
     "bindgen": "uniffi-bindgen-react-native build web",
     "optimize": "wasm-opt -Os ./src/generated/wasm-bindgen/index_bg.wasm -o ./src/generated/wasm-bindgen/index_bg.wasm",
     "clean": "rm -rf dist",
-    "bundle": "node esbuild.js && tsc && cp -r ./src/generated/wasm-bindgen ./dist/generated/wasm-bindgen && sed -i 's/.\\/wasm-bindgen/.\\/generated\\/wasm-bindgen/' ./dist/index.js",
+    "bundle": "node esbuild.js && tsc && cp -r ./src/generated/wasm-bindgen ./dist/wasm-bindgen",
     "build": "npm run clean && npm run bindgen && npm run optimize && npm run bundle",
     "build:ci": "npm run clean && npm run bindgen && npm run bundle",
     "test": "vitest run"
