@@ -2,7 +2,7 @@
   "name": "duper-vs-code",
   "displayName": "Duper",
   "description": "Duper support for Visual Studio Code",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "epic-eric",
   "homepage": "https://duper.dev.br",
   "bugs": {
@@ -75,10 +75,11 @@
     "@types/vscode": "^1.105.0",
     "@vscode/vsce": "^3.7.0",
     "esbuild": "^0.27.0",
+    "ovsx": "^0.10.7",
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "build": "rm -rf dist && esbuild client=./client/src --bundle --outdir=dist --external:vscode --format=cjs --platform=node --minify",
+    "build": "rm -rf dist && esbuild client=./src/client --bundle --outdir=dist --external:vscode --format=cjs --platform=node --minify",
     "prelaunch": "cd .. && cargo build -p duper_lsp && cd - && npm run build"
   }
 }

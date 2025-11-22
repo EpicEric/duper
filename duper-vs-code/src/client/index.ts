@@ -22,7 +22,7 @@ const DUPER_BLOB = "**/*.duper";
 
 export const outputChannel = window.createOutputChannel(NAME);
 
-function getBinary(name: string): string | null {
+function getBinaryFromPath(name: string): string | null {
   const result = spawnSync(process.platform === "win32" ? "where" : "which", [
     name,
   ]);
@@ -35,10 +35,10 @@ function getBinary(name: string): string | null {
 }
 
 function getServerOptions(context: ExtensionContext): ServerOptions | null {
-  const ext: string = process.platform === "win32" ? ".exe" : "";
+  const extension: string = process.platform === "win32" ? ".exe" : "";
   if (context.extensionMode === ExtensionMode.Development) {
     return {
-      command: context.asAbsolutePath(`../target/debug/duper_lsp${ext}`),
+      command: context.asAbsolutePath(`../target/debug/duper_lsp${extension}`),
       args: ["--debug"],
     };
   }
@@ -54,70 +54,25 @@ function getServerOptions(context: ExtensionContext): ServerOptions | null {
   }
 
   const lspSystemBinary = config.get("lsp.systemBinary") as boolean;
-
-  let arch: string | null = null;
-  switch (process.arch) {
-    case "arm64": {
-      arch = "aarch64";
-      break;
-    }
-    case "x64": {
-      arch = "x86_64";
-      break;
-    }
-  }
-  let triple: string | null = null;
-  if (arch !== null) {
-    switch (process.platform) {
-      case "darwin": {
-        triple = `${arch}-apple-darwin`;
-        break;
-      }
-      case "linux": {
-        triple = `${arch}-unknown-linux-gnu`;
-        break;
-      }
-      case "win32": {
-        triple = `${arch}-pc-windows-gnu`;
-        break;
-      }
-    }
-  }
-
-  if (lspSystemBinary || triple === null) {
+  if (lspSystemBinary) {
     // Try to find LSP in PATH
-    const binaryPath = getBinary(`lsp_duper${ext}`);
+    const binaryPath = getBinaryFromPath(`duper_lsp${extension}`);
     if (binaryPath) {
       return {
         command: binaryPath,
         args: lspArgs,
       };
     }
-    if (lspSystemBinary) {
-      outputChannel.appendLine(
-        `[client] \`duper_lsp${ext}\` not found in \`PATH\`.`,
-      );
-      if (triple === null) {
-        outputChannel.appendLine(
-          "[client]   = hint: Consider using the `duper.lsp.bin` configuration instead, or run `cargo install --locked duper_lsp` to build the Duper LSP.",
-        );
-      } else {
-        outputChannel.appendLine(
-          "[client]   = hint: Consider removing the `duper.lsp.systemBinary` configuration to use the bundled binary instead.",
-        );
-      }
-    } else {
-      outputChannel.appendLine(
-        `[client] Unsupported platform and/or architecture '${process.platform}/${process.arch}'`,
-      );
-      outputChannel.appendLine(
-        "[client]   = hint: Run `cargo install --locked duper_lsp` to build the Duper LSP.",
-      );
-    }
+    outputChannel.appendLine(
+      `[client] \`duper_lsp${extension}\` not found in \`PATH\`.`,
+    );
+    outputChannel.appendLine(
+      "[client]   = hint: Consider removing the `duper.lsp.systemBinary` configuration to use the bundled binary, or run `cargo install --locked duper_lsp` to build the Duper LSP instead.",
+    );
     return null;
   } else {
     // Try to get bundled LSP
-    const binary = context.asAbsolutePath(`bin/${triple}/duper_lsp${ext}`);
+    const binary = context.asAbsolutePath(`duper_lsp${extension}`);
     if (existsSync(binary)) {
       return {
         command: binary,
@@ -132,7 +87,7 @@ function getServerOptions(context: ExtensionContext): ServerOptions | null {
         "Please open an issue at https://github.com/EpicEric/duper/issues",
     );
     // Debug: Load from PATH instead
-    const binaryPath = getBinary(`lsp_duper${ext}`);
+    const binaryPath = getBinaryFromPath(`duper_lsp${extension}`);
     if (binaryPath) {
       return {
         command: binaryPath,
