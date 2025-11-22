@@ -1,0 +1,148 @@
+name: Build duper_lsp and package extension
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RUST_MSRV: "1.88.0"
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+  NODE_VERSION: "20"
+
+jobs:
+  build:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            vscode-target: linux-x64
+            os: linux
+          - runner: ubuntu-24.04
+            target: aarch64-unknown-linux-gnu
+            vscode-target: linux-arm64
+            os: linux
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+            vscode-target: alpine-x64
+            os: linux
+          - runner: ubuntu-24.04
+            target: aarch64-unknown-linux-musl
+            vscode-target: alpine-arm64
+            os: linux
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            vscode-target: win32-x64
+            os: windows
+          - runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            vscode-target: win32-arm64
+            os: windows
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            vscode-target: darwin-x64
+            os: macos
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            vscode-target: darwin-arm64
+            os: macos
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: true
+      - name: Fetch MSRV and target
+        run: |
+          rustup toolchain install ${RUST_MSRV}
+          rustup override set ${RUST_MSRV}
+          rustup target add ${{ matrix.platform.target }}
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: Build
+        run: |
+          cargo build --locked --all-features --release --target ${{ matrix.platform.target }} --manifest-path duper_lsp/Cargo.toml
+      - name: Copy binary to extension
+        if: matrix.target.os != 'windows'
+        run: |
+          cp target/${{ matrix.platform.target }}/release/duper_lsp duper-vs-code/duper_lsp
+      - name: Copy binary to extension (Windows)
+        if: matrix.target.os == 'windows'
+        shell: bash
+        run: |
+          cp target/${{ matrix.platform.target }}/release/duper_lsp.exe duper-vs-code/duper_lsp.exe
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Build extension
+        working-directory: duper-vs-code
+        run: |
+          npm install
+          npm run build
+          npx vsce package --out "../dist/duper-vs-code-${{ matrix.platform.code-target }}.vsix" --target ${{ matrix.platform.code-target }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist-${{ matrix.platform.code-target }}
+          path: dist
+
+  release:
+    runs-on: ubuntu-24.04
+    environment: vsce
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-linux-x64
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-linux-arm64
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-alpine-x64
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-alpine-arm64
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-win32-x64
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-win32-arm64
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-darwin-x64
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-darwin-arm64
+          path: dist
+      - run: |
+          ls -al ./dist
+
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        working-directory: duper-vs-code
+        run: |
+          npm install
+      - name: Publish to VSCode Marketplace
+        working-directory: duper-vs-code
+        run: |
+          npx vsce publish --pat ${{ secrets.VSCE_TOKEN }} --packagePath ../dist/duper-vs-code-*.vsix
+      - name: Publish to OpenVSX
+        working-directory: duper-vs-code
+        run: |
+          npx ovsx publish --pat ${{ secrets.OVSX_TOKEN }} --packagePath ../dist/duper-vs-code-*.vsix

@@ -16,6 +16,7 @@ env:
   PYTHON_MINIMUM_VERSION: "3.10"
   NODE_VERSION: "20"
   DOTNET_VERSION: "9.0.x"
+  WASM_BINDGEN_VERSION: "0.2.100"
 
 jobs:
   rustfmt:
@@ -143,7 +144,7 @@ jobs:
       - name: Install wasm-bindgen
         uses: taiki-e/install-action@a24ba45235ed716ff76646268742990dc9458860 # v2.62.42
         with:
-          tool: wasm-bindgen
+          tool: wasm-bindgen@${{ env.WASM_BINDGEN_VERSION }}
       - name: Cache Node dependencies
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:

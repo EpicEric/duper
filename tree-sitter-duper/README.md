@@ -1,0 +1,13 @@
+<p align="center">
+    <img src="https://duper.dev.br/logos/duper-400.png" alt="The Duper logo, with a confident spectacled mole wearing a flailing blue cape." /> <br>
+</p>
+<h1 align="center">tree-sitter-duper</h1>
+
+<p align="center">
+    <a href="https://crates.io/crates/tree-sitter-duper"><img alt="Crates.io version" src="https://img.shields.io/crates/v/tree-sitter-duper?style=flat&logo=rust&logoColor=white&label=tree-sitter-duper"></a>
+    <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
+</p>
+
+The official Duper [tree-sitter](https://tree-sitter.github.io/) implementation.
+
+[Check out the official website for Duper.](https://duper.dev.br)
