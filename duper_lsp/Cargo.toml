@@ -36,4 +36,4 @@ tree-sitter-duper = { version = "0.1.0", path = "../tree-sitter-duper" }
 uuid = "1.18.1"
 
 [build-dependencies]
-cc = "*"
+cc = "1"
