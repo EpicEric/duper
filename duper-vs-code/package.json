@@ -45,7 +45,27 @@
         "scopeName": "source.duper",
         "path": "./syntaxes/duper.tmLanguage.json"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Duper",
+      "properties": {
+        "duper.lsp.bin": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Duper LSP binary (leave empty to auto-detect)"
+        },
+        "duper.lsp.args": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments to pass to the Duper LSP binary"
+        },
+        "duper.lsp.systemBinary": {
+          "type": "boolean",
+          "default": false,
+          "description": "Prefer using the Duper LSP binary from the system over the bundled one"
+        }
+      }
+    }
   },
   "dependencies": {
     "vscode-languageclient": "^7.0.0"

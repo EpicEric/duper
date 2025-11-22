@@ -5,6 +5,7 @@ members = [
   "duper",
   "duper-js-wasm/rust",
   "duper-python",
+  "duperfmt",
   "duper_lsp",
   "duper_uniffi",
   "duper_website",
