@@ -51,9 +51,9 @@ Integer ::=
 	| OctalInteger
 	| BinaryInteger
 Float ::=
-	 [+-]? ( [0-9] | [1-9] ( '_'? [0-9] )+ )
-	  ( '.' [0-9] ( '_'? [0-9] )* ( [eE] [+-]? ( [0-9] | [1-9] ( '_'? [0-9] )+ ) )?
-	   | [eE] [+-]? ( [0-9] | [1-9] ( '_'? [0-9] )+ ) )
+	 DecimalInteger
+	  ( ( '.' [0-9] ( '_'? [0-9] )* )? [eE] DecimalInteger
+	   | '.' [0-9] ( '_'? [0-9] )* )
 	 /* ws: explicit */
 Boolean ::=
 	 'true'
@@ -94,6 +94,15 @@ Base64Bytes ::=
 	 'b64"' Base64Content '"'
 	 /* ws: explicit */
 
+Base64Content ::=
+	 ( [a-zA-Z0-9+/] | Whitespace )*
+	 ( _Base64Padding _Base64Padding? )?
+	 Whitespace*
+	 /* ws: explicit */
+_Base64Padding ::=
+	 '=' Whitespace*
+	 /* ws: explicit */
+
 // Shared string / bytes
 
 _RawInner ::=
@@ -111,15 +120,6 @@ QuotedContent ::=
 	   | 'U' _HexDigit _HexDigit _HexDigit _HexDigit
 	         _HexDigit _HexDigit _HexDigit _HexDigit )
 	  | [^"\] )*
-	 /* ws: explicit */
-
-Base64Content ::=
-	 ( [a-zA-Z0-9+/] | Whitespace )*
-	 ( _Base64Padding _Base64Padding? )?
-	 Whitespace*
-	 /* ws: explicit */
-_Base64Padding ::=
-	 '=' Whitespace*
 	 /* ws: explicit */
 
 // Temporal
