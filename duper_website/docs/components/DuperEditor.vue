@@ -8,22 +8,13 @@
 
       <div class="code-editor">
         <div class="editor-tabs">
-          <button
-            :class="{ active: activeTab === 'json' }"
-            @click="switchTab('json')"
-          >
+          <button :class="{ active: activeTab === 'json' }" @click="switchTab('json')">
             JSON
           </button>
-          <button
-            :class="{ active: activeTab === 'yaml' }"
-            @click="switchTab('yaml')"
-          >
+          <button :class="{ active: activeTab === 'yaml' }" @click="switchTab('yaml')">
             YAML
           </button>
-          <button
-            :class="{ active: activeTab === 'toml' }"
-            @click="switchTab('toml')"
-          >
+          <button :class="{ active: activeTab === 'toml' }" @click="switchTab('toml')">
             TOML
           </button>
         </div>
@@ -74,6 +65,7 @@ onMounted(async () => {
       yamlGrammar,
       tomlGrammar,
       import.meta.env.DUPER_GRAMMAR,
+      import.meta.env.EBNF_GRAMMAR,
     ],
     engine: createOnigurumaEngine(shikiWasm),
   });

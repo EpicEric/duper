@@ -1,5 +1,5 @@
 ---
-version: "0.4.0"
+version: "0.4.1"
 ---
 
 <script setup lang="ts">
@@ -167,7 +167,7 @@ Defining a key multiple times is invalid. Note that plain keys, quoted keys, and
 
 A string may be either quoted or raw.
 
-**Quoted strings** are surrounded by quotation marks `"`. Any Unicode character may be used, except those that must be escaped: quotation mark `"`, backslash `\`, and the control characters including tab (U+0000 to U+0009, U+000A to U+001F, U+007F).
+**Quoted strings** are surrounded by quotation marks `"`. Any Unicode character may be used, except those that must be escaped: quotation mark `"`, backslash `\`, and the control characters excluding line feeds (U+0000 to U+0009, U+000B to U+001F, U+007F).
 
 ```duper
 {
@@ -183,24 +183,25 @@ For convenience, some characters have a compact escape sequence:
 
 ```duper
 [
-  r#"| Sequence | Character       | Value  |"#,
-  r#"| -------- | --------------- | ------ |"#,
-  r#"| \0       | null            | U+0000 |"#,
-  r#"| \b       | backspace       | U+0008 |"#,
-  r#"| \t       | tab             | U+0009 |"#,
-  r#"| \n       | line feed       | U+000A |"#,
-  r#"| \f       | form feed       | U+000C |"#,
-  r#"| \r       | carriage return | U+000D |"#,
-  r#"| \"       | quote           | U+0022 |"#,
-  r#"| \\       | backslash       | U+005C |"#,
-  r#"| \xHH     | arbitrary byte  | U+00HH |"#,
-  r#"| \uHHHH   | unicode         | U+HHHH |"#,
+  r#"| Sequence   | Character       | Value      |"#,
+  r#"| ---------- | --------------- | ---------- |"#,
+  r#"| \0         | null            | U+0000     |"#,
+  r#"| \b         | backspace       | U+0008     |"#,
+  r#"| \t         | tab             | U+0009     |"#,
+  r#"| \n         | line feed       | U+000A     |"#,
+  r#"| \f         | form feed       | U+000C     |"#,
+  r#"| \r         | carriage return | U+000D     |"#,
+  r#"| \"         | quote           | U+0022     |"#,
+  r#"| \\         | backslash       | U+005C     |"#,
+  r#"| \xHH       | arbitrary byte  | U+00HH     |"#,
+  r#"| \uHHHH     | unicode         | U+HHHH     |"#,
+  r#"| \UHHHHHHHH | unicode         | U+HHHHHHHH |"#,
 ]
 ```
 
-Any Unicode character may be escaped with `\uHHHH` or a sequence of one or more `\xHH`, where `H` is a hexadecimal digit. The escape codes must be valid Unicode [scalar values](https://unicode.org/glossary/#unicode_scalar_value).
+Any Unicode character may be escaped with `\uHHHH`, `\UHHHHHHHH`, or a sequence of one or more `\xHH`, where `H` is a hexadecimal digit. The escape codes must be valid Unicode [scalar values](https://unicode.org/glossary/#unicode_scalar_value).
 
-Keep in mind that Duper strings are sequences of Unicode characters, _not_ byte sequences. Parsers should raise an error if a string decodes into invalid Unicode. For binary data, use [byte strings](#byte-strings).
+Keep in mind that Duper strings are sequences of Unicode characters, _not_ byte sequences. Parsers should raise an error if a string decodes into invalid Unicode (i.e. via an invalid sequence of `\xHH`). For binary data, use [byte strings](#byte-strings).
 
 **Raw strings** start with the lowercase letter R, immediately followed by zero or more hash symbols `#`, immediately followed by a quotation mark `"`. They end with a quotation mark, followed by the same number of starting hash symbols. (for example: `r"..."`, `r#"..."#`, `r##"..."##`, and so on.). They allow newlines and have no escaping whatsoever.
 
@@ -228,7 +229,7 @@ The hashtags are required to disambiguate quotes (`"`, or `"#`, or `"##`, etc.) 
 }
 ```
 
-Control characters, including tab, are not permitted in a raw string.
+Control characters excluding line feeds (U+0000 to U+0009, U+000B to U+001F, U+007F) are not permitted in a raw string.
 
 ## Byte strings
 
@@ -549,3 +550,9 @@ Duper files should use the extension `.duper`.
 When transferring Duper files over the internet, the appropriate MIME type is `application/duper`.
 
 Webservers should also accept the `application/x-duper` MIME type.
+
+## W3C-EBNF grammar
+
+Also available as a [railroad diagram](/diagram.html){target="_blank"}.
+
+<<< ../duper.ebnf

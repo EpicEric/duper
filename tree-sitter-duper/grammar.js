@@ -91,9 +91,9 @@ module.exports = grammar({
     raw_bytes: ($) => seq("br", $.raw_start, $.raw_content, $.raw_end),
     base64_bytes: ($) => seq(`b64"`, $.base64_content, `"`),
 
-    quoted_content: (_) => new RustRegex(`(\\\\"|[^"])*`),
+    quoted_content: (_) => new RustRegex(`(\\\\([0btnfr"\\\\]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})|[^"\\\\])*`),
     base64_content: (_) =>
-      new RustRegex(`[a-zA-Z0-9+/ \\t\\r\\n]*[= \\t\\r\\n]*`),
+      new RustRegex(`[a-zA-Z0-9+/ \\t\\r\\n]*(=[ \\t\\r\\n]*){0,2}[ \\t\\r\\n]*`),
     temporal_content: (_) =>
       new RustRegex(
         `[ \\t\\r\\n]*[^' \\t\\r\\n][^']+[^' \\t\\r\\n][ \\t\\r\\n]*`,

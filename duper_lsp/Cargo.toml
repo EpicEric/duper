@@ -1,7 +1,7 @@
 [package]
 name = "duper_lsp"
 description = "LSP implementation for Duper."
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
@@ -14,8 +14,8 @@ readme = "README.md"
 async-lsp = { version = "0.2.2", features = ["tokio"] }
 base64 = "0.22.1"
 clap = { version = "4.5.53", features = ["derive"] }
-duper = { version = "0.4.1", path = "../duper" }
-duperfmt = { version = "0.1.0", path = "../duperfmt" }
+duper = { version = "0.4.2", path = "../duper" }
+duperfmt = { version = "0.1.1", path = "../duperfmt" }
 futures = "0.3.31"
 line-index = "0.1.2"
 lsp-types = "0.95.0"

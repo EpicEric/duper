@@ -1,14 +1,15 @@
-import { parse } from "@duper-js/wasm";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { parse } from "@duper-js/wasm";
 import { globalConst } from "vite-plugin-global-const";
 import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
 import type { DefaultTheme, UserConfig } from "vitepress";
+import ebnfGrammar from "./source.ebnf";
 
 const DUPER_GRAMMAR = parse(
   readFileSync(resolve(__dirname, "../../duper.tmLanguage.duper"), "utf-8"),
-  true
+  true,
 );
 
 export default async () => {
@@ -27,7 +28,7 @@ export default async () => {
     ],
 
     markdown: {
-      languages: [DUPER_GRAMMAR],
+      languages: [DUPER_GRAMMAR, ebnfGrammar],
     },
 
     themeConfig: {
@@ -65,6 +66,7 @@ export default async () => {
           items: [{ text: "Visual Studio Code", link: "/vs-code" }],
         },
         { text: "Specification", link: "/spec" },
+        { text: "Grammar", link: "/grammar" },
       ],
 
       outline: {

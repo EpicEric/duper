@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+
+- Implement changes from specification 0.4.1.
+- Better conformity to specification.
+
+## 0.4.1 (2025-11-22)
+
 ### Added
 
 - Expose `escape`, `format`, and `validate` modules.

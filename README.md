@@ -42,7 +42,7 @@ Duper excels in a variety of use cases:
 
 ## For implementers
 
-See [the specification](https://duper.dev.br/spec.html) for more details.
+See [the specification](https://duper.dev.br/spec.html) or the [EBNF grammar](https://github.com/EpicEric/duper/blob/main/duper.ebnf) for more details.
 
 ## Workspace structure
 

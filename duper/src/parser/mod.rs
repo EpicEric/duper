@@ -330,10 +330,12 @@ pub(crate) fn quoted_inner<'a>()
             one_of("\"\\/bfnrt0").to_slice(),
             just('x').then(hex_digit().repeated().exactly(2)).to_slice(),
             just('u').then(hex_digit().repeated().exactly(4)).to_slice(),
+            just('U').then(hex_digit().repeated().exactly(8)).to_slice(),
         )))
         .to_slice();
 
     none_of("\"\\")
+        .and_is(control_character().not())
         .to_slice()
         .or(escaped_characters)
         .repeated()
@@ -356,6 +358,15 @@ pub(crate) fn raw_string<'a>()
                             .repeated()
                             .configure(|repeated, ctx| repeated.exactly(*ctx)),
                     )
+                    .ignored()
+                    .or(choice((
+                        one_of('\u{0000}'..='\u{0009}'),
+                        one_of('\u{000b}'..='\u{001f}'),
+                        just('\u{007f}'),
+                    ))
+                    .labelled("a control character or tab, excluding new line, excluding new line")
+                    .repeated()
+                    .at_least(1))
                     .not(),
             )
             .repeated()
@@ -387,6 +398,15 @@ pub(crate) fn raw_bytes<'a>()
                             .repeated()
                             .configure(|repeated, ctx| repeated.exactly(*ctx)),
                     )
+                    .ignored()
+                    .or(choice((
+                        one_of('\u{0000}'..='\u{0009}'),
+                        one_of('\u{000b}'..='\u{001f}'),
+                        just('\u{007f}'),
+                    ))
+                    .labelled("a control character or tab, excluding new line")
+                    .repeated()
+                    .at_least(1))
                     .not(),
             )
             .repeated()
@@ -559,6 +579,16 @@ pub(crate) fn hex_digit<'a>() -> impl Parser<'a, &'a str, char, extra::Err<Rich<
 pub(crate) fn octal_digit<'a>() -> impl Parser<'a, &'a str, char, extra::Err<Rich<'a, char>>> + Clone
 {
     one_of('0'..='7').labelled("an octal digit")
+}
+
+pub(crate) fn control_character<'a>()
+-> impl Parser<'a, &'a str, char, extra::Err<Rich<'a, char>>> + Clone {
+    choice((
+        one_of('\u{0000}'..='\u{0009}'),
+        one_of('\u{000b}'..='\u{001f}'),
+        just('\u{007f}'),
+    ))
+    .labelled("a control character or tab, excluding new line")
 }
 
 #[cfg(test)]

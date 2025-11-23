@@ -99,6 +99,17 @@ pub fn unescape_str<'a>(input: &'a str) -> Result<Cow<'a, str>, UnescapeError> {
                         return Err(UnescapeError::InvalidUnicode(hex_str));
                     }
                 }
+                Some('U') => {
+                    let hex_str: String = chars.by_ref().take(8).collect();
+                    if hex_str.len() == 8
+                        && let Ok(code_point) = u32::from_str_radix(&hex_str, 16)
+                        && let Some(unicode_char) = char::from_u32(code_point)
+                    {
+                        result.push(unicode_char);
+                    } else {
+                        return Err(UnescapeError::InvalidUnicode(hex_str));
+                    }
+                }
                 Some(other) => {
                     result.push('\\');
                     result.push(other);
@@ -184,7 +195,11 @@ pub fn escape_str<'a>(input: &'a Cow<'a, str>) -> Cow<'a, str> {
             c if is_invisible_unicode(c) => {
                 result = Some({
                     let mut result = result.unwrap_or_else(|| input.split_at(i).0.to_string());
-                    result.push_str(&format!("\\u{:04x}", c as u32));
+                    if c.len_utf8() > 2 {
+                        result.push_str(&format!("\\U{:08x}", c as u32));
+                    } else {
+                        result.push_str(&format!("\\u{:04x}", c as u32));
+                    }
                     result
                 });
             }
@@ -246,6 +261,17 @@ pub fn unescape_bytes<'a>(input: &'a str) -> Result<Cow<'a, [u8]>, UnescapeError
                         return Err(UnescapeError::InvalidUnicode(hex_str));
                     }
                 }
+                Some('U') => {
+                    let hex_str: String = chars.by_ref().take(8).collect();
+                    if hex_str.len() == 8
+                        && let Ok(code_point) = u32::from_str_radix(&hex_str, 16)
+                        && let Some(unicode_char) = char::from_u32(code_point)
+                    {
+                        result.extend_from_slice(unicode_char.encode_utf8(&mut buf).as_bytes());
+                    } else {
+                        return Err(UnescapeError::InvalidUnicode(hex_str));
+                    }
+                }
                 Some(other) => {
                     result.push(b'\\');
                     result.extend_from_slice(other.encode_utf8(&mut buf).as_bytes());
@@ -279,7 +305,7 @@ pub fn escape_bytes<'a>(input: &'a Cow<'a, [u8]>) -> Cow<'a, str> {
                     b'\n' => either::Left(br"\n".iter().copied()),
                     b'\\' => either::Left(br"\\".iter().copied()),
                     b'\'' => either::Left(br"\'".iter().copied()),
-                    b'"' => either::Left(b"\\\"".iter().copied()),
+                    b'"' => either::Left(br#"\""#.iter().copied()),
                     b'\0' => either::Left(br"\0".iter().copied()),
                     _ => either::Right(ascii::escape_default(byte)),
                 })

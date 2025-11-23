@@ -741,7 +741,7 @@ dependencies = [
 
 [[package]]
 name = "duper"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "ariadne",
  "base64",
@@ -774,7 +774,7 @@ dependencies = [
 
 [[package]]
 name = "duper_lsp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-lsp",
  "base64",
@@ -821,7 +821,7 @@ dependencies = [
 
 [[package]]
 name = "duperfmt"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "miette",
@@ -2897,7 +2897,7 @@ dependencies = [
 
 [[package]]
 name = "tree-sitter-duper"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "cc",
  "tree-sitter",

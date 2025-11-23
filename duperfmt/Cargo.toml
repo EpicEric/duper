@@ -1,7 +1,7 @@
 [package]
 name = "duperfmt"
 description = "Duper formatting library and CLI."
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
@@ -17,4 +17,4 @@ thiserror = "2.0.17"
 topiary-core = "0.7.1"
 topiary-tree-sitter-facade = "0.7.1"
 tree-sitter = { version = "0.25.10", features = ["wasm"] }
-tree-sitter-duper = { version = "0.1.0", path = "../tree-sitter-duper" }
+tree-sitter-duper = { version = "0.1.1", path = "../tree-sitter-duper" }

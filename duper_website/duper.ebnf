@@ -1,0 +1,166 @@
+// Root rules, depending on the parser
+
+DuperTrunk ::=
+	 Identifier '(' ( Object | Array | Tuple ) ')'
+	| Object
+	| Array
+	| Tuple
+DuperValue ::=
+	 IdentifiedValue
+	| _Value
+
+// Values
+
+IdentifiedValue ::=
+	 Identifier '(' _Value ')'
+_Value ::=
+	 Object
+	| Array
+	| Tuple
+	| String
+	| Bytes
+	| Temporal
+	| Float
+	| Integer
+	| Boolean
+	| Null
+
+Identifier ::=
+	 [A-Z] ( [_-]? [a-zA-Z0-9] )*
+	 /* ws: explicit */
+
+Object ::=
+	 '{' ( ObjectEntry ( ',' ObjectEntry )* ','? )? '}'
+Array ::=
+	 '[' ( DuperValue ( ',' DuperValue )* )? ','? ']'
+Tuple ::=
+	 '(' ( DuperValue ( ',' DuperValue )* )? ','? ')'
+String ::=
+	 QuotedString
+	| RawString
+Bytes ::=
+	 QuotedBytes
+	| RawBytes
+	| Base64Bytes
+Temporal ::=
+	 "'"  TemporalContent "'"
+	 /* ws: explicit */
+Integer ::=
+	 DecimalInteger
+	| HexInteger
+	| OctalInteger
+	| BinaryInteger
+Float ::=
+	 [+-]? ( [0-9] | [1-9] ( '_'? [0-9] )+ )
+	  ( '.' [0-9] ( '_'? [0-9] )* ( [eE] [+-]? ( [0-9] | [1-9] ( '_'? [0-9] )+ ) )?
+	   | [eE] [+-]? ( [0-9] | [1-9] ( '_'? [0-9] )+ ) )
+	 /* ws: explicit */
+Boolean ::=
+	 'true'
+	| 'false'
+Null ::=
+	 'null'
+
+// Objects
+
+ObjectEntry ::=
+	 ObjectKey ':' DuperValue
+ObjectKey ::=
+	 PlainKey
+	| QuotedString
+	| RawString
+PlainKey ::=
+	 ( '_' [a-zA-Z0-9] | [a-zA-Z] ) ( [_-]? [a-zA-Z0-9] )*
+	 /* ws: explicit */
+
+// Strings
+
+QuotedString ::=
+	 '"'  QuotedContent '"'
+	 /* ws: explicit */
+RawString ::=
+	 'r' _RawInner
+	 /* ws: explicit */
+
+// Bytes
+
+QuotedBytes ::=
+	 'b"' QuotedContent '"'
+	 /* ws: explicit */
+RawBytes ::=
+	 'br' _RawInner
+	 /* ws: explicit */
+Base64Bytes ::=
+	 'b64"' Base64Content '"'
+	 /* ws: explicit */
+
+// Shared string / bytes
+
+_RawInner ::=
+	 ( '#' _RawInner '#' )
+	 | ( '"' RawContent '"' )
+RawContent ::=
+	 [^#x00-#x09#x0A-#x1F#x7F]*
+	 /* ws: explicit */
+
+QuotedContent ::=
+	 ( '\'
+	  ( [0btnfr"\]
+	   | 'x' _HexDigit _HexDigit
+	   | 'u' _HexDigit _HexDigit _HexDigit _HexDigit
+	   | 'U' _HexDigit _HexDigit _HexDigit _HexDigit
+	         _HexDigit _HexDigit _HexDigit _HexDigit )
+	  | [^"\] )*
+	 /* ws: explicit */
+
+Base64Content ::=
+	 ( [a-zA-Z0-9+/] | Whitespace )*
+	 ( _Base64Padding _Base64Padding? )?
+	 Whitespace*
+	 /* ws: explicit */
+_Base64Padding ::=
+	 '=' Whitespace*
+	 /* ws: explicit */
+
+// Temporal
+
+TemporalContent ::=
+	 Whitespace*
+	 ( [^'] | [^#x09#x0A#x0D#x20] )
+	 [^']+
+	 ( [^'] | [^#x09#x0A#x0D#x20] )
+	 Whitespace*
+	 /* ws: explicit */
+
+// Integer
+
+DecimalInteger ::=
+	 [+-]? ( [0-9] | [1-9] ( '_'? [0-9] )+ )
+	 /* ws: explicit */
+HexInteger ::=
+	 '0x' _HexDigit ( '_'? _HexDigit )*
+	 /* ws: explicit */
+OctalInteger ::=
+	 '0o' [0-7] ( '_'? [0-7] )*
+	 /* ws: explicit */
+BinaryInteger ::=
+	 '0b' [01] ( '_'? [01] )*
+	 /* ws: explicit */
+
+_HexDigit ::=
+	 [0-9a-fA-F]
+
+// Comments and whitespace
+
+LineComment ::=
+	 ( '//' [^#x0A#x0D]* )
+	 /* ws: explicit */
+BlockComment ::=
+	 ( '/*' [^*]* '*'+ ([^/*] [^*]* '*'+)* '/' )
+	 /* ws: explicit */
+
+Whitespace ::=
+	 [#x09#x0A#x0D#x20]
+Comment ::=
+	 LineComment
+	| BlockComment
