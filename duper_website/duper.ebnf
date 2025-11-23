@@ -109,7 +109,7 @@ _RawInner ::=
 	 ( '#' _RawInner '#' )
 	 | ( '"' RawContent '"' )
 RawContent ::=
-	 [^#x00-#x09#x0A-#x1F#x7F]*
+	 [^#x00-#x09#x0B-#x1F#x7F]*
 	 /* ws: explicit */
 
 QuotedContent ::=

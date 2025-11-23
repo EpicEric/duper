@@ -72,7 +72,7 @@ bool tree_sitter_duper_external_scanner_scan(void *payload, TSLexer *lexer,
         }
       } else {
         if (lexer->lookahead <= 0x09 ||
-            (lexer->lookahead >= 0x0A && lexer->lookahead <= 0x1F) ||
+            (lexer->lookahead >= 0x0B && lexer->lookahead <= 0x1F) ||
             lexer->lookahead == 0x7F) {
           return false;
         }
