@@ -195,10 +195,11 @@ pub fn escape_str<'a>(input: &'a Cow<'a, str>) -> Cow<'a, str> {
             c if is_invisible_unicode(c) => {
                 result = Some({
                     let mut result = result.unwrap_or_else(|| input.split_at(i).0.to_string());
-                    if c.len_utf8() > 2 {
-                        result.push_str(&format!("\\U{:08x}", c as u32));
+                    let c = c as u32;
+                    if c > 0xFFFF {
+                        result.push_str(&format!("\\U{:08x}", c));
                     } else {
-                        result.push_str(&format!("\\u{:04x}", c as u32));
+                        result.push_str(&format!("\\u{:04x}", c));
                     }
                     result
                 });

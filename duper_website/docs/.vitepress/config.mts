@@ -66,7 +66,6 @@ export default async () => {
           items: [{ text: "Visual Studio Code", link: "/vs-code" }],
         },
         { text: "Specification", link: "/spec" },
-        { text: "Grammar", link: "/grammar" },
       ],
 
       outline: {
