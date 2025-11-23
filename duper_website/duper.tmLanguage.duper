@@ -4,8 +4,8 @@ TextMateGrammar({
   scopeName: "source.duper",
   aliases: ["duper"],
   patterns: [
-    { include: "#values" },
-    { include: "#identifiers" },
+    {include: "#values"},
+    {include: "#identifiers"},
   ],
   repository: {
     keywords: {
@@ -22,11 +22,11 @@ TextMateGrammar({
           name: "string.quoted.double.raw.duper",
           begin: Regex("b?r(#*)\""),
           beginCaptures: {
-            "1": { name: "punctuation.definition.string.raw.duper" },
+            "1": {name: "punctuation.definition.string.raw.duper"},
           },
           end: Regex(r#""(\1)"#),
           endCaptures: {
-            "1": { name: "punctuation.definition.string.raw.duper" },
+            "1": {name: "punctuation.definition.string.raw.duper"},
           },
         },
         {
@@ -45,7 +45,7 @@ TextMateGrammar({
           begin: Regex("b?\""),
           end: Regex("\""),
           patterns: [
-            { include: "#stringescapes" },
+            {include: "#stringescapes"},
             {
               match: Regex("."),
               name: "string.quoted.content.duper",
@@ -59,8 +59,8 @@ TextMateGrammar({
           patterns: [
             {
               match: Regex("."),
-            }
-          ]
+            },
+          ],
         },
       ],
     },
@@ -81,29 +81,29 @@ TextMateGrammar({
         {
           begin: Regex(r"([A-Z](?:[_-]?[A-Za-z0-9])*)(\()"),
           beginCaptures: {
-            "1": { name: "entity.name.type.duper" },
-            "2": { name: "punctuation.definition.identifiers.duper" },
+            "1": {name: "entity.name.type.duper"},
+            "2": {name: "punctuation.definition.identifiers.duper"},
           },
           end: Regex(r"(\))"),
           endCaptures: {
-            "1": { name: "punctuation.definition.identifiers.duper" },
+            "1": {name: "punctuation.definition.identifiers.duper"},
           },
           patterns: [
             {
               begin: Regex(r"([A-Z](?:[_-]?[A-Za-z0-9])*)(\()"),
               beginCaptures: {
-                "1": { name: "invalid.illegal.nested-identifier.duper" },
-                "2": { name: "invalid.illegal.nested-identifier.duper" },
+                "1": {name: "invalid.illegal.nested-identifier.duper"},
+                "2": {name: "invalid.illegal.nested-identifier.duper"},
               },
               end: Regex(r"(\))"),
               endCaptures: {
-                "1": { name: "invalid.illegal.nested-identifier.duper" },
+                "1": {name: "invalid.illegal.nested-identifier.duper"},
               },
               patterns: [
-                { include: "#values" },
+                {include: "#values"},
               ],
             },
-            { include: "#values" },
+            {include: "#values"},
           ],
         },
       ],
@@ -131,7 +131,7 @@ TextMateGrammar({
           begin: Regex(r"(/\*)(?:\s*((@)internal)(?=\s|(\*/)))?"),
           end: Regex(r"\*/"),
           patterns: [
-            { include: "#multilinecomments" },
+            {include: "#multilinecomments"},
           ],
         },
       ],
@@ -139,16 +139,16 @@ TextMateGrammar({
     arrays: {
       begin: Regex(r"\["),
       beginCaptures: {
-        "0": { name: "punctuation.definition.arrays.duper" },
+        "0": {name: "punctuation.definition.arrays.duper"},
       },
       end: Regex(r"\]"),
       endCaptures: {
-        "0": { name: "punctuation.definition.arrays.duper" },
+        "0": {name: "punctuation.definition.arrays.duper"},
       },
       patterns: [
-        { include: "#values" },
-        { include: "#comments" },
-        { include: "#multilinecomments" },
+        {include: "#values"},
+        {include: "#comments"},
+        {include: "#multilinecomments"},
         {
           match: Regex(","),
           name: "punctuation.separator.arrays.duper",
@@ -162,17 +162,17 @@ TextMateGrammar({
     tuples: {
       begin: Regex(r"\("),
       beginCaptures: {
-        "0": { name: "punctuation.definition.tuple.duper" },
+        "0": {name: "punctuation.definition.tuple.duper"},
       },
       end: Regex(r"\)"),
       endCaptures: {
-        "0": { name: "punctuation.definition.tuple.duper" },
+        "0": {name: "punctuation.definition.tuple.duper"},
       },
       name: "meta.structure.tuple.duper",
       patterns: [
-        { include: "#values" },
-        { include: "#comments" },
-        { include: "#multilinecomments" },
+        {include: "#values"},
+        {include: "#comments"},
+        {include: "#multilinecomments"},
         {
           match: Regex(","),
           name: "punctuation.separator.tuple.duper",
@@ -186,28 +186,28 @@ TextMateGrammar({
     objects: {
       begin: Regex(r"\{"),
       beginCaptures: {
-        "0": { name: "punctuation.definition.dictionary.duper" },
+        "0": {name: "punctuation.definition.dictionary.duper"},
       },
       end: Regex(r"\}"),
       endCaptures: {
-        "0": { name: "punctuation.definition.dictionary.duper" },
+        "0": {name: "punctuation.definition.dictionary.duper"},
       },
       patterns: [
-        { include: "#objectkeys" },
-        { include: "#comments" },
-        { include: "#multilinecomments" },
+        {include: "#objectkeys"},
+        {include: "#comments"},
+        {include: "#multilinecomments"},
         {
           begin: Regex(":"),
           beginCaptures: {
-            "0": { name: "punctuation.separator.dictionary.key.duper" },
+            "0": {name: "punctuation.separator.dictionary.key.duper"},
           },
           end: Regex(r"(,)|(?=\})"),
           endCaptures: {
-            "1": { name: "punctuation.separator.dictionary.pair.duper" },
+            "1": {name: "punctuation.separator.dictionary.pair.duper"},
           },
           name: "meta.structure.dictionary.value.duper",
           patterns: [
-            { include: "#values" },
+            {include: "#values"},
             {
               match: Regex(r"[^\s,]"),
               name: "invalid.illegal.expected-dictionary-separator.duper",
@@ -226,11 +226,11 @@ TextMateGrammar({
           name: "variable.name.rawkeys.duper",
           begin: Regex("r(#*)\""),
           beginCaptures: {
-            "1": { name: "punctuation.definition.objectkeys.raw.duper" },
+            "1": {name: "punctuation.definition.objectkeys.raw.duper"},
           },
           end: Regex(r#""(\1)"#),
           endCaptures: {
-            "1": { name: "punctuation.definition.objectkeys.raw.duper" },
+            "1": {name: "punctuation.definition.objectkeys.raw.duper"},
           },
         },
         {
@@ -238,8 +238,8 @@ TextMateGrammar({
           begin: Regex("\""),
           end: Regex("\""),
           patterns: [
-            { include: "#keyescapes" },
-            { include: "#keycontent" },
+            {include: "#keyescapes"},
+            {include: "#keycontent"},
           ],
         },
         {
@@ -270,15 +270,15 @@ TextMateGrammar({
     },
     values: {
       patterns: [
-        { include: "#keywords" },
-        { include: "#numbers" },
-        { include: "#identifiers" },
-        { include: "#strings" },
-        { include: "#objects" },
-        { include: "#arrays" },
-        { include: "#tuples" },
-        { include: "#comments" },
-        { include: "#multilinecomments" },
+        {include: "#keywords"},
+        {include: "#numbers"},
+        {include: "#identifiers"},
+        {include: "#strings"},
+        {include: "#objects"},
+        {include: "#arrays"},
+        {include: "#tuples"},
+        {include: "#comments"},
+        {include: "#multilinecomments"},
       ],
     },
   },

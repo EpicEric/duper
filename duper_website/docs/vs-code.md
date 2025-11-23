@@ -1,7 +1,7 @@
 # Visual Studio Code support
 
-You can install the official extension [here](https://marketplace.visualstudio.com/items?itemName=epic-eric.duper-vs-code).
+You can install the official extension [on the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=epic-eric.duper-vs-code) or [on Open VSX](https://open-vsx.org/extension/epic-eric/duper-vs-code).
 
-It currently only supports syntax highlighting and adding the Duper logo to `.duper` files.
+It has full LSP support, with syntax highlighting, validation, and auto-formatting.
 
-![An example of Duper highlighting on Visual Studio Code.](/images/vscode-example.png)
+![An example of the Duper extension in Visual Studio Code.](/images/vscode-example.png)

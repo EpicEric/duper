@@ -38,8 +38,25 @@ Duper excels in a variety of use cases:
 
 - In configuration files, where users are expected to swap out values, its explicit types can be a helpful guide.
 - Thanks to its extended type support and self-documenting identifiers, Duper feels right at home in REST APIs.
-- With a simple and readable syntax, Duper is a breath of fresh air for both manual and tool-assisted debugging.
+- With a simple and readable syntax for logs, Duper is a breath of fresh air for both manual and tool-assisted debugging.
 
 ## For implementers
 
 See [the specification](https://duper.dev.br/spec.html) for more details.
+
+## Workspace structure
+
+- [`duper`](./duper/): Core implementation of the Duper parser and serializer in Rust, as well as Serde support. Used by Rust libraries and bindings in other languages.
+  - Libraries
+    - [`serde_duper`](./serde_duper/): Adds Duper-specific support for extra types for use with Serde, including a proc-macro via [`serde_duper_macros`](./serde_duper_macros/).
+    - [`axum_duper`](./axum_duper/): Axum support for Duper requests and responses.
+  - Bindings
+    - [`duper-python`](./duper-python/): Python bindings using PyO3, including Pydantic and FastAPI support.
+    - [`duper_uniffi_`](./duper_uniffi/): Multi-language bindings using UniFFI.
+      - [`duper_uniffi/dotnet`](./duper_uniffi/dotnet/): C# / .NET bindings.
+      - [`duper-js-wasm`](./duper-js-wasm/): WebAssembly bindings.
+- [`tree-sitter-duper`](./tree-sitter-duper/): tree-sitter implementation of Duper.
+  - [`duperfmt`](./duperfmt/): Duper formatter based on Topiary.
+    - [`duper_lsp`](./duper_lsp/): Duper LSP.
+      - [`duper-vs-code`](./duper-vs-code/): Duper extension for Visual Studio Code.
+- [`duper_website`](./duper_website/): Official website for Duper, including the specification and WebAssembly-based playground.
