@@ -63,7 +63,7 @@ Duper excels in a variety of use cases:
 
 - **Configuration files**: Duper's explicit types and comments serve as helpful guides when users need to modify values.
 - **REST APIs**: Extended type support and self-documenting identifiers make Duper a natural fit for API responses.
-- **Logging**: With a simple and readable syntax, Duper is a breath of fresh air for both manual and tool-assisted debugging.
+- **Logging**: With a simple and readable syntax for logs, Duper is a breath of fresh air for both manual and tool-assisted debugging.
 
 ## Playground
 

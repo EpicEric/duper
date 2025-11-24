@@ -37,6 +37,9 @@
           "light": "images/logo.png",
           "dark": "images/logo.png"
         }
+      },
+      {
+        "id": "duper-markdown"
       }
     ],
     "grammars": [
@@ -44,6 +47,17 @@
         "language": "duper",
         "scopeName": "source.duper",
         "path": "./syntaxes/duper.tmLanguage.json"
+      },
+      {
+        "language": "duper-markdown",
+        "scopeName": "markdown.duper.codeblock",
+        "path": "./syntaxes/duper-markdown.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.duper": "duper"
+        }
       }
     ],
     "configuration": {

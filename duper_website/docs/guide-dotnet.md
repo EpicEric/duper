@@ -1,6 +1,10 @@
-# .NET guide (alpha)
+# .NET guide
 
 Get started with Duper in .NET / C# with the [`EpicEric.Duper`](https://www.nuget.org/packages/EpicEric.Duper) package.
+
+::: warning
+.NET support is considered alpha. Please use at your own risk. Testing and [opening issues](https://github.com/EpicEric/duper/issues/new) is more than welcome.
+:::
 
 ## Installation
 
@@ -10,7 +14,7 @@ dotnet add package EpicEric.Duper
 
 ## Usage
 
-```c#
+```csharp
 using System.Net;
 using Duper;
 

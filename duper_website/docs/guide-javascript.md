@@ -14,7 +14,7 @@ npm install --save @duper-js/wasm
 
 ```bash
 npm install --save @duper-js/wasm
-npm install --save-dev vite vite-plugin-top-level-await vite-plugin-wasm
+npm install --save-dev vite-plugin-top-level-await vite-plugin-wasm
 ```
 
 Add the following to `vite.config.js`:

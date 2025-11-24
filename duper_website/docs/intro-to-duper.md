@@ -18,7 +18,7 @@ For this example, we'll assume a specific format for product data in a storefron
     "noise_cancellation": true,
     "connectivity": ["Bluetooth 5.0", "3.5mm Jack"]
   },
-  "image_thumbnail": [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 100],
+  "image_thumbnail": "iVBORw0KGgoAAAANSUhEUgAAAGQ=",
   "tags": ["electronics", "audio", "wireless"],
   "release_date": "2023-11-15",
   "warranty_period": null,
@@ -49,7 +49,7 @@ Plain ol' JSON. This is a valid Duper object, as well.
     noise_cancellation: true,
     connectivity: ["Bluetooth 5.0", "3.5mm Jack"],
   },
-  image_thumbnail: [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 100],
+  image_thumbnail: "iVBORw0KGgoAAAANSUhEUgAAAGQ=",
   tags: ["electronics", "audio", "wireless"],
   release_date: "2023-11-15",
   /* Warranty is optional */

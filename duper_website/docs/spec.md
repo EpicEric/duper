@@ -26,10 +26,11 @@ Duper aims to be a human-friendly extension of JSON with quality-of-life improve
 
 ## Preliminaries
 
-- Duper is case-sensitive and must be a valid UTF-8 encoded Unicode document.
-- Whitespace means tab (U+0009), space (U+0020), line feed (U+000A), or carriage return (U+000D).
-- Newline means line feed (U+000A) or carriage return (U+000D).
-- Files must have only one root value. Parsers must always accept objects, arrays, and tuples as the root value, but implementations may allow other values as the root value.
+- Duper is case-sensitive, and files must be a valid UTF-8 encoded Unicode document.
+- "Whitespace" refers to tab (U+0009), space (U+0020), line feed (U+000A), or carriage return (U+000D).
+- "Newline" refers to line feed (U+000A) or carriage return (U+000D).
+- "Control characters other than line feeds" refers to the codepoints U+0000-U+0009, U+000B-U+001F, or U+007F.
+- Files must have only one root value. Parsers must always accept objects, arrays, and tuples as the root value. Implementations may allow other values as the root value.
 - JSON values are valid Duper values.
 
 ## Comments
@@ -58,7 +59,7 @@ The area delimited by a forward slash immediately followed by an asterisk `/*`, 
 }
 ```
 
-Comments should be used to communicate between the human readers of a file. Parsers must not modify keys or values, based on the presence (or contents) of a comment.
+Comments should be used to communicate between the human readers of a file. Parsers must not modify keys or values based on the presence (or contents) of a comment.
 
 ## Objects
 
@@ -79,12 +80,12 @@ There must be a comma `,` between key-value pairs.
 
 ```duper
 {
-  key: "value"  // INVALID: Missing comma
+  key: "value"  // INVALID: Missing comma // [!code error]
   foo: "bar"
 }
 ```
 
-Additionally, a trailing comma after the last key-value pair is allowed.
+Conversely, a trailing comma after the last key-value pair is allowed.
 
 ```duper
 {
@@ -100,6 +101,7 @@ Values must have one of the following types:
 - [Tuple](#tuples)
 - [String](#strings)
 - [Byte string](#byte-strings)
+- [Temporal value](#temporal-values)
 - [Integer](#integers)
 - [Float](#floats)
 - [Boolean](#booleans)
@@ -108,6 +110,8 @@ Values must have one of the following types:
 ## Keys
 
 A key may be either plain, quoted, or raw.
+
+---
 
 **Plain keys** may only contain ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. They must start with an ASCII letter, or an underscore followed by a letter or digit. Sequences of underscores and hyphens are not allowed, and plain keys must not end with them.
 
@@ -120,27 +124,31 @@ A key may be either plain, quoted, or raw.
   _1234: "value",
 
   // Allowed but discouraged
-  Capitalized: "value",
+  Capitalized: "value", // [!code warning]
 
   // Not allowed
-  _: "value",               // INVALID
-  útf8: "value",            // INVALID
-  : "value",                // INVALID
-  kebabest--case: "value",  // INVALID
+  _: "value",               // INVALID // [!code error]
+  ütf8: "value",            // INVALID // [!code error]
+  : "value",                // INVALID // [!code error]
+  kebabest--case: "value",  // INVALID // [!code error]
 }
 ```
+
+---
 
 **Quoted keys** follow the exact same rules as quoted strings.
 
 ```duper
 {
   "127.0.0.1": "value",
-  "character encoding": "value",
+  "with space": "value",
   "maçã": "value",
   "_": "value",
   "": "value",
 }
 ```
+
+---
 
 **Raw keys** follow the exact same rules as raw strings.
 
@@ -151,15 +159,17 @@ A key may be either plain, quoted, or raw.
 }
 ```
 
-Indentation around keys is treated as whitespace and ignored.
+---
+
+Whitespace around keys is ignored.
 
 Defining a key multiple times is invalid. Note that plain keys, quoted keys, and raw keys are equivalent.
 
 ```duper
 {
   name: "Eric",
-  "n\x61me": "Erik",  // INVALID
-  r"name": "Erick",   // INVALID
+  "n\x61me": "Erik",  // INVALID // [!code error]
+  r"name": "Erick",   // INVALID // [!code error]
 }
 ```
 
@@ -167,19 +177,21 @@ Defining a key multiple times is invalid. Note that plain keys, quoted keys, and
 
 A string may be either quoted or raw.
 
-**Quoted strings** are surrounded by quotation marks `"`. Any Unicode character may be used, except those that must be escaped: quotation mark `"`, backslash `\`, and the control characters excluding line feeds (U+0000 to U+0009, U+000B to U+001F, U+007F).
+---
+
+**Quoted strings** are surrounded by quotation marks `"`. Any Unicode character may be used, except those that must be escaped: quotation mark `"`, backslash `\`, and control characters other than line feeds.
 
 ```duper
 {
   str1: "I'm a string.",
   str2: "\"You can quote me\"",
-  str3: "Name\tJos\xE9\nLocation\tBR.",
+  str3: "Name\tJos\xE9\nLocation\tBR",
   str4: "  padded  ",
   str5: "𝓓𝓾𝓹𝓮𝓻",
 }
 ```
 
-For convenience, some characters have a compact escape sequence:
+For convenience, some characters have a compact escape sequence. Other escape sequences are not permitted.
 
 ```duper
 [
@@ -201,9 +213,15 @@ For convenience, some characters have a compact escape sequence:
 
 Any Unicode character may be escaped with `\uHHHH`, `\UHHHHHHHH`, or a sequence of one or more `\xHH`, where `H` is a hexadecimal digit. The escape codes must be valid Unicode [scalar values](https://unicode.org/glossary/#unicode_scalar_value).
 
-Keep in mind that Duper strings are sequences of Unicode characters, _not_ byte sequences. Parsers should raise an error if a string decodes into invalid Unicode (i.e. via an invalid sequence of `\xHH`). For binary data, use [byte strings](#byte-strings).
+Keep in mind that Duper strings are sequences of Unicode characters, _not_ byte sequences. Parsers should raise an error if a string decodes into invalid Unicode (i.e. via an invalid sequence of `\xHH`).
 
-**Raw strings** start with the lowercase letter R, immediately followed by zero or more hash symbols `#`, immediately followed by a quotation mark `"`. They end with a quotation mark, followed by the same number of starting hash symbols. (for example: `r"..."`, `r#"..."#`, `r##"..."##`, and so on.). They allow newlines and have no escaping whatsoever.
+::: tip
+For binary data, use [byte strings](#byte-strings).
+:::
+
+---
+
+**Raw strings** start with the lowercase letter `r`, immediately followed by zero or more hash symbols `#`, immediately followed by a quotation mark `"`. They end with a quotation mark `"`, followed by the same number of starting hash symbols `#` (for example: `r"..."`, `r#"..."#`, `r##"..."##`, and so on.). They allow line feeds and have no escaping whatsoever.
 
 ```duper
 {
@@ -212,7 +230,7 @@ Keep in mind that Duper strings are sequences of Unicode characters, _not_ byte 
   quoted: r#"Hello, "world"!"#,
   excessive_hashtags: r####"Just to be safe..."####,
   lines: r"
-The first newline is not trimmed.
+The first line feed is not trimmed.
   All whitespace is
     preserved in here.   ",
 }
@@ -222,20 +240,22 @@ The hashtags are required to disambiguate quotes (`"`, or `"#`, or `"##`, etc.) 
 
 ```duper
 {
-  inner_quotes: r"Well, "that" just happened.",      // INVALID
-  too_few_ending_hashes: r#"",                       // INVALID
-  too_many_ending_hashes: r#""##,                    // INVALID
-  not_enough_hashes: r#"will "# close the string"#,  // INVALID
+  inner_quotes: r"Well, "that" just happened.",      // INVALID // [!code error]
+  too_few_ending_hashes: r#"",                       // INVALID"# // [!code error]
+  too_many_ending_hashes: r#""##,                    // INVALID // [!code error]
+  not_enough_hashes: r#"will "# close the string"#,  // INVALID // [!code error]
 }
 ```
 
-Control characters excluding line feeds (U+0000 to U+0009, U+000B to U+001F, U+007F) are not permitted in a raw string.
+Control characters other than line feeds are not permitted in a raw string.
 
 ## Byte strings
 
 Byte strings are similar to strings, but represent binary data. Like strings, they come in quoted or raw variants.
 
-**Quoted byte strings** start with the lowercase letter B immediately followed by a quotation mark `b"`, and end with a quotation mark `"`. The escape sequences are the same as in quoted strings, although they are not required to form valid UTF-8 codepoints.
+---
+
+**Quoted byte strings** start with the lowercase letter `b` immediately followed by a quotation mark `"`, and end with a quotation mark `"`. The escape sequences are the same as in quoted strings, although they are not required to form valid UTF-8 codepoints.
 
 ```duper
 {
@@ -245,26 +265,30 @@ Byte strings are similar to strings, but represent binary data. Like strings, th
 }
 ```
 
-**Raw byte strings** are similar to raw strings, using the `br"` (all lowercase) prefix instead.
+---
+
+**Raw byte strings** are similar to raw strings, using the `br` (all lowercase) prefix instead.
 
 ```duper
 {
   path: br"C:\Windows\System32",
-  shrug: br#" "Whatever." ¯\_(ツ)_/¯ "#,
+  shrug: br#""Whatever." ¯\_(ツ)_/¯"#,
   rust_block: br##"{ let str = r#"meta string"#; }"##,
 }
 ```
 
-**Base64 byte strings** use the `b64"` (all lowercase) prefix. They must contain only valid Base64 characters (ASCII lowercase, ASCII uppercase, ASCII digits, plus sign `+`, forward slash `/`) as per [RFC 4648 section 4](https://datatracker.ietf.org/doc/html/rfc4648#section-4). Whitespace inside of the Base64 byte string is allowed and ignored. Parsers should allow for missing pad characters, while encoders must emit valid padding.
+---
+
+**Base64 byte strings** use the `b64"` (all lowercase) prefix, and end with a quotation mark `"`. They must contain only valid Base64 characters (ASCII lowercase, ASCII uppercase, ASCII digits, plus sign `+`, forward slash `/`), followed by the appropriate padding composed of zero or more equals signs `=`, as per [RFC 4648 section 4](https://datatracker.ietf.org/doc/html/rfc4648#section-4). Whitespace inside of the Base64 byte string is allowed and ignored. Parsers should allow for missing pad characters, while encoders must emit valid padding.
 
 ```duper
 {
   regular: b64"ZHVwZXI=",
   no_padding: b64"ZHVwZXI",
-  with_whitespace: b64"  +boUO5X/bYI=  ",
+  with_whitespace: b64" +bo UO5 X/b YI= ",
 
-  too_much_padding: b64"ZHVwZXI==",   // INVALID
-  invalid_characters: b64"QUFB-Q==",  // INVALID
+  too_much_padding: b64"ZHVwZXI==",   // INVALID // [!code error]
+  invalid_characters: b64"QUFB-Q==",  // INVALID // [!code error]
 }
 ```
 
@@ -272,7 +296,7 @@ Byte strings are similar to strings, but represent binary data. Like strings, th
 
 Temporal values are a set of value types, representing either a point in time or the difference between two points in time. They are surrounded by single quotes `'` and must follow the [Temporal proposal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal), which uses a strict version of the format specified in [RFC 9557](https://datatracker.ietf.org/doc/html/rfc9557) (itself based off of ISO 8601 / RFC 3339).
 
-Whitespace between the Temporal value and the single quotes is allowed and ignored. Parsers must validate that the value between single quotes is a valid Temporal value.
+Whitespace between the Temporal value and the single quotes are allowed and ignored, but not allowed inside the value itself (except for space as a date-time separator). Parsers should validate that the value between single quotes is a valid Temporal value.
 
 ```duper
 {
@@ -284,8 +308,8 @@ Whitespace between the Temporal value and the single quotes is allowed and ignor
   large_extensions: '2020-05-22T07:19:35.123456789-04:00[America/Indiana/Indianapolis][u-ca=islamic-umalqura]',
 
   // Not allowed
-  not_temporal: 'hello world',         // INVALID
-  "date doesn't exist": '2025-02-29',  // INVALID
+  not_temporal: 'hello world',         // INVALID // [!code error]
+  "date doesn't exist": '2025-02-29',  // INVALID // [!code error]
 }
 ```
 
@@ -307,13 +331,13 @@ These values may or may not contain an [identifier](#identifiers). In the case w
   subset: PlainYearMonth('1994-11-06T19:45:27-03:00'),  // PlainYearMonth is a subset of Instant
 
   // Allowed but discouraged
-  string_in_disguise: PlainDate("not Temporal"),      // Uses double-quotes
-  confusing_identifier: PlainTimeDate('2025-11-03'),  /* Unlike `PlainDateTime`, this doesn't
-                                                       * validate the input, other than that
-                                                       * it's a Temporal value. */
+  string_in_disguise: PlainDate("not Temporal"),      // Uses double-quotes // [!code warning]
+  confusing_identifier: PlainTimeDate('2025-11-03'),  // Unlike `PlainDateTime`, this doesn't // [!code warning]
+                                                      // validate the input, other than that // [!code warning]
+                                                      // it's a Temporal value. // [!code warning]
 
   // Not allowed
-  missing_offset: Instant('2025-10-31T19:39:02'),  // INVALID
+  missing_offset: Instant('2025-10-31T19:39:02'),  // INVALID // [!code error]
 }
 ```
 
@@ -341,9 +365,9 @@ For large numbers, you may use underscores between digits to enhance readability
   int8: 1_2_3_4_5,
 
   // Not allowed
-  wrong1: 1__2,  // INVALID
-  wrong2: _12,   // INVALID
-  wrong3: 12_,   // INVALID
+  wrong1: 1__2,  // INVALID // [!code error]
+  wrong2: _12,   // INVALID // [!code error]
+  wrong3: 12_,   // INVALID // [!code error]
 }
 ```
 
@@ -364,6 +388,11 @@ Non-negative integer values may also be expressed in hexadecimal (`0x...`), octa
   // Binary with prefix `0b`
   bin1: 0b1101,
   bin2: 0b0101_0101,
+
+  // Not allowed
+  invalid_hex: -0x1234,  // INVALID // [!code error]
+  invalid_oct: +0o7263,  // INVALID // [!code error]
+  invalid_bin: 00b1001,  // INVALID // [!code error]
 }
 ```
 
@@ -392,15 +421,15 @@ A float consists of an integer part (which follows the same rules as decimal int
 
 A fractional part is a decimal point followed by one or more digits.
 
-An exponent part is an `e` (upper or lower case) followed by an integer part (which follows the same rules as decimal integer values, but may include leading zeros).
+An exponent part is an `e` (upper or lower case) followed by an integer part (which follows the same rules as decimal integer values).
 
 The decimal point, if used, must be surrounded by at least one digit on each side.
 
 ```duper
 {
-  invalid_float_1: .7,      // INVALID
-  invalid_float_2: 7.,      // INVALID
-  invalid_float_3: 3.e+20,  // INVALID
+  invalid_float_1: .7,      // INVALID // [!code error]
+  invalid_float_2: 7.,      // INVALID // [!code error]
+  invalid_float_3: 3.e+20,  // INVALID // [!code error]
 }
 ```
 
@@ -423,8 +452,8 @@ Booleans are one of `true` or `false`.
 
 ```duper
 {
-  tis: true,
-  nah: false,
+  ja: true,
+  nein: false,
 }
 ```
 
@@ -440,7 +469,7 @@ Null is always `null`.
 
 ## Arrays
 
-Arrays are ordered values surrounded by square brackets `[` and `]`. Whitespace is ignored. Elements are separated by commas. Arrays can contain values of the same data types as allowed in key-value pairs. Values of different types may be mixed.
+Arrays are ordered values surrounded by square brackets `[` and `]`. Whitespace is ignored. Elements are separated by commas. Empty arrays may either include a single comma or nothing. Arrays can contain values of the same data types as allowed in key-value pairs. Values of different types may be mixed.
 
 ```duper
 {
@@ -461,10 +490,14 @@ Arrays are ordered values surrounded by square brackets `[` and `]`. Whitespace 
       url: "https://example.com/bazqux",
     },
   ],
+
+  // Not allowed
+  commas: [,,],  // INVALID // [!code error]
+  sep: [1,,2],   // INVALID // [!code error]
 }
 ```
 
-Arrays can span multiple lines. A terminating comma (also called a trailing comma) is permitted after the last value of the array. Any number of newlines and comments may precede values, commas, and the closing bracket. Indentation between array values and commas is treated as whitespace and ignored.
+Arrays can span multiple lines. A trailing comma is permitted after the last value of the array. Any number of newlines and comments may precede values, commas, and the closing bracket. Indentation between array values and commas is treated as whitespace and ignored.
 
 ```duper
 [
@@ -485,11 +518,16 @@ Tuples are similar to arrays, although parsers may choose to handle them differe
   another_single_element: (1,),
   tuple_of_arrays: ([true, 1.0], ["x", "y", "z"]),
   array_of_tuples: [(1, null), (3, 4.0, 5)],
+  nested: (((), ("hi")))
   multiline_tuple: (
     "Vec",
     "Cow",
     "Arc",
   ),
+
+  // Not allowed
+  commas: (,,),  // INVALID // [!code error]
+  sep: (1,,2),   // INVALID // [!code error]
 }
 ```
 
@@ -497,7 +535,7 @@ Any parenthesized expression must be interpreted as a tuple by parsers.
 
 ## Identifiers
 
-Identifiers are type-like annotations that wrap any kind of value, providing semantic meaning or hinting at special handling during parsing/validation. Identified values are composed of the identifier name, followed by the value wrapped in parenthesis `(` and `)`.
+Identifiers are type-like annotations that wrap any kind of value, providing semantic meaning or hinting at special handling during parsing/validation. Identified values are composed of the identifier name, followed by the value wrapped in parenthesis `(` and `)`. Whitespace and comments around the identifier name or its parenthesis is ignored.
 
 The first character must be an ASCII uppercase letter, followed by zero or more ASCII letters, ASCII digits, underscores `_`, and hyphens `-`. Sequences of underscores and hyphens are not allowed in the identifier, and identifiers may not start or end with either of them.
 
@@ -515,6 +553,12 @@ The first character must be an ASCII uppercase letter, followed by zero or more 
     hash: SHA_256(b"\xde\xad\xbe\xef"),
   }),
   minimal: A(null),
+
+  // Not allowed
+  lowercase: aB(1),           // INVALID // [!code error]
+  underscore: _Test(2),       // INVALID // [!code error]
+  ends_with_hyphen: Foo-(3),  // INVALID // [!code error]
+  sequence: X_-Y(4),          // INVALID // [!code error]
 }
 ```
 
@@ -531,13 +575,22 @@ Values may not contain more than one identifier.
 
 ```duper
 {
-  too_many: IpAddress(Ipv4Address("192.168.0.1"))  // INVALID
+  too_many: IpAddress(Ipv4Address("192.168.0.1"))  // INVALID // [!code error]
+}
+```
+
+Identifiers are not allowed in object keys.
+
+```duper
+{
+  Wrong(use): null,         // INVALID // [!code error]
+  Of("identifiers"): null,  // INVALID // [!code error]
 }
 ```
 
 Identifiers are optional and may be ignored by parsers, except when specifying one of the expected types for [Temporal values](#temporal-values).
 
-Parsers should preserve identifier information on a best-effort basis. Deserializers may ignore identifiers, or use them for validation. Serializers may choose to output or omit identifiers by the user's request.
+Parsers should preserve identifier information on a best-effort basis. Deserializers may ignore identifiers, or use them for validation. Serializers may choose to output or omit identifiers, per the user's request.
 
 Implementations are free to define their own identifiers with specific semantics. For example, in strongly-typed or OOP languages, serializers may use them as annotations for the underlying types.
 
