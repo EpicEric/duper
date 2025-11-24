@@ -52,7 +52,7 @@ See [the specification](https://duper.dev.br/spec.html) or the [EBNF grammar](ht
     - [`axum_duper`](./axum_duper/): Axum support for Duper requests and responses.
   - Bindings
     - [`duper-python`](./duper-python/): Python bindings using PyO3, including Pydantic and FastAPI support.
-    - [`duper_uniffi_`](./duper_uniffi/): Multi-language bindings using UniFFI.
+    - [`duper_uniffi`](./duper_uniffi/): Multi-language bindings using UniFFI.
       - [`duper_uniffi/dotnet`](./duper_uniffi/dotnet/): C# / .NET bindings.
       - [`duper-js-wasm`](./duper-js-wasm/): WebAssembly bindings.
 - [`tree-sitter-duper`](./tree-sitter-duper/): tree-sitter implementation of Duper.

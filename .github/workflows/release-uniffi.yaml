@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 env:
-  RUST_MSRV: "1.88.0"
+  RUST_VERSION: "1.91.1"
   CARGO_INCREMENTAL: "0"
   CARGO_PROFILE_TEST_DEBUG: "0"
   DOTNET_VERSION: "8.0.x"
@@ -30,12 +30,12 @@ jobs:
           - runner: ubuntu-24.04
             target: aarch64-unknown-linux-musl
             os: linux
-          - runner: windows-latest
+          - runner: ubuntu-24.04
             target: x86_64-pc-windows-msvc
             os: windows
-          - runner: windows-11-arm
-            target: aarch64-pc-windows-msvc
-            os: windows
+          # - runner: ubuntu-24.04
+          #   target: aarch64-pc-windows-msvc
+          #   os: windows
           - runner: macos-15-intel
             target: x86_64-apple-darwin
             os: macos
@@ -51,33 +51,45 @@ jobs:
           persist-credentials: true
       - name: Fetch MSRV and target
         run: |
-          rustup toolchain install ${RUST_MSRV}
-          rustup override set ${RUST_MSRV}
+          rustup toolchain install ${RUST_VERSION}
+          rustup override set ${RUST_VERSION}
           rustup target add ${{ matrix.target }}
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
       - name: Install Zig
-        if: matrix.runner == 'ubuntu-24.04'
+        if: matrix.os == 'linux'
         uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
         with:
           version: latest
-      - name: Install zigbuild
-        if: matrix.runner == 'ubuntu-24.04'
+      - name: Install cargo-zigbuild (Linux)
+        if: matrix.os == 'linux'
         uses: taiki-e/install-action@a24ba45235ed716ff76646268742990dc9458860 # v2.62.42
         with:
           tool: cargo-zigbuild
-      - name: Install lld
+      - name: Install lld (macOS)
         if: matrix.os == 'macos'
         run: |
           brew install lld
-      - name: Build with zigbuild
-        if: matrix.runner == 'ubuntu-24.04'
+      - name: Install llvm-dev and cargo-xwin (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          sudo apt-get install -y llvm-dev
+          rustup component add llvm-tools
+          cargo install --locked cargo-xwin
+      - name: Build with cargo-zigbuild (Linux)
+        if: matrix.os == 'linux'
+        env:
+          RUSTFLAGS: -Ctarget-feature=-crt-static
         run: |
           cargo zigbuild --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_uniffi/Cargo.toml
-      - name: Build with cargo
-        if: matrix.runner != 'ubuntu-24.04'
+      - name: Build with cargo (macOS)
+        if: matrix.os == 'macos'
         run: |
           cargo build --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_uniffi/Cargo.toml
+      - name: Build with cargo-xwin (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          cargo xwin build --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_uniffi/Cargo.toml
       - name: Copy dynamic library to dist (Linux)
         if: matrix.os == 'linux'
         run: |
@@ -130,10 +142,10 @@ jobs:
         with:
           name: dist-x86_64-pc-windows-msvc
           path: dist
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
-        with:
-          name: dist-aarch64-pc-windows-msvc
-          path: dist
+      # - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      #   with:
+      #     name: dist-aarch64-pc-windows-msvc
+      #     path: dist
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: dist-x86_64-apple-darwin

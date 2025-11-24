@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 env:
-  RUST_MSRV: "1.88.0"
+  RUST_VERSION: "1.91.1"
   CARGO_INCREMENTAL: "0"
   CARGO_PROFILE_TEST_DEBUG: "0"
   NODE_VERSION: "20"
@@ -59,8 +59,8 @@ jobs:
           persist-credentials: true
       - name: Fetch MSRV and target
         run: |
-          rustup toolchain install ${RUST_MSRV}
-          rustup override set ${RUST_MSRV}
+          rustup toolchain install ${RUST_VERSION}
+          rustup override set ${RUST_VERSION}
           rustup target add ${{ matrix.target }}
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
@@ -69,24 +69,28 @@ jobs:
         uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
         with:
           version: latest
-      - name: Install zigbuild
+      - name: Install cargo-zigbuild (Linux)
         if: matrix.runner == 'ubuntu-24.04'
         uses: taiki-e/install-action@a24ba45235ed716ff76646268742990dc9458860 # v2.62.42
         with:
           tool: cargo-zigbuild
-      - name: Install lld
+      - name: Install lld (macOS)
         if: matrix.os == 'macos'
         run: |
           brew install lld
-      - name: Build with zigbuild
+      - name: Install lld (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          choco install llvm
+      - name: Build with cargo-zigbuild (Linux)
         if: matrix.runner == 'ubuntu-24.04'
         run: |
           cargo zigbuild --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_lsp/Cargo.toml
-      - name: Build with cargo
+      - name: Build with cargo (macOS / Windows)
         if: matrix.runner != 'ubuntu-24.04'
         run: |
           cargo build --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_lsp/Cargo.toml
-      - name: Copy binary to extension
+      - name: Copy binary to extension (Linux / macOS)
         if: matrix.os != 'windows'
         run: |
           cp target/${{ matrix.target }}/release/duper_lsp duper-vs-code/duper_lsp

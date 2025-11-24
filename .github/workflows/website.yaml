@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  RUST_VERSION: "1.91.0"
+  RUST_VERSION: "1.91.1"
   NODE_VERSION: "24"
   BINARYEN_VERSION: "124"
   WASM_BINDGEN_VERSION: "0.2.100"

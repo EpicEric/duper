@@ -23,7 +23,7 @@
     <file src="README.md" />
     <file src="bin/Release/net8.0/Duper.dll" target="lib\net8.0\" />
     <file src="../../dist/x86_64-pc-windows-msvc/duper_uniffi.dll" target="runtimes\win-x64\native\" />
-    <file src="../../dist/aarch64-pc-windows-msvc/duper_uniffi.dll" target="runtimes\win-arm64\native\" />
+    <!-- <file src="../../dist/aarch64-pc-windows-msvc/duper_uniffi.dll" target="runtimes\win-arm64\native\" /> -->
     <file src="../../dist/x86_64-unknown-linux-gnu/libduper_uniffi.so" target="runtimes\linux-x64\native\" />
     <file src="../../dist/aarch64-unknown-linux-gnu/libduper_uniffi.so" target="runtimes\linux-arm64\native\" />
     <file src="../../dist/x86_64-unknown-linux-musl/libduper_uniffi.so" target="runtimes\linux-musl-x64\native\" />
