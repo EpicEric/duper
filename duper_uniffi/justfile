@@ -7,15 +7,6 @@ bindgen:
 build-debug:
   cargo build
 
-build-release:
-  cargo build --release --target x86_64-unknown-linux-gnu
-  cargo build --release --target x86_64-pc-windows-gnu
-
-[working-directory: 'dotnet']
-package-dotnet: build-release bindgen
-  dotnet build
-  dotnet pack
-
 test: build-debug bindgen test-dotnet
 
 [working-directory: 'tests/dotnet']

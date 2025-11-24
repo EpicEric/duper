@@ -1,4 +1,4 @@
-name: Build duper_lsp and package extension
+name: "[Release] Build duper_lsp and package extensions"
 
 on:
   workflow_dispatch:
@@ -113,8 +113,8 @@ jobs:
           name: dist-${{ matrix.vscode-target }}
           path: dist
 
-  release:
-    name: Release
+  vscode:
+    name: Release VSCode extension
     runs-on: ubuntu-24.04
     environment: vsce
     needs: build
@@ -166,11 +166,11 @@ jobs:
         working-directory: duper-vs-code
         run: |
           npm install
-      - name: Publish to VSCode Marketplace
+      - name: Publish to Visual Studio Marketplace
         working-directory: duper-vs-code
         run: |
           npx vsce publish --pat ${{ secrets.VSCE_TOKEN }} --packagePath ../dist/duper-vs-code-*.vsix
-      - name: Publish to OpenVSX
+      - name: Publish to Open VSX
         working-directory: duper-vs-code
         run: |
           npx ovsx publish --pat ${{ secrets.OVSX_TOKEN }} --packagePath ../dist/duper-vs-code-*.vsix

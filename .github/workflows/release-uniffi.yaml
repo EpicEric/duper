@@ -1,0 +1,160 @@
+name: "[Release] Build UniFFI packages"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RUST_MSRV: "1.88.0"
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+  DOTNET_VERSION: "8.0.x"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            os: linux
+          - runner: ubuntu-24.04
+            target: aarch64-unknown-linux-gnu
+            os: linux
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+            os: linux
+          - runner: ubuntu-24.04
+            target: aarch64-unknown-linux-musl
+            os: linux
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            os: windows
+          - runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            os: windows
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            os: macos
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            os: macos
+    name: Build and package (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: true
+      - name: Fetch MSRV and target
+        run: |
+          rustup toolchain install ${RUST_MSRV}
+          rustup override set ${RUST_MSRV}
+          rustup target add ${{ matrix.target }}
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: Install Zig
+        if: matrix.runner == 'ubuntu-24.04'
+        uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
+        with:
+          version: latest
+      - name: Install zigbuild
+        if: matrix.runner == 'ubuntu-24.04'
+        uses: taiki-e/install-action@a24ba45235ed716ff76646268742990dc9458860 # v2.62.42
+        with:
+          tool: cargo-zigbuild
+      - name: Install lld
+        if: matrix.os == 'macos'
+        run: |
+          brew install lld
+      - name: Build with zigbuild
+        if: matrix.runner == 'ubuntu-24.04'
+        run: |
+          cargo zigbuild --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_uniffi/Cargo.toml
+      - name: Build with cargo
+        if: matrix.runner != 'ubuntu-24.04'
+        run: |
+          cargo build --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_uniffi/Cargo.toml
+      - name: Copy dynamic library to dist (Linux)
+        if: matrix.os == 'linux'
+        run: |
+          mkdir -p dist/${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/libduper_uniffi.so dist/${{ matrix.target }}/
+      - name: Copy dynamic library to dist (macOS)
+        if: matrix.os == 'macos'
+        run: |
+          mkdir -p dist/${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/libduper_uniffi.dylib dist/${{ matrix.target }}/
+      - name: Copy dynamic library to dist (Windows)
+        if: matrix.os == 'windows'
+        shell: bash
+        run: |
+          mkdir -p dist/${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/duper_uniffi.dll dist/${{ matrix.target }}/
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist
+
+  dotnet:
+    name: Release .NET package
+    runs-on: ubuntu-24.04
+    environment: nuget
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: true
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-x86_64-unknown-linux-gnu
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-aarch64-unknown-linux-gnu
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-x86_64-unknown-linux-musl
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-aarch64-unknown-linux-musl
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-x86_64-pc-windows-msvc
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-aarch64-pc-windows-msvc
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-x86_64-apple-darwin
+          path: dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: dist-aarch64-apple-darwin
+          path: dist
+      - run: |
+          ls -al ./dist
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d # v5.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Build project
+        working-directory: duper_uniffi/dotnet
+        run: |
+          dotnet build
+          dotnet pack
+      - name: Publish to NuGet
+        working-directory: duper_uniffi/dotnet
+        run: |
+          dotnet nuget push bin/Release/*.nupkg --api-key ${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json

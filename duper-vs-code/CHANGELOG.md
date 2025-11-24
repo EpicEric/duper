@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Support Duper codeblocks in Markdown.
+
+### Changed
+
+- Update `tree-sitter-duper` to 0.1.1.
+
 ## 0.5.0 (2025-11-22)
 
 ### Added

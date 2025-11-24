@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.4 (2025-11-24)
+
+### Changed
+
+- Update to conform to specification 0.4.1.
+- Support more platforms (macOS, musl Linux) and ARM64.
+
 ## 0.0.3 (2025-11-18)
 
 ### Added

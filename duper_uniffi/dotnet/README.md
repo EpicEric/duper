@@ -8,7 +8,7 @@
 
 ## C# example
 
-```c#
+```csharp
 using System.Net;
 using Duper;
 
