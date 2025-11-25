@@ -120,14 +120,10 @@ def dump(
 @overload
 def loads(
     s: str, *, parse_any: Literal[False] = False
-) -> BaseModel | list[DuperType] | tuple[DuperType, ...]: ...
+) -> BaseModel | dict[str, DuperType] | list[DuperType] | tuple[DuperType, ...]: ...
 @overload
-def loads(
-    s: str, *, parse_any: Literal[True]
-) -> BaseModel | list[DuperType] | tuple[DuperType, ...] | DuperType: ...
-def loads(
-    s: str, *, parse_any: bool = False
-) -> BaseModel | list[DuperType] | tuple[DuperType, ...] | DuperType:
+def loads(s: str, *, parse_any: Literal[True]) -> BaseModel | DuperType: ...
+def loads(s: str, *, parse_any: bool = False) -> BaseModel | DuperType:
     """Deserialize ``s`` (a ``str`` instance containing a Duper object or
     array) to a Pydantic model.
 
@@ -138,14 +134,10 @@ def loads(
 @overload
 def load(
     fp: TextIOBase, *, parse_any: Literal[False] = False
-) -> BaseModel | list[DuperType] | tuple[DuperType, ...]: ...
+) -> BaseModel | dict[str, DuperType] | list[DuperType] | tuple[DuperType, ...]: ...
 @overload
-def load(
-    fp: TextIOBase, *, parse_any: Literal[True]
-) -> BaseModel | list[DuperType] | tuple[DuperType, ...] | DuperType: ...
-def load(
-    fp: TextIOBase, *, parse_any: bool = False
-) -> BaseModel | list[DuperType] | tuple[DuperType, ...] | DuperType:
+def load(fp: TextIOBase, *, parse_any: Literal[True]) -> BaseModel | DuperType: ...
+def load(fp: TextIOBase, *, parse_any: bool = False) -> BaseModel | DuperType:
     """Deserialize ``fp`` (a ``.read()``-supporting file-like object
     containing a Duper object or array) to a Pydantic model.
 

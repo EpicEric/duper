@@ -961,12 +961,46 @@ fn serialize_pydantic_model<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValue<
                 ))
             })
             .collect();
-        Ok(DuperValue {
-            identifier: serialize_pyclass_identifier(&obj)?,
-            inner: DuperInner::Object(
-                DuperObject::try_from(fields?).expect("no duplicate keys in Pydantic model"),
-            ),
-        })
+        if obj.hasattr("model_config")?
+            && let Ok(attr) = obj.getattr("model_config")
+            && let Ok(model_config) = attr.cast::<PyDict>()
+            && model_config.contains("title")?
+        {
+            if let Some(title) = model_config.get_item("title")?
+                && let Ok(Some(title)) = title.extract::<Option<&str>>()
+            {
+                Ok(DuperValue {
+                    identifier: Some(
+                        DuperIdentifier::try_from_lossy(Cow::Owned(title.to_string())).map_err(
+                            |error| {
+                                PyErr::new::<PyValueError, String>(format!(
+                                    "Invalid identifier: {title} ({error})"
+                                ))
+                            },
+                        )?,
+                    ),
+                    inner: DuperInner::Object(
+                        DuperObject::try_from(fields?)
+                            .expect("no duplicate keys in Pydantic model"),
+                    ),
+                })
+            } else {
+                Ok(DuperValue {
+                    identifier: None,
+                    inner: DuperInner::Object(
+                        DuperObject::try_from(fields?)
+                            .expect("no duplicate keys in Pydantic model"),
+                    ),
+                })
+            }
+        } else {
+            Ok(DuperValue {
+                identifier: serialize_pyclass_identifier(&obj)?,
+                inner: DuperInner::Object(
+                    DuperObject::try_from(fields?).expect("no duplicate keys in Pydantic model"),
+                ),
+            })
+        }
     } else {
         Err(PyErr::new::<PyValueError, String>(format!(
             "unsupported type: {}",

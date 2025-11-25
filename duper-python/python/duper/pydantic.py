@@ -132,7 +132,9 @@ class BaseModel(PydanticBaseModel):
             if isinstance(loaded, tuple):
                 raise ValidationError("cannot validate Duper tuple")
             return cls.model_validate(
-                loaded.model_dump(mode="python"),
+                loaded
+                if isinstance(loaded, dict)
+                else loaded.model_dump(mode="python"),
                 strict=strict,
                 extra=extra,
                 from_attributes=from_attributes,

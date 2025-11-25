@@ -30,6 +30,15 @@ APIResponse({
 
 
 def test_basic():
+    string = r"""{hello: Object("world!")}"""
+    obj = duper.loads(string)
+    serialized = duper.dumps(obj)
+    print(obj.model_config)
+    assert serialized == string
+    assert serialized == obj.model_dump(mode="duper")
+
+
+def test_complete():
     obj = duper.loads(DUPER_DATA)
     serialized = duper.dumps(obj)
     assert (
