@@ -508,7 +508,7 @@ Arrays can span multiple lines. A trailing comma is permitted after the last val
 
 ## Tuples
 
-Tuples are similar to arrays, although parsers may choose to handle them differently. They are surrounded by parenthesis `(` and `)`.
+Tuples are similar to arrays, but are surrounded by parenthesis `(` and `)` instead.
 
 ```duper
 {
@@ -518,7 +518,7 @@ Tuples are similar to arrays, although parsers may choose to handle them differe
   another_single_element: (1,),
   tuple_of_arrays: ([true, 1.0], ["x", "y", "z"]),
   array_of_tuples: [(1, null), (3, 4.0, 5)],
-  nested: (((), ("hi")))
+  nested: (((), ("hi"))),
   multiline_tuple: (
     "Vec",
     "Cow",
@@ -532,6 +532,8 @@ Tuples are similar to arrays, although parsers may choose to handle them differe
 ```
 
 Any parenthesized expression must be interpreted as a tuple by parsers.
+
+Parsers may choose to handle them differently from arrays. For example, in most programming languages, tuples might be treated as fixed-size values, while  arrays equivalents are considered growable/shrinkable elements. On the other hand, it might make sense to index into an array freely, while tuples may get treated as a unit.
 
 ## Identifiers
 

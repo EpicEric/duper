@@ -1,0 +1,22 @@
+[package]
+name = "duperq"
+description = "LSP implementation for Duper."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+repository = "https://github.com/EpicEric/duper"
+homepage = "https://duper.dev.br"
+readme = "README.md"
+
+[dependencies]
+chumsky = "0.11.2"
+clap = { version = "4.5.53", features = ["derive"] }
+duper = { version = "0.4.2", path = "../duper" }
+owo-colors = "4.2.3"
+regex = "1.12.2"
+temporal_rs = "0.1.2"
+tinyvec = { version = "1.10.0", features = ["alloc"] }
+tracing = "0.1.41"
+tracing-subscriber = "0.3.20"

@@ -1,0 +1,13 @@
+<p align="center">
+    <img src="https://duper.dev.br/logos/duper-400.png" alt="The Duper logo, with a confident spectacled mole wearing a flailing blue cape." /> <br>
+</p>
+<h1 align="center">duperq</h1>
+
+<p align="center">
+    <a href="https://crates.io/crates/duperq"><img alt="Crates.io version" src="https://img.shields.io/crates/v/duperq?style=flat&logo=rust&logoColor=white&label=duperq"></a>
+    <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
+</p>
+
+A high-performance Duper filter and processor.
+
+[Check out the official website for Duper.](https://duper.dev.br)

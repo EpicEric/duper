@@ -11,7 +11,7 @@ members = [
   "duper_website",
   "serde_duper",
   "serde_duper_macros",
-  "tree-sitter-duper",
+  "tree-sitter-duper", "duperq",
 ]
 
 [profile.release]
