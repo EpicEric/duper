@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- Don't include "Object" as every object's identifier.
+
 ### Changed
 
 - Bump `duper` to 0.4.2.

@@ -57,9 +57,7 @@ TextMateGrammar({
           begin: Regex("'"),
           end: Regex("'"),
           patterns: [
-            {
-              match: Regex("."),
-            },
+            {match: Regex(".")},
           ],
         },
       ],
