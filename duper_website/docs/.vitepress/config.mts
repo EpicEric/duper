@@ -5,10 +5,14 @@ import { globalConst } from "vite-plugin-global-const";
 import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
 import type { DefaultTheme, UserConfig } from "vitepress";
-import ebnfGrammar from "./source.ebnf";
 
 const DUPER_GRAMMAR = parse(
   readFileSync(resolve(__dirname, "../../duper.tmLanguage.duper"), "utf-8"),
+  true,
+);
+
+const EBNF_GRAMMAR = parse(
+  readFileSync(resolve(__dirname, "../../ebnf.tmLanguage.duper"), "utf-8"),
   true,
 );
 
@@ -28,7 +32,7 @@ export default async () => {
     ],
 
     markdown: {
-      languages: [DUPER_GRAMMAR, ebnfGrammar],
+      languages: [DUPER_GRAMMAR, EBNF_GRAMMAR],
     },
 
     themeConfig: {

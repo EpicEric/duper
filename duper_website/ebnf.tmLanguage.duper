@@ -1,62 +1,74 @@
-// https://github.com/mfederczuk/w3c-ebnf-vscode
-// Licensed under MPL-2.0 AND Apache-2.0
-
-const ebnfGrammar = {
-  $schema:
-    "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+TextMateGrammar({
+  "$schema": JsonSchema("https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json"),
   name: "W3C EBNF",
   scopeName: "source.w3c-ebnf",
-  aliases: ["ebnf"],
+  aliases: [
+    "ebnf",
+  ],
   patterns: [
-    { include: "#comments" },
-    { include: "#rule" },
-    { include: "#non-whitespace-illegal" },
+    {
+      include: "#comments",
+    },
+    {
+      include: "#rule",
+    },
+    {
+      include: "#non-whitespace-illegal",
+    },
   ],
   repository: {
     comments: {
       patterns: [
         {
           name: "comment.line.double-slash.w3c-ebnf",
-          begin: "//",
+          begin: Regex(r"//"),
           end: "$",
         },
         {
           name: "comment.block.w3c-ebnf",
-          begin: "/\\*",
-          end: "\\*/",
+          begin: Regex(r"/\*"),
+          end: Regex(r"\*/"),
         },
       ],
     },
     grammar: {
       name: "variable.language.w3c-ebnf",
-      match: "\\b(grammar|document)\\b",
+      match: Regex(r"\b(grammar|document)\b"),
     },
     rule: {
       name: "meta.rule.w3c-ebnf",
-      begin: "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*(::=)\\s*",
-      end: "(;)|(?=^\\s*[a-zA-Z_][a-zA-Z0-9_]*\\s*::=)",
+      begin: Regex(r"^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(::=)\s*"),
+      end: Regex(r"(;)|(?=^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*::=)"),
       beginCaptures: {
         "1": {
           patterns: [
             {
               name: "invalid.illegal.w3c-ebnf",
-              match: "\\bEOF\\b",
+              match: Regex(r"\bEOF\b"),
             },
             {
               include: "#grammar",
             },
             {
               name: "variable.other.w3c-ebnf",
-              match: ".*",
+              match: Regex(".*"),
             },
           ],
         },
-        "2": { name: "keyword.operator.new.w3c-ebnf" },
+        "2": {
+          name: "keyword.operator.new.w3c-ebnf",
+        },
       },
       endCaptures: {
-        "1": { name: "punctuation.rule-terminator.w3c-ebnf" },
+        "1": {
+          name: "punctuation.rule-terminator.w3c-ebnf",
+        },
       },
-      patterns: [{ include: "#expression" }],
+      patterns: [
+        {
+          include: "#expression",
+        },
+      ],
     },
     expression: {
       patterns: [
@@ -65,33 +77,39 @@ const ebnfGrammar = {
         },
         {
           name: "string.quoted.double.w3c-ebnf",
-          begin: "[\"']",
-          end: "\\0",
+          begin: Regex("[\"']"),
+          end: Regex(r"\0"),
         },
         {
           name: "constant.character.escape.w3c-ebnf",
-          match: "#x[0-9a-fA-F]+\\b",
+          match: Regex(r"#x[0-9a-fA-F]+\b"),
         },
         {
           name: "invalid.illegal.w3c-ebnf",
-          match: "\\[\\^?\\]",
+          match: Regex(r"\[\^?\]"),
         },
         {
           name: "keyword.other.w3c-ebnf",
-          match: "\\[\\s*([vV][cC]|[wW][fF][cC])\\s*:[^\\]]*\\]",
+          match: Regex(r"\[\s*([vV][cC]|[wW][fF][cC])\s*:[^\]]*\]"),
         },
         {
           name: "meta.character-class.w3c-ebnf",
-          match: "(\\[\\^?)(-{2,})(\\])",
+          match: Regex(r"(\[\^?)(-{2,})(\])"),
           captures: {
-            "1": { name: "keyword.other.w3c-ebnf" },
-            "2": { name: "invalid.illegal.w3c-ebnf" },
-            "3": { name: "keyword.other.w3c-ebnf" },
+            "1": {
+              name: "keyword.other.w3c-ebnf",
+            },
+            "2": {
+              name: "invalid.illegal.w3c-ebnf",
+            },
+            "3": {
+              name: "keyword.other.w3c-ebnf",
+            },
           },
         },
         {
           name: "meta.character-class.w3c-ebnf",
-          match: "(\\[\\^?)(#x[0-9a-fA-F]+[^\\]]*)(\\])",
+          match: Regex(r"(\[\^?)(#x[0-9a-fA-F]+[^\]]*)(\])"),
           captures: {
             "1": {
               name: "keyword.other.w3c-ebnf",
@@ -100,20 +118,26 @@ const ebnfGrammar = {
               patterns: [
                 {
                   name: "meta.character-class.range.w3c-ebnf",
-                  match: "(#x[0-9a-fA-F]+)(-)(#x[0-9a-fA-F]+)",
+                  match: Regex("(#x[0-9a-fA-F]+)(-)(#x[0-9a-fA-F]+)"),
                   captures: {
-                    "1": { name: "constant.character.escape.w3c-ebnf" },
-                    "2": { name: "keyword.other.w3c-ebnf" },
-                    "3": { name: "constant.character.escape.w3c-ebnf" },
+                    "1": {
+                      name: "constant.character.escape.w3c-ebnf",
+                    },
+                    "2": {
+                      name: "keyword.other.w3c-ebnf",
+                    },
+                    "3": {
+                      name: "constant.character.escape.w3c-ebnf",
+                    },
                   },
                 },
                 {
                   name: "constant.character.escape.w3c-ebnf",
-                  match: "#x[0-9a-fA-F]+",
+                  match: Regex("#x[0-9a-fA-F]+"),
                 },
                 {
                   name: "invalid.illegal.w3c-ebnf",
-                  match: ".",
+                  match: Regex("."),
                 },
               ],
             },
@@ -124,7 +148,7 @@ const ebnfGrammar = {
         },
         {
           name: "meta.character-class.w3c-ebnf",
-          match: "(\\[\\^?)([^\\]]+)(\\])",
+          match: Regex(r"(\[\^?)([^\]]+)(\])"),
           captures: {
             "1": {
               name: "keyword.other.w3c-ebnf",
@@ -133,20 +157,26 @@ const ebnfGrammar = {
               patterns: [
                 {
                   name: "meta.character-class.range.w3c-ebnf",
-                  match: "(.)(-)(.)",
+                  match: Regex("(.)(-)(.)"),
                   captures: {
-                    "1": { name: "string.unquoted.w3c-ebnf" },
-                    "2": { name: "keyword.other.w3c-ebnf" },
-                    "3": { name: "string.unquoted.w3c-ebnf" },
+                    "1": {
+                      name: "string.unquoted.w3c-ebnf",
+                    },
+                    "2": {
+                      name: "keyword.other.w3c-ebnf",
+                    },
+                    "3": {
+                      name: "string.unquoted.w3c-ebnf",
+                    },
                   },
                 },
                 {
                   name: "invalid.illegal.w3c-ebnf",
-                  match: "#x[0-9a-fA-F]+",
+                  match: Regex("#x[0-9a-fA-F]+"),
                 },
                 {
                   name: "string.unquoted.w3c-ebnf",
-                  match: ".",
+                  match: Regex("."),
                 },
               ],
             },
@@ -157,30 +187,38 @@ const ebnfGrammar = {
         },
         {
           name: "meta.parens.w3c-ebnf",
-          begin: "\\(",
-          end: "\\)",
+          begin: Regex(r"\("),
+          end: Regex(r"\)"),
           beginCaptures: {
-            "0": { name: "punctuation.parens.open.w3c-ebnf" },
+            "0": {
+              name: "punctuation.parens.open.w3c-ebnf",
+            },
           },
           endCaptures: {
-            "0": { name: "punctuation.parens.closed.w3c-ebnf" },
+            "0": {
+              name: "punctuation.parens.closed.w3c-ebnf",
+            },
           },
-          patterns: [{ include: "#expression" }],
+          patterns: [
+            {
+              include: "#expression",
+            },
+          ],
         },
         {
           name: "constant.language.w3e-ebnf",
-          match: "\\bEOF\\b",
+          match: Regex(r"\bEOF\b"),
         },
         {
           include: "#grammar",
         },
         {
           name: "variable.other.w3c-ebnf",
-          match: "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b",
+          match: Regex(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b"),
         },
         {
           name: "keyword.operator.w3c-ebnf",
-          match: "[?|+*-]",
+          match: Regex("[?|+*-]"),
         },
         {
           include: "#non-whitespace-illegal",
@@ -191,11 +229,9 @@ const ebnfGrammar = {
       patterns: [
         {
           name: "invalid.illegal.w3c-ebnf",
-          match: "\\S",
+          match: Regex(r"\S"),
         },
       ],
     },
   },
-};
-
-export default ebnfGrammar;
+})

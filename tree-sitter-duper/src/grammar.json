@@ -259,6 +259,10 @@
       "type": "CHOICE",
       "members": [
         {
+          "type": "STRING",
+          "value": "\"\""
+        },
+        {
           "type": "SYMBOL",
           "name": "quoted_string"
         },
@@ -479,10 +483,6 @@
         }
       ]
     },
-    "quoted_content": {
-      "type": "PATTERN",
-      "value": "(\\\\([0btnfr\"\\\\]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})|[^\"\\\\])*"
-    },
     "base64_content": {
       "type": "PATTERN",
       "value": "[a-zA-Z0-9+/ \\t\\r\\n]*(=[ \\t\\r\\n]*){0,2}[ \\t\\r\\n]*"
@@ -518,7 +518,7 @@
           },
           {
             "type": "PATTERN",
-            "value": ".*"
+            "value": "[^\\r\\n]*"
           }
         ]
       }
@@ -572,6 +572,10 @@
     {
       "type": "SYMBOL",
       "name": "raw_end"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "quoted_content"
     }
   ],
   "inline": [],

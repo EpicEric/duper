@@ -334,7 +334,7 @@
     "fields": {},
     "children": {
       "multiple": false,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "quoted_string",
@@ -379,6 +379,10 @@
   },
   {
     "type": "\"",
+    "named": false
+  },
+  {
+    "type": "\"\"",
     "named": false
   },
   {

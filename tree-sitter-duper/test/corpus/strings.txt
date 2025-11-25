@@ -1,0 +1,12 @@
+==================
+Two slashes in string
+==================
+
+"//"
+
+---
+
+(duper_value
+  (string
+    (quoted_string
+      (quoted_content))))

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- Fix key formatting.
+
 ### Changed
 
 - Implement changes from specification 0.4.1.

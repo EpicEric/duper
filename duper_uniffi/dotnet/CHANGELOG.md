@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Bump `duper` to 0.4.2.
+
 ## 0.0.4 (2025-11-24)
 
 ### Changed

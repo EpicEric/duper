@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- Improve handling of slashes in quoted strings/bytes.
+
 ### Changed
 
 - Implement changes from specification 0.4.1.
