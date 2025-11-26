@@ -3,7 +3,7 @@
     "dev": "vite"
   },
   "dependencies": {
-    "@duper-js/wasm": "file:../.."
+    "@duper-js/wasm": "^0.4.1"
   },
   "devDependencies": {
     "vite": "^7.1.12",
