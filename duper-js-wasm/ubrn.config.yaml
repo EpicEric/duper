@@ -4,6 +4,7 @@ rust:
 
 web:
   manifestPath: rust/Cargo.toml
+  manifestPatchFile: Cargo.patch.toml
   wasmCrateName: duper-js-wasm
   workspace: true
   target: bundler
