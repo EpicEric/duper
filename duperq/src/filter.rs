@@ -1,37 +1,32 @@
-use std::{borrow::Cow, cmp::Ordering, str::FromStr};
+use std::{cmp::Ordering, fmt::Display, str::FromStr};
 
 use duper::{DuperInner, DuperValue};
 use temporal_rs::{
     Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth,
-    ZonedDateTime,
+    TemporalError, ZonedDateTime,
     options::{Disambiguation, OffsetDisambiguation},
 };
-use tinyvec::TinyVec;
 
-pub(crate) trait Filter {
-    fn apply<'v>(&self, value: &'v DuperValue<'_>) -> bool;
-}
+use crate::accessor::DuperAccessor;
 
-impl<'filter> Default for &'filter dyn Filter {
-    fn default() -> Self {
-        &FalseFilter
-    }
+pub(crate) trait DuperFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'_>) -> bool;
 }
 
 // Branchless filters
 
 pub(crate) struct FalseFilter;
 
-impl Filter for FalseFilter {
-    fn apply<'v>(&self, _: &'v DuperValue<'v>) -> bool {
+impl DuperFilter for FalseFilter {
+    fn filter<'v>(&self, _: &'v DuperValue<'v>) -> bool {
         false
     }
 }
 
 pub(crate) struct TrueFilter;
 
-impl Filter for TrueFilter {
-    fn apply<'v>(&self, _: &'v DuperValue<'v>) -> bool {
+impl DuperFilter for TrueFilter {
+    fn filter<'v>(&self, _: &'v DuperValue<'v>) -> bool {
         true
     }
 }
@@ -39,118 +34,104 @@ impl Filter for TrueFilter {
 // Container filters
 
 #[derive(Default)]
-pub(crate) struct AndFilter<'filter>(TinyVec<[&'filter dyn Filter; 4]>);
+pub(crate) struct AndFilter(pub(crate) Vec<Box<dyn DuperFilter>>);
 
-impl<'filter> Filter for AndFilter<'filter> {
-    fn apply<'v>(&self, value: &'v DuperValue<'v>) -> bool {
-        self.0.iter().all(|inner| inner.apply(value))
+impl DuperFilter for AndFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+        self.0.iter().all(|inner| inner.filter(value))
     }
 }
 
-impl<'filter> FromIterator<&'filter dyn Filter> for AndFilter<'filter> {
-    fn from_iter<T: IntoIterator<Item = &'filter dyn Filter>>(iter: T) -> Self {
+impl FromIterator<Box<dyn DuperFilter>> for AndFilter {
+    fn from_iter<T: IntoIterator<Item = Box<dyn DuperFilter>>>(iter: T) -> Self {
         Self(iter.into_iter().collect())
     }
 }
 
-impl<'a> chumsky::container::Container<&'a dyn Filter> for AndFilter<'a> {
-    fn push(&mut self, item: &'a dyn Filter) {
+impl chumsky::container::Container<Box<dyn DuperFilter>> for AndFilter {
+    fn push(&mut self, item: Box<dyn DuperFilter>) {
         self.0.push(item);
     }
 }
 
 #[derive(Default)]
-pub(crate) struct OrFilter<'filter>(TinyVec<[&'filter dyn Filter; 4]>);
+pub(crate) struct OrFilter(pub(crate) Vec<Box<dyn DuperFilter>>);
 
-impl<'filter> Filter for OrFilter<'filter> {
-    fn apply<'v>(&self, value: &'v DuperValue<'v>) -> bool {
-        self.0.iter().any(|inner| inner.apply(value))
+impl DuperFilter for OrFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+        self.0.iter().any(|inner| inner.filter(value))
     }
 }
 
-impl<'filter> FromIterator<&'filter dyn Filter> for OrFilter<'filter> {
-    fn from_iter<T: IntoIterator<Item = &'filter dyn Filter>>(iter: T) -> Self {
+impl FromIterator<Box<dyn DuperFilter>> for OrFilter {
+    fn from_iter<T: IntoIterator<Item = Box<dyn DuperFilter>>>(iter: T) -> Self {
         Self(iter.into_iter().collect())
     }
 }
 
-impl<'a> chumsky::container::Container<&'a dyn Filter> for OrFilter<'a> {
-    fn push(&mut self, item: &'a dyn Filter) {
+impl<'a> chumsky::container::Container<Box<dyn DuperFilter>> for OrFilter {
+    fn push(&mut self, item: Box<dyn DuperFilter>) {
         self.0.push(item);
     }
 }
 
-pub(crate) struct NotFilter<'filter>(&'filter dyn Filter);
+pub(crate) struct NotFilter(pub(crate) Box<dyn DuperFilter>);
 
-impl<'filter> Filter for NotFilter<'filter> {
-    fn apply<'v>(&self, value: &'v DuperValue<'v>) -> bool {
-        !self.0.apply(value)
+impl DuperFilter for NotFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+        !self.0.filter(value)
     }
 }
 
-// Access filters
-
-pub(crate) struct FieldAccessFilter<'filter>(Cow<'filter, str>, &'filter dyn Filter);
-
-impl<'filter> Filter for FieldAccessFilter<'filter> {
-    fn apply<'v>(&self, value: &'v DuperValue<'_>) -> bool {
-        if let DuperInner::Object(object) = &value.inner {
-            object
-                .iter()
-                .find(|(key, _)| key.as_ref() == self.0)
-                .is_some_and(|(_, value)| self.1.apply(value))
-        } else {
-            false
-        }
-    }
+pub(crate) struct AccessorFilter {
+    pub(crate) filter: Box<dyn DuperFilter>,
+    pub(crate) accessor: Box<dyn DuperAccessor>,
 }
 
-pub(crate) struct IndexAccessFilter<'filter>(usize, &'filter dyn Filter);
-
-impl<'filter> Filter for IndexAccessFilter<'filter> {
-    fn apply<'v>(&self, value: &'v DuperValue<'_>) -> bool {
-        if let DuperInner::Array(array) = &value.inner {
-            array.get(self.0).is_some_and(|value| self.1.apply(value))
-        } else {
-            false
-        }
-    }
-}
-
-pub(crate) struct ReverseIndexAccessFilter<'filter>(usize, &'filter dyn Filter);
-
-impl<'filter> Filter for ReverseIndexAccessFilter<'filter> {
-    fn apply<'v>(&self, value: &'v DuperValue<'_>) -> bool {
-        if let DuperInner::Array(array) = &value.inner {
-            array
-                .len()
-                .checked_sub(self.0)
-                .is_some_and(|i| array.get(i).is_some_and(|value| self.1.apply(value)))
-        } else {
-            false
-        }
-    }
-}
-
-pub(crate) struct AnyAccessFilter<'filter>(&'filter dyn Filter);
-
-impl<'filter> Filter for AnyAccessFilter<'filter> {
-    fn apply<'v>(&self, value: &'v DuperValue<'_>) -> bool {
-        if let DuperInner::Array(array) = &value.inner {
-            array.iter().any(|value| self.0.apply(value))
-        } else {
-            false
-        }
+impl DuperFilter for AccessorFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'_>) -> bool {
+        self.accessor
+            .access(value)
+            .any(|inner| self.filter.filter(inner))
     }
 }
 
 // Leaf filters
 
-enum EqValue<'filter> {
+#[derive(Debug, Clone)]
+pub(crate) enum TryFromDuperValueError {
+    InvalidType(&'static str),
+    InvalidSize(i64),
+    UnspecifiedTemporal,
+    TemporalError(TemporalError),
+}
+
+impl Display for TryFromDuperValueError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TryFromDuperValueError::InvalidType(typ) => {
+                f.write_fmt(format_args!("invalid type {typ}"))
+            }
+            TryFromDuperValueError::InvalidSize(size) => {
+                f.write_fmt(format_args!("invalid size {size}"))
+            }
+            TryFromDuperValueError::UnspecifiedTemporal => f.write_str("unspecified Temporal type"),
+            TryFromDuperValueError::TemporalError(inner) => inner.fmt(f),
+        }
+    }
+}
+
+impl From<TemporalError> for TryFromDuperValueError {
+    fn from(value: TemporalError) -> Self {
+        TryFromDuperValueError::TemporalError(value)
+    }
+}
+
+pub(crate) enum EqValue {
     Len(usize),
-    Tuple(TinyVec<[&'filter EqFilter<'filter>; 4]>),
-    String(Cow<'filter, str>),
-    Bytes(Cow<'filter, [u8]>),
+    Tuple(Vec<EqFilter>),
+    String(String),
+    Bytes(Vec<u8>),
     TemporalInstant(Instant),
     TemporalZonedDateTime(ZonedDateTime),
     TemporalPlainDate(PlainDate),
@@ -160,21 +141,74 @@ enum EqValue<'filter> {
     TemporalPlainMonthDay(PlainMonthDay),
     TemporalDuration(Duration),
     Integer(i64),
-    Float(f64),
+    Float(f64, Option<f64>),
     Boolean(bool),
     Null,
 }
 
-impl<'filter> Default for &'filter EqFilter<'filter> {
-    fn default() -> Self {
-        &EqFilter(EqValue::Null)
+impl EqValue {
+    pub(crate) fn try_from_duper(
+        value: DuperValue<'_>,
+        epsilon: Option<f64>,
+    ) -> Result<Self, TryFromDuperValueError> {
+        match value.inner {
+            DuperInner::Object(_) => Err(TryFromDuperValueError::InvalidType("object")),
+            DuperInner::Array(_) => Err(TryFromDuperValueError::InvalidType("array")),
+            DuperInner::Tuple(tuple) => {
+                let vec: Result<Vec<_>, _> = tuple
+                    .into_inner()
+                    .into_iter()
+                    .map(|value| {
+                        EqValue::try_from_duper(value, epsilon).map(|value| EqFilter(value))
+                    })
+                    .collect();
+                Ok(EqValue::Tuple(vec?))
+            }
+            DuperInner::String(string) => Ok(EqValue::String(string.into_inner().into_owned())),
+            DuperInner::Bytes(bytes) => Ok(EqValue::Bytes(bytes.into_inner().into_owned())),
+            DuperInner::Temporal(temporal) => match value.identifier {
+                Some(identifier) if identifier.as_ref() == "Instant" => Ok(
+                    EqValue::TemporalInstant(Instant::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "ZonedDateTime" => {
+                    Ok(EqValue::TemporalZonedDateTime(ZonedDateTime::from_utf8(
+                        temporal.as_ref().as_bytes(),
+                        Disambiguation::Compatible,
+                        OffsetDisambiguation::Prefer,
+                    )?))
+                }
+                Some(identifier) if identifier.as_ref() == "PlainDate" => Ok(
+                    EqValue::TemporalPlainDate(PlainDate::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "PlainTime" => Ok(
+                    EqValue::TemporalPlainTime(PlainTime::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "PlainDateTime" => Ok(
+                    EqValue::TemporalPlainDateTime(PlainDateTime::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "PlainYearMonth" => Ok(
+                    EqValue::TemporalPlainYearMonth(PlainYearMonth::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "PlainMonthDay" => Ok(
+                    EqValue::TemporalPlainMonthDay(PlainMonthDay::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "Duration" => Ok(
+                    EqValue::TemporalDuration(Duration::from_str(temporal.as_ref())?),
+                ),
+                Some(_) | None => Err(TryFromDuperValueError::UnspecifiedTemporal),
+            },
+            DuperInner::Integer(integer) => Ok(EqValue::Integer(integer)),
+            DuperInner::Float(float) => Ok(EqValue::Float(float, epsilon)),
+            DuperInner::Boolean(boolean) => Ok(EqValue::Boolean(boolean)),
+            DuperInner::Null => Ok(EqValue::Null),
+        }
     }
 }
 
-pub(crate) struct EqFilter<'filter>(EqValue<'filter>);
+pub(crate) struct EqFilter(pub(crate) EqValue);
 
-impl<'filter> Filter for EqFilter<'filter> {
-    fn apply<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+impl DuperFilter for EqFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
         match (&self.0, &value.inner) {
             (EqValue::Len(this), DuperInner::Object(that)) => *this == that.len(),
             (EqValue::Len(this), DuperInner::Array(that)) => *this == that.len(),
@@ -184,13 +218,13 @@ impl<'filter> Filter for EqFilter<'filter> {
                 if this.len() == that.len() {
                     this.iter()
                         .zip(that.iter())
-                        .all(|(this, that)| this.apply(that))
+                        .all(|(this, that)| this.filter(that))
                 } else {
                     false
                 }
             }
-            (EqValue::String(this), DuperInner::String(that)) => this.as_ref() == that.as_ref(),
-            (EqValue::Bytes(this), DuperInner::Bytes(that)) => this.as_ref() == that.as_ref(),
+            (EqValue::String(this), DuperInner::String(that)) => this == that.as_ref(),
+            (EqValue::Bytes(this), DuperInner::Bytes(that)) => this == that.as_ref(),
             (EqValue::TemporalInstant(this), DuperInner::Temporal(that)) => {
                 Instant::from_str(that.as_ref()).is_ok_and(|that| *this == that)
             }
@@ -221,7 +255,9 @@ impl<'filter> Filter for EqFilter<'filter> {
                 Duration::from_str(that.as_ref()).is_ok_and(|that| *this == that)
             }
             (EqValue::Integer(this), DuperInner::Integer(that)) => this == that,
-            (EqValue::Float(this), DuperInner::Float(that)) => this == that,
+            (EqValue::Float(this, epsilon), DuperInner::Float(that)) => {
+                (this - that).abs() <= epsilon.unwrap_or(0.0).abs()
+            }
             (EqValue::Boolean(this), DuperInner::Boolean(that)) => this == that,
             (EqValue::Null, DuperInner::Null) => true,
             _ => false,
@@ -229,10 +265,10 @@ impl<'filter> Filter for EqFilter<'filter> {
     }
 }
 
-pub(crate) struct NeFilter<'filter>(EqValue<'filter>);
+pub(crate) struct NeFilter(pub(crate) EqValue);
 
-impl<'filter> Filter for NeFilter<'filter> {
-    fn apply<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+impl DuperFilter for NeFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
         match (&self.0, &value.inner) {
             (EqValue::Len(this), DuperInner::Object(that)) => *this != that.len(),
             (EqValue::Len(this), DuperInner::Array(that)) => *this != that.len(),
@@ -242,13 +278,13 @@ impl<'filter> Filter for NeFilter<'filter> {
                 if this.len() == that.len() {
                     this.iter()
                         .zip(that.iter())
-                        .any(|(this, that)| !this.apply(that))
+                        .any(|(this, that)| !this.filter(that))
                 } else {
                     true
                 }
             }
-            (EqValue::String(this), DuperInner::String(that)) => this.as_ref() != that.as_ref(),
-            (EqValue::Bytes(this), DuperInner::Bytes(that)) => this.as_ref() != that.as_ref(),
+            (EqValue::String(this), DuperInner::String(that)) => this != that.as_ref(),
+            (EqValue::Bytes(this), DuperInner::Bytes(that)) => this != that.as_ref(),
             (EqValue::TemporalInstant(this), DuperInner::Temporal(that)) => {
                 Instant::from_str(that.as_ref())
                     .ok()
@@ -294,7 +330,9 @@ impl<'filter> Filter for NeFilter<'filter> {
                     .is_none_or(|that| *this != that)
             }
             (EqValue::Integer(this), DuperInner::Integer(that)) => this != that,
-            (EqValue::Float(this), DuperInner::Float(that)) => this != that,
+            (EqValue::Float(this, epsilon), DuperInner::Float(that)) => {
+                (this - that).abs() > epsilon.unwrap_or(0.0).abs()
+            }
             (EqValue::Boolean(this), DuperInner::Boolean(that)) => this != that,
             (EqValue::Null, DuperInner::Null) => false,
             _ => true,
@@ -302,7 +340,7 @@ impl<'filter> Filter for NeFilter<'filter> {
     }
 }
 
-enum CmpValue {
+pub(crate) enum CmpValue {
     Len(usize),
     TemporalInstant(Instant),
     TemporalZonedDateTime(ZonedDateTime),
@@ -316,15 +354,64 @@ enum CmpValue {
     Float(f64),
 }
 
+impl TryFrom<DuperValue<'_>> for CmpValue {
+    type Error = TryFromDuperValueError;
+
+    fn try_from(value: DuperValue<'_>) -> Result<Self, Self::Error> {
+        match value.inner {
+            DuperInner::Object(_) => Err(TryFromDuperValueError::InvalidType("object")),
+            DuperInner::Array(_) => Err(TryFromDuperValueError::InvalidType("array")),
+            DuperInner::Tuple(_) => Err(TryFromDuperValueError::InvalidType("tuple")),
+            DuperInner::String(_) => Err(TryFromDuperValueError::InvalidType("string")),
+            DuperInner::Bytes(_) => Err(TryFromDuperValueError::InvalidType("bytes")),
+            DuperInner::Temporal(temporal) => match value.identifier {
+                Some(identifier) if identifier.as_ref() == "Instant" => Ok(
+                    CmpValue::TemporalInstant(Instant::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "ZonedDateTime" => {
+                    Ok(CmpValue::TemporalZonedDateTime(ZonedDateTime::from_utf8(
+                        temporal.as_ref().as_bytes(),
+                        Disambiguation::Compatible,
+                        OffsetDisambiguation::Prefer,
+                    )?))
+                }
+                Some(identifier) if identifier.as_ref() == "PlainDate" => Ok(
+                    CmpValue::TemporalPlainDate(PlainDate::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "PlainTime" => Ok(
+                    CmpValue::TemporalPlainTime(PlainTime::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "PlainDateTime" => Ok(
+                    CmpValue::TemporalPlainDateTime(PlainDateTime::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "PlainYearMonth" => Ok(
+                    CmpValue::TemporalPlainYearMonth(PlainYearMonth::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "PlainMonthDay" => Ok(
+                    CmpValue::TemporalPlainMonthDay(PlainMonthDay::from_str(temporal.as_ref())?),
+                ),
+                Some(identifier) if identifier.as_ref() == "Duration" => Ok(
+                    CmpValue::TemporalDuration(Duration::from_str(temporal.as_ref())?),
+                ),
+                Some(_) | None => Err(TryFromDuperValueError::UnspecifiedTemporal),
+            },
+            DuperInner::Integer(integer) => Ok(CmpValue::Integer(integer)),
+            DuperInner::Float(float) => Ok(CmpValue::Float(float)),
+            DuperInner::Boolean(_) => Err(TryFromDuperValueError::InvalidType("boolean")),
+            DuperInner::Null => Err(TryFromDuperValueError::InvalidType("null")),
+        }
+    }
+}
+
 macro_rules! cmp_filter {
     (
         $filter:ident,
         $ord:pat
     ) => {
-        struct $filter(CmpValue);
+        pub(crate) struct $filter(pub(crate) CmpValue);
 
-        impl Filter for $filter {
-            fn apply<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+        impl DuperFilter for $filter {
+            fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
                 match (&self.0, &value.inner) {
                     (CmpValue::Len(this), DuperInner::Object(that)) => {
                         matches!(this.cmp(&that.len()), $ord)
@@ -388,7 +475,7 @@ cmp_filter!(GtFilter, Ordering::Greater);
 cmp_filter!(LeFilter, Ordering::Less | Ordering::Equal);
 cmp_filter!(LtFilter, Ordering::Less);
 
-enum IsFilter {
+pub(crate) enum IsFilter {
     Object,
     Array,
     Tuple,
@@ -410,8 +497,8 @@ enum IsFilter {
     Null,
 }
 
-impl Filter for IsFilter {
-    fn apply<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+impl DuperFilter for IsFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
         match (&self, &value.inner) {
             (IsFilter::Object, DuperInner::Object(_)) => true,
             (IsFilter::Array, DuperInner::Array(_)) => true,
@@ -458,33 +545,23 @@ impl Filter for IsFilter {
     }
 }
 
-pub(crate) struct RegexFilter(regex::Regex);
+pub(crate) struct RegexFilter(pub(crate) regex::bytes::Regex);
 
-impl Filter for RegexFilter {
-    fn apply<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+impl DuperFilter for RegexFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
         match &value.inner {
-            DuperInner::String(string) => self.0.find(string.as_ref()).is_some(),
-            DuperInner::Temporal(temporal) => self.0.find(temporal.as_ref()).is_some(),
-            _ => false,
-        }
-    }
-}
-
-pub(crate) struct RegexBytesFilter(regex::bytes::Regex);
-
-impl Filter for RegexBytesFilter {
-    fn apply<'v>(&self, value: &'v DuperValue<'v>) -> bool {
-        match &value.inner {
+            DuperInner::String(string) => self.0.find(string.as_ref().as_bytes()).is_some(),
             DuperInner::Bytes(bytes) => self.0.find(bytes.as_ref()).is_some(),
+            DuperInner::Temporal(temporal) => self.0.find(temporal.as_ref().as_bytes()).is_some(),
             _ => false,
         }
     }
 }
 
-pub(crate) struct FieldExistsFilter<'filter>(Cow<'filter, str>);
+pub(crate) struct FieldExistsFilter(pub(crate) String);
 
-impl<'filter> Filter for FieldExistsFilter<'filter> {
-    fn apply<'v>(&self, value: &'v DuperValue<'_>) -> bool {
+impl DuperFilter for FieldExistsFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'_>) -> bool {
         if let DuperInner::Object(object) = &value.inner {
             object
                 .iter()
@@ -492,6 +569,25 @@ impl<'filter> Filter for FieldExistsFilter<'filter> {
                 .is_some()
         } else {
             false
+        }
+    }
+}
+
+pub(crate) struct IsTruthyFilter;
+
+impl DuperFilter for IsTruthyFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'_>) -> bool {
+        match &value.inner {
+            DuperInner::Object(object) => !object.is_empty(),
+            DuperInner::Array(array) => !array.is_empty(),
+            DuperInner::Tuple(tuple) => !tuple.is_empty(),
+            DuperInner::String(string) => !string.is_empty(),
+            DuperInner::Bytes(bytes) => !bytes.is_empty(),
+            DuperInner::Temporal(_) => true,
+            DuperInner::Integer(integer) => *integer != 0,
+            DuperInner::Float(float) => *float != 0.0,
+            DuperInner::Boolean(boolean) => *boolean,
+            DuperInner::Null => false,
         }
     }
 }

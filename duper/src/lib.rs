@@ -38,7 +38,7 @@
 pub mod ast;
 pub mod escape;
 pub mod format;
-mod parser;
+pub mod parser;
 #[cfg(feature = "serde")]
 pub mod serde;
 pub mod validate;

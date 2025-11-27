@@ -67,13 +67,13 @@ impl DuperParser {
 
 // Base rules
 
-pub(crate) fn duper_trunk<'a>()
--> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> {
+pub fn duper_trunk<'a>()
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_trunk().then_ignore(end())
 }
 
-pub(crate) fn duper_value<'a>()
--> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> {
+pub fn duper_value<'a>()
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_value().then_ignore(end())
 }
 
@@ -164,7 +164,8 @@ pub(crate) fn identified_value<'a>()
             boolean().map(DuperInner::Boolean),
             null().map(|_| DuperInner::Null),
         ))
-        .padded_by(whitespace_and_comments());
+        .padded_by(whitespace_and_comments())
+        .boxed();
 
         choice((
             temporal_specified().map(|temporal| {
@@ -229,8 +230,8 @@ pub(crate) fn object<'a>(
         )
 }
 
-pub(crate) fn object_key<'a>()
--> impl Parser<'a, &'a str, DuperKey<'a>, extra::Err<Rich<'a, char>>> + Clone {
+pub fn object_key<'a>() -> impl Parser<'a, &'a str, DuperKey<'a>, extra::Err<Rich<'a, char>>> + Clone
+{
     let plain_key = ascii_alphabetic()
         .to_slice()
         .or(just('_').then(ascii_alphanumeric()).to_slice())
@@ -457,7 +458,7 @@ pub(crate) fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, c
     })
 }
 
-pub(crate) fn integer<'a>() -> impl Parser<'a, &'a str, i64, extra::Err<Rich<'a, char>>> + Clone {
+pub fn integer<'a>() -> impl Parser<'a, &'a str, i64, extra::Err<Rich<'a, char>>> + Clone {
     let decimal_integer = one_of("+-")
         .or_not()
         .then(integer_digits())
