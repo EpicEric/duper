@@ -19,7 +19,6 @@ impl DuperParser {
     ///
     /// A pretty-printed version of the error can be obtained from the `prettify_error` method.
     pub fn parse_duper_trunk<'a>(input: &'a str) -> Result<DuperValue<'a>, Vec<Rich<'a, char>>> {
-        // duper_trunk().parse(input).into_result()
         let value = duper_trunk().parse(input).into_result()?;
         match &value.inner {
             DuperInner::Object(_) | DuperInner::Array(_) | DuperInner::Tuple(_) => Ok(value),
@@ -116,7 +115,7 @@ pub(crate) fn identifier_lossy<'a>()
         .map(|string| DuperIdentifier(Cow::Owned(string)))
 }
 
-pub(crate) fn identifier<'a>()
+pub fn identifier<'a>()
 -> impl Parser<'a, &'a str, DuperIdentifier<'a>, extra::Err<Rich<'a, char>>> + Clone {
     one_of('A'..='Z')
         .labelled("ASCII uppercase letter")

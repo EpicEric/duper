@@ -283,6 +283,46 @@ impl<'a> DuperValue<'a> {
             DuperInner::Null => visitor.visit_null(self.identifier.as_ref()),
         }
     }
+
+    /// Create a clone of this DuperValue with a static lifetime.
+    pub fn static_clone(&self) -> DuperValue<'static> {
+        DuperValue {
+            identifier: self
+                .identifier
+                .as_ref()
+                .map(|identifier| identifier.static_clone()),
+            inner: match &self.inner {
+                DuperInner::Object(object) => DuperInner::Object(DuperObject(
+                    object
+                        .iter()
+                        .map(|(key, value)| {
+                            (
+                                DuperKey(Cow::Owned(key.0.clone().into_owned())),
+                                value.static_clone(),
+                            )
+                        })
+                        .collect(),
+                )),
+                DuperInner::Array(array) => DuperInner::Array(DuperArray(
+                    array.iter().map(|element| element.static_clone()).collect(),
+                )),
+                DuperInner::Tuple(tuple) => DuperInner::Tuple(DuperTuple(
+                    tuple.iter().map(|element| element.static_clone()).collect(),
+                )),
+                DuperInner::String(string) => {
+                    DuperInner::String(DuperString(Cow::Owned(string.0.clone().into_owned())))
+                }
+                DuperInner::Bytes(bytes) => {
+                    DuperInner::Bytes(DuperBytes(Cow::Owned(bytes.0.clone().into_owned())))
+                }
+                DuperInner::Temporal(temporal) => DuperInner::Temporal(temporal.static_clone()),
+                DuperInner::Integer(integer) => DuperInner::Integer(*integer),
+                DuperInner::Float(float) => DuperInner::Float(*float),
+                DuperInner::Boolean(boolean) => DuperInner::Boolean(*boolean),
+                DuperInner::Null => DuperInner::Null,
+            },
+        }
+    }
 }
 
 impl<'a> TryFrom<&'a str> for DuperValue<'a> {

@@ -15,14 +15,6 @@ pub(crate) trait DuperFilter {
 
 // Branchless filters
 
-pub(crate) struct FalseFilter;
-
-impl DuperFilter for FalseFilter {
-    fn filter<'v>(&self, _: &'v DuperValue<'v>) -> bool {
-        false
-    }
-}
-
 pub(crate) struct TrueFilter;
 
 impl DuperFilter for TrueFilter {
@@ -128,6 +120,7 @@ impl From<TemporalError> for TryFromDuperValueError {
 }
 
 pub(crate) enum EqValue {
+    Identifier(Option<String>),
     Len(usize),
     Tuple(Vec<EqFilter>),
     String(String),
@@ -152,8 +145,8 @@ impl EqValue {
         epsilon: Option<f64>,
     ) -> Result<Self, TryFromDuperValueError> {
         match value.inner {
-            DuperInner::Object(_) => Err(TryFromDuperValueError::InvalidType("object")),
-            DuperInner::Array(_) => Err(TryFromDuperValueError::InvalidType("array")),
+            DuperInner::Object(_) => Err(TryFromDuperValueError::InvalidType("Object")),
+            DuperInner::Array(_) => Err(TryFromDuperValueError::InvalidType("Array")),
             DuperInner::Tuple(tuple) => {
                 let vec: Result<Vec<_>, _> = tuple
                     .into_inner()
@@ -210,6 +203,13 @@ pub(crate) struct EqFilter(pub(crate) EqValue);
 impl DuperFilter for EqFilter {
     fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
         match (&self.0, &value.inner) {
+            (EqValue::Identifier(this), _) => match this {
+                Some(this) => value
+                    .identifier
+                    .as_ref()
+                    .is_some_and(|that| this == that.as_ref()),
+                None => value.identifier.is_none(),
+            },
             (EqValue::Len(this), DuperInner::Object(that)) => *this == that.len(),
             (EqValue::Len(this), DuperInner::Array(that)) => *this == that.len(),
             (EqValue::Len(this), DuperInner::String(that)) => *this == that.as_ref().len(),
@@ -270,6 +270,13 @@ pub(crate) struct NeFilter(pub(crate) EqValue);
 impl DuperFilter for NeFilter {
     fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
         match (&self.0, &value.inner) {
+            (EqValue::Identifier(this), _) => match this {
+                Some(this) => value
+                    .identifier
+                    .as_ref()
+                    .is_none_or(|that| this != that.as_ref()),
+                None => value.identifier.is_some(),
+            },
             (EqValue::Len(this), DuperInner::Object(that)) => *this != that.len(),
             (EqValue::Len(this), DuperInner::Array(that)) => *this != that.len(),
             (EqValue::Len(this), DuperInner::String(that)) => *this != that.as_ref().len(),
@@ -348,7 +355,6 @@ pub(crate) enum CmpValue {
     TemporalPlainTime(PlainTime),
     TemporalPlainDateTime(PlainDateTime),
     TemporalPlainYearMonth(PlainYearMonth),
-    TemporalPlainMonthDay(PlainMonthDay),
     TemporalDuration(Duration),
     Integer(i64),
     Float(f64),
@@ -359,11 +365,11 @@ impl TryFrom<DuperValue<'_>> for CmpValue {
 
     fn try_from(value: DuperValue<'_>) -> Result<Self, Self::Error> {
         match value.inner {
-            DuperInner::Object(_) => Err(TryFromDuperValueError::InvalidType("object")),
-            DuperInner::Array(_) => Err(TryFromDuperValueError::InvalidType("array")),
-            DuperInner::Tuple(_) => Err(TryFromDuperValueError::InvalidType("tuple")),
-            DuperInner::String(_) => Err(TryFromDuperValueError::InvalidType("string")),
-            DuperInner::Bytes(_) => Err(TryFromDuperValueError::InvalidType("bytes")),
+            DuperInner::Object(_) => Err(TryFromDuperValueError::InvalidType("Object")),
+            DuperInner::Array(_) => Err(TryFromDuperValueError::InvalidType("Array")),
+            DuperInner::Tuple(_) => Err(TryFromDuperValueError::InvalidType("Tuple")),
+            DuperInner::String(_) => Err(TryFromDuperValueError::InvalidType("String")),
+            DuperInner::Bytes(_) => Err(TryFromDuperValueError::InvalidType("Bytes")),
             DuperInner::Temporal(temporal) => match value.identifier {
                 Some(identifier) if identifier.as_ref() == "Instant" => Ok(
                     CmpValue::TemporalInstant(Instant::from_str(temporal.as_ref())?),
@@ -387,9 +393,9 @@ impl TryFrom<DuperValue<'_>> for CmpValue {
                 Some(identifier) if identifier.as_ref() == "PlainYearMonth" => Ok(
                     CmpValue::TemporalPlainYearMonth(PlainYearMonth::from_str(temporal.as_ref())?),
                 ),
-                Some(identifier) if identifier.as_ref() == "PlainMonthDay" => Ok(
-                    CmpValue::TemporalPlainMonthDay(PlainMonthDay::from_str(temporal.as_ref())?),
-                ),
+                Some(identifier) if identifier.as_ref() == "PlainMonthDay" => {
+                    Err(TryFromDuperValueError::InvalidType("PlainMonthDay"))
+                }
                 Some(identifier) if identifier.as_ref() == "Duration" => Ok(
                     CmpValue::TemporalDuration(Duration::from_str(temporal.as_ref())?),
                 ),
@@ -397,8 +403,8 @@ impl TryFrom<DuperValue<'_>> for CmpValue {
             },
             DuperInner::Integer(integer) => Ok(CmpValue::Integer(integer)),
             DuperInner::Float(float) => Ok(CmpValue::Float(float)),
-            DuperInner::Boolean(_) => Err(TryFromDuperValueError::InvalidType("boolean")),
-            DuperInner::Null => Err(TryFromDuperValueError::InvalidType("null")),
+            DuperInner::Boolean(_) => Err(TryFromDuperValueError::InvalidType("Boolean")),
+            DuperInner::Null => Err(TryFromDuperValueError::InvalidType("Null")),
         }
     }
 }
@@ -558,18 +564,14 @@ impl DuperFilter for RegexFilter {
     }
 }
 
-pub(crate) struct FieldExistsFilter(pub(crate) String);
+pub(crate) struct RegexIdentifierFilter(pub(crate) regex::Regex);
 
-impl DuperFilter for FieldExistsFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'_>) -> bool {
-        if let DuperInner::Object(object) = &value.inner {
-            object
-                .iter()
-                .find(|(key, _)| key.as_ref() == self.0)
-                .is_some()
-        } else {
-            false
-        }
+impl DuperFilter for RegexIdentifierFilter {
+    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+        value
+            .identifier
+            .as_ref()
+            .is_some_and(|identifier| self.0.find(identifier.as_ref()).is_some())
     }
 }
 

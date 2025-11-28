@@ -2,6 +2,8 @@ use std::{iter, ops::Bound};
 
 use duper::{DuperInner, DuperValue};
 
+use crate::filter::DuperFilter;
+
 pub(crate) trait DuperAccessor {
     fn access<'accessor: 'value, 'value>(
         &'accessor self,
@@ -127,6 +129,27 @@ impl DuperAccessor for AnyAccessor {
     ) -> Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value> {
         if let DuperInner::Array(array) = &value.inner {
             Box::new(array.iter())
+        } else {
+            Box::new(iter::empty())
+        }
+    }
+}
+
+pub(crate) struct FilterAccessor(pub(crate) Box<dyn DuperFilter>);
+
+impl DuperAccessor for FilterAccessor {
+    fn access<'accessor: 'value, 'value>(
+        &'accessor self,
+        value: &'value DuperValue<'value>,
+    ) -> Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value> {
+        if let DuperInner::Array(array) = &value.inner {
+            Box::new(array.iter().filter_map(|value| {
+                if self.0.filter(value) {
+                    Some(value)
+                } else {
+                    None
+                }
+            }))
         } else {
             Box::new(iter::empty())
         }
