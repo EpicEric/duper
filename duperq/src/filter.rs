@@ -495,6 +495,7 @@ cmp_filter!(GtFilter, Ordering::Greater);
 cmp_filter!(LeFilter, Ordering::Less | Ordering::Equal);
 cmp_filter!(LtFilter, Ordering::Less);
 
+#[derive(Clone)]
 pub(crate) enum IsFilter {
     Object,
     Array,

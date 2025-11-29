@@ -17,7 +17,7 @@ use crate::{
         RegexIdentifierFilter, TrueFilter, TryFromDuperValueError,
     },
     formatter::{Formatter, FormatterAtom},
-    processor::{FilterProcessor, OutputProcessor, Processor, TakeProcessor},
+    processor::{FilterProcessor, OutputProcessor, Processor, SkipProcessor, TakeProcessor},
 };
 
 pub(crate) type CreateProcessorFn =
@@ -45,6 +45,18 @@ pub fn query<'a>()
                         span,
                         "take parameter must be greater than zero",
                     ))
+                }
+            }),
+        just("skip")
+            .padded()
+            .ignore_then(integer())
+            .try_map(|skip, span| {
+                if skip >= 0 {
+                    Ok(Box::new(move |sender| {
+                        Box::new(SkipProcessor::new(sender, skip as usize)) as Box<dyn Processor>
+                    }) as CreateProcessorFn)
+                } else {
+                    Err(Rich::custom(span, "skip parameter must be positive"))
                 }
             }),
     ))
@@ -301,7 +313,7 @@ fn leaf_filter<'a>(
                 .ignore_then(
                     identifier()
                         .map(|identifier| Some(identifier.to_string()))
-                        .or(just("null").map(|_| None))
+                        .or(just("null").to(None))
                         .padded(),
                 )
                 .map(|value| {
@@ -312,7 +324,7 @@ fn leaf_filter<'a>(
                 .ignore_then(
                     identifier()
                         .map(|identifier| Some(identifier.to_string()))
-                        .or(just("null").map(|_| None))
+                        .or(just("null").to(None))
                         .padded(),
                 )
                 .map(|value| {
@@ -397,25 +409,25 @@ fn leaf_filter<'a>(
             is_op
                 .ignore_then(
                     choice((
-                        just("Object").map(|_| IsFilter::Object),
-                        just("Array").map(|_| IsFilter::Array),
-                        just("Tuple").map(|_| IsFilter::Tuple),
-                        just("String").map(|_| IsFilter::String),
-                        just("Bytes").map(|_| IsFilter::Bytes),
-                        just("Instant").map(|_| IsFilter::TemporalInstant),
-                        just("ZonedDateTime").map(|_| IsFilter::TemporalZonedDateTime),
-                        just("PlainDate").map(|_| IsFilter::TemporalPlainDate),
-                        just("PlainTime").map(|_| IsFilter::TemporalPlainTime),
-                        just("PlainDateTime").map(|_| IsFilter::TemporalPlainDateTime),
-                        just("PlainYearMonth").map(|_| IsFilter::TemporalPlainYearMonth),
-                        just("PlainMonthDay").map(|_| IsFilter::TemporalPlainMonthDay),
-                        just("Duration").map(|_| IsFilter::TemporalDuration),
-                        just("Temporal").map(|_| IsFilter::TemporalUnspecified),
-                        just("Integer").map(|_| IsFilter::Integer),
-                        just("Float").map(|_| IsFilter::Float),
-                        just("Number").map(|_| IsFilter::Number),
-                        just("Boolean").map(|_| IsFilter::Boolean),
-                        just("Null").map(|_| IsFilter::Null),
+                        just("Object").to(IsFilter::Object),
+                        just("Array").to(IsFilter::Array),
+                        just("Tuple").to(IsFilter::Tuple),
+                        just("String").to(IsFilter::String),
+                        just("Bytes").to(IsFilter::Bytes),
+                        just("Instant").to(IsFilter::TemporalInstant),
+                        just("ZonedDateTime").to(IsFilter::TemporalZonedDateTime),
+                        just("PlainDate").to(IsFilter::TemporalPlainDate),
+                        just("PlainTime").to(IsFilter::TemporalPlainTime),
+                        just("PlainDateTime").to(IsFilter::TemporalPlainDateTime),
+                        just("PlainYearMonth").to(IsFilter::TemporalPlainYearMonth),
+                        just("PlainMonthDay").to(IsFilter::TemporalPlainMonthDay),
+                        just("Duration").to(IsFilter::TemporalDuration),
+                        just("Temporal").to(IsFilter::TemporalUnspecified),
+                        just("Integer").to(IsFilter::Integer),
+                        just("Float").to(IsFilter::Float),
+                        just("Number").to(IsFilter::Number),
+                        just("Boolean").to(IsFilter::Boolean),
+                        just("Null").to(IsFilter::Null),
                     ))
                     .padded(),
                 )
@@ -435,15 +447,12 @@ fn fmt<'a>() -> impl Parser<'a, &'a str, OutputProcessor, extra::Err<Rich<'a, ch
     just('$')
         .ignore_then(accessor().padded().delimited_by(just('{'), just('}')))
         .map(|accessor| FormatterAtom::Dynamic(accessor))
-        .or(any()
-            .and_is(just("${").not())
-            .repeated()
-            .at_least(1)
-            .to_slice()
-            .try_map(|slice: &str, span| match unescape_str(slice) {
+        .or(
+            quoted_inner().try_map(|slice: &str, span| match unescape_str(slice) {
                 Ok(unescaped) => Ok(FormatterAtom::Fixed(unescaped.clone().into_owned())),
                 Err(error) => Err(Rich::custom(span, error.to_string())),
-            }))
+            }),
+        )
         .repeated()
         .collect::<Vec<_>>()
         .delimited_by(just('"'), just('"'))
@@ -451,4 +460,37 @@ fn fmt<'a>() -> impl Parser<'a, &'a str, OutputProcessor, extra::Err<Rich<'a, ch
             let mut formatter = Formatter::new(atoms);
             OutputProcessor::new(Box::new(move |value| formatter.format(value)))
         })
+}
+
+fn quoted_inner<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
+    let escaped_characters = just('\\')
+        .then(choice((
+            one_of("\"\\/bfnrt0").to_slice(),
+            just('x').then(hex_digit().repeated().exactly(2)).to_slice(),
+            just('u').then(hex_digit().repeated().exactly(4)).to_slice(),
+            just('U').then(hex_digit().repeated().exactly(8)).to_slice(),
+        )))
+        .to_slice();
+
+    none_of("\"\\$")
+        .and_is(control_character().not())
+        .to_slice()
+        .or(escaped_characters)
+        .or(just('$').then(just('{').not()).to_slice())
+        .repeated()
+        .at_least(1)
+        .to_slice()
+}
+
+fn hex_digit<'a>() -> impl Parser<'a, &'a str, char, extra::Err<Rich<'a, char>>> + Clone {
+    choice((one_of('0'..='9'), one_of('a'..='f'), one_of('A'..='F')))
+        .labelled("a hexadecimal digit")
+}
+fn control_character<'a>() -> impl Parser<'a, &'a str, char, extra::Err<Rich<'a, char>>> + Clone {
+    choice((
+        one_of('\u{0000}'..='\u{0009}'),
+        one_of('\u{000b}'..='\u{001f}'),
+        just('\u{007f}'),
+    ))
+    .labelled("a control character or tab, excluding new line")
 }

@@ -60,6 +60,38 @@ impl Processor for TakeProcessor {
                 self.available = 0;
             } else {
                 self.available = self.available.saturating_sub(1);
+                if self.available == 0 {
+                    self.sender.close();
+                }
+            }
+        }
+    }
+}
+
+pub(crate) struct SkipProcessor {
+    to_skip: usize,
+    sender: channel::Sender<DuperValue<'static>>,
+    is_open: bool,
+}
+
+impl SkipProcessor {
+    pub(crate) fn new(sender: channel::Sender<DuperValue<'static>>, to_skip: usize) -> Self {
+        Self {
+            sender,
+            to_skip,
+            is_open: true,
+        }
+    }
+}
+
+#[async_trait(?Send)]
+impl Processor for SkipProcessor {
+    async fn process(&mut self, value: DuperValue<'static>) {
+        if self.to_skip > 0 {
+            self.to_skip = self.to_skip.saturating_sub(1);
+        } else if self.is_open {
+            if self.sender.send(value).await.is_err() {
+                self.is_open = false;
             }
         }
     }

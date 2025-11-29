@@ -209,7 +209,7 @@ pub fn identified_value<'a>()
     })
 }
 
-pub(crate) fn object<'a>(
+pub fn object<'a>(
     identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
 ) -> impl Parser<'a, &'a str, DuperObject<'a>, extra::Err<Rich<'a, char>>> + Clone {
     object_key()
@@ -244,7 +244,7 @@ pub fn object_key<'a>() -> impl Parser<'a, &'a str, DuperKey<'a>, extra::Err<Ric
         .or(plain_key)
 }
 
-pub(crate) fn array<'a>(
+pub fn array<'a>(
     identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
 ) -> impl Parser<'a, &'a str, DuperArray<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_value
@@ -267,7 +267,7 @@ pub(crate) fn array<'a>(
             .map(|_| DuperArray(vec![])))
 }
 
-pub(crate) fn tuple<'a>(
+pub fn tuple<'a>(
     identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
 ) -> impl Parser<'a, &'a str, DuperTuple<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_value
@@ -290,15 +290,14 @@ pub(crate) fn tuple<'a>(
             .map(|_| DuperTuple(vec![])))
 }
 
-pub(crate) fn quoted_string<'a>()
+pub fn quoted_string<'a>()
 -> impl Parser<'a, &'a str, Cow<'a, str>, extra::Err<Rich<'a, char>>> + Clone {
     quoted_inner()
         .try_map(|str, span| unescape_str(str).map_err(|err| Rich::custom(span, err)))
         .delimited_by(just('"'), just('"'))
 }
 
-pub(crate) fn base64_bytes<'a>()
--> impl Parser<'a, &'a str, Vec<u8>, extra::Err<Rich<'a, char>>> + Clone {
+pub fn base64_bytes<'a>() -> impl Parser<'a, &'a str, Vec<u8>, extra::Err<Rich<'a, char>>> + Clone {
     base64_digit()
         .padded()
         .repeated()
@@ -316,15 +315,14 @@ pub(crate) fn base64_bytes<'a>()
         .delimited_by(just("b64\""), just('"'))
 }
 
-pub(crate) fn quoted_bytes<'a>()
+pub fn quoted_bytes<'a>()
 -> impl Parser<'a, &'a str, Cow<'a, [u8]>, extra::Err<Rich<'a, char>>> + Clone {
     quoted_inner()
         .try_map(|bytes, span| unescape_bytes(bytes).map_err(|err| Rich::custom(span, err)))
         .delimited_by(just("b\""), just('"'))
 }
 
-pub(crate) fn quoted_inner<'a>()
--> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
+pub fn quoted_inner<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
     let escaped_characters = just('\\')
         .then(choice((
             one_of("\"\\/bfnrt0").to_slice(),
@@ -342,8 +340,7 @@ pub(crate) fn quoted_inner<'a>()
         .to_slice()
 }
 
-pub(crate) fn raw_string<'a>()
--> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
+pub fn raw_string<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
     let hashtags = just('#')
         .repeated()
         .count()
@@ -381,8 +378,7 @@ pub(crate) fn raw_string<'a>()
     )
 }
 
-pub(crate) fn raw_bytes<'a>()
--> impl Parser<'a, &'a str, &'a [u8], extra::Err<Rich<'a, char>>> + Clone {
+pub fn raw_bytes<'a>() -> impl Parser<'a, &'a str, &'a [u8], extra::Err<Rich<'a, char>>> + Clone {
     let hashtags = just('#')
         .repeated()
         .to_slice()
@@ -422,7 +418,7 @@ pub(crate) fn raw_bytes<'a>()
     )
 }
 
-pub(crate) fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, char>>> + Clone {
+pub fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, char>>> + Clone {
     let decimal = one_of("+-").or_not().then(integer_digits()).to_slice();
 
     let fractional = just('.').then(
@@ -503,11 +499,11 @@ pub fn integer<'a>() -> impl Parser<'a, &'a str, i64, extra::Err<Rich<'a, char>>
     choice((hex_integer, octal_integer, binary_integer, decimal_integer))
 }
 
-pub(crate) fn boolean<'a>() -> impl Parser<'a, &'a str, bool, extra::Err<Rich<'a, char>>> + Clone {
+pub fn boolean<'a>() -> impl Parser<'a, &'a str, bool, extra::Err<Rich<'a, char>>> + Clone {
     choice((just("true").to(true), just("false").to(false)))
 }
 
-pub(crate) fn null<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+pub fn null<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     just("null").to(())
 }
 

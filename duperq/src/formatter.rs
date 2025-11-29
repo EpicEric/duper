@@ -25,7 +25,13 @@ pub(crate) struct Formatter {
 impl Formatter {
     pub(crate) fn new(atoms: Vec<FormatterAtom>) -> Self {
         Self {
-            atoms,
+            atoms: atoms
+                .into_iter()
+                .filter_map(|atom| match &atom {
+                    FormatterAtom::Fixed(string) if string.is_empty() => None,
+                    _ => Some(atom),
+                })
+                .collect(),
             visitor: FormatterVisitor { buf: String::new() },
         }
     }

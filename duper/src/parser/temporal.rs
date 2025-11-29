@@ -9,7 +9,7 @@ use crate::{
 
 // Duper Temporal values
 
-pub(crate) fn temporal_specified<'a>()
+pub fn temporal_specified<'a>()
 -> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
     choice((
         temporal_instant(),
@@ -24,7 +24,7 @@ pub(crate) fn temporal_specified<'a>()
     .padded_by(whitespace_and_comments())
 }
 
-pub(crate) fn temporal_instant<'a>()
+pub fn temporal_instant<'a>()
 -> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("Instant")
         .padded_by(whitespace_and_comments())
@@ -42,7 +42,7 @@ pub(crate) fn temporal_instant<'a>()
         .map(|instant| DuperTemporal::Instant(DuperTemporalInner(Cow::Borrowed(instant))))
 }
 
-pub(crate) fn temporal_zoned_date_time<'a>()
+pub fn temporal_zoned_date_time<'a>()
 -> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("ZonedDateTime")
         .padded_by(whitespace_and_comments())
@@ -60,7 +60,7 @@ pub(crate) fn temporal_zoned_date_time<'a>()
         .map(|instant| DuperTemporal::ZonedDateTime(DuperTemporalInner(Cow::Borrowed(instant))))
 }
 
-pub(crate) fn temporal_plain_date<'a>()
+pub fn temporal_plain_date<'a>()
 -> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainDate")
         .padded_by(whitespace_and_comments())
@@ -78,7 +78,7 @@ pub(crate) fn temporal_plain_date<'a>()
         .map(|instant| DuperTemporal::PlainDate(DuperTemporalInner(Cow::Borrowed(instant))))
 }
 
-pub(crate) fn temporal_plain_time<'a>()
+pub fn temporal_plain_time<'a>()
 -> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainTime")
         .padded_by(whitespace_and_comments())
@@ -96,7 +96,7 @@ pub(crate) fn temporal_plain_time<'a>()
         .map(|instant| DuperTemporal::PlainTime(DuperTemporalInner(Cow::Borrowed(instant))))
 }
 
-pub(crate) fn temporal_plain_date_time<'a>()
+pub fn temporal_plain_date_time<'a>()
 -> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainDateTime")
         .padded_by(whitespace_and_comments())
@@ -114,7 +114,7 @@ pub(crate) fn temporal_plain_date_time<'a>()
         .map(|instant| DuperTemporal::PlainDateTime(DuperTemporalInner(Cow::Borrowed(instant))))
 }
 
-pub(crate) fn temporal_plain_year_month<'a>()
+pub fn temporal_plain_year_month<'a>()
 -> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainYearMonth")
         .padded_by(whitespace_and_comments())
@@ -132,7 +132,7 @@ pub(crate) fn temporal_plain_year_month<'a>()
         .map(|instant| DuperTemporal::PlainYearMonth(DuperTemporalInner(Cow::Borrowed(instant))))
 }
 
-pub(crate) fn temporal_plain_month_day<'a>()
+pub fn temporal_plain_month_day<'a>()
 -> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainMonthDay")
         .padded_by(whitespace_and_comments())
@@ -150,7 +150,7 @@ pub(crate) fn temporal_plain_month_day<'a>()
         .map(|instant| DuperTemporal::PlainMonthDay(DuperTemporalInner(Cow::Borrowed(instant))))
 }
 
-pub(crate) fn temporal_duration<'a>()
+pub fn temporal_duration<'a>()
 -> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("Duration")
         .padded_by(whitespace_and_comments())
@@ -168,7 +168,7 @@ pub(crate) fn temporal_duration<'a>()
         .map(|duration| DuperTemporal::Duration(DuperTemporalInner(Cow::Borrowed(duration))))
 }
 
-pub(crate) fn temporal_unspecified<'a>()
+pub fn temporal_unspecified<'a>()
 -> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
     unspecified()
         .to_slice()
@@ -181,7 +181,7 @@ pub(crate) fn temporal_unspecified<'a>()
 
 // Inner values
 
-pub(crate) fn zoned_date_time<'a>()
+pub fn zoned_date_time<'a>()
 -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     date_time()
         .then(time_offset())
@@ -191,7 +191,7 @@ pub(crate) fn zoned_date_time<'a>()
         .ignored()
 }
 
-pub(crate) fn non_z_zoned_date_time<'a>()
+pub fn non_z_zoned_date_time<'a>()
 -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     date_time()
         .then(time_num_offset())
@@ -201,14 +201,14 @@ pub(crate) fn non_z_zoned_date_time<'a>()
         .ignored()
 }
 
-pub(crate) fn instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+pub fn instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         zoned_date_time(),
         date_time().then(time_offset()).padded().ignored(),
     ))
 }
 
-pub(crate) fn non_z_instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
+pub fn non_z_instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
 {
     choice((
         non_z_zoned_date_time(),
@@ -216,21 +216,21 @@ pub(crate) fn non_z_instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Ric
     ))
 }
 
-pub(crate) fn plain_date<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+pub fn plain_date<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         plain_date_time(),
         date().then(suffix_tag().repeated()).padded().ignored(),
     ))
 }
 
-pub(crate) fn plain_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+pub fn plain_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         plain_date_time(),
         time().then(suffix_tag().repeated()).padded().ignored(),
     ))
 }
 
-pub(crate) fn plain_date_time<'a>()
+pub fn plain_date_time<'a>()
 -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         non_z_instant(),
@@ -238,7 +238,7 @@ pub(crate) fn plain_date_time<'a>()
     ))
 }
 
-pub(crate) fn plain_year_month<'a>()
+pub fn plain_year_month<'a>()
 -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         plain_date(),
@@ -249,7 +249,7 @@ pub(crate) fn plain_year_month<'a>()
     ))
 }
 
-pub(crate) fn plain_month_day<'a>()
+pub fn plain_month_day<'a>()
 -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         plain_date(),
@@ -257,7 +257,7 @@ pub(crate) fn plain_month_day<'a>()
     ))
 }
 
-pub(crate) fn duration<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+pub fn duration<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     let fractional = text::int(10).then(just('.').then(text::digits(10).at_most(9)).or_not());
 
     let duration_time = one_of("Tt").then(choice((
@@ -320,7 +320,7 @@ pub(crate) fn duration<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a,
         .ignored()
 }
 
-pub(crate) fn unspecified<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
+pub fn unspecified<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
 {
     choice((
         instant(),
