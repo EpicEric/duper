@@ -1,3 +1,5 @@
+use std::{fmt::Display, path::PathBuf};
+
 use chumsky::Parser as _;
 use clap::Parser;
 use duper::DuperParser;
@@ -23,6 +25,32 @@ struct Cli {
     disable_stderr: bool,
 }
 
+enum FileReadError {
+    Glob(glob::GlobError),
+    Io(std::io::Error),
+}
+
+impl From<glob::GlobError> for FileReadError {
+    fn from(value: glob::GlobError) -> Self {
+        Self::Glob(value)
+    }
+}
+
+impl From<std::io::Error> for FileReadError {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(value)
+    }
+}
+
+impl Display for FileReadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FileReadError::Glob(error) => error.fmt(f),
+            FileReadError::Io(error) => error.fmt(f),
+        }
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -42,7 +70,7 @@ fn main() -> anyhow::Result<()> {
     let mut sink = pipeline_fns
         .into_iter()
         .rfold(output, |mut output, pipeline_fn| {
-            let (sender, receiver) = smol::channel::bounded(1024);
+            let (sender, receiver) = smol::channel::bounded(128);
             tasks.push(executor.spawn(async move {
                 while let Ok(value) = receiver.recv().await {
                     output.process(value).await;
@@ -57,41 +85,90 @@ fn main() -> anyhow::Result<()> {
         None
     };
 
-    tasks.push(executor.spawn(async move {
-        if let Some(glob) = glob {
-            // Read from files
+    if let Some(glob) = glob {
+        let (pathbuf_sender, pathbuf_receiver) =
+            smol::channel::bounded::<Result<PathBuf, FileReadError>>(128);
+        let (file_sender, file_receiver) =
+            smol::channel::bounded::<Result<(PathBuf, String), FileReadError>>(128);
+        // Iterate over glob
+        tasks.push(executor.spawn(async move {
             for entry in glob {
                 match entry {
-                    Ok(path) => match smol::fs::read_to_string(&path).await {
-                        Ok(input) => match DuperParser::parse_duper_trunk(&input) {
-                            Ok(trunk) => sink.process(trunk.static_clone()).await,
-                            Err(errors) => {
-                                if !cli.disable_stderr {
-                                    if let Ok(parse_error) = DuperParser::prettify_error(
-                                        &input,
-                                        &errors,
-                                        Some(path.to_string_lossy().as_ref()),
-                                    ) {
-                                        let _ = stderr.write_all(parse_error.as_bytes()).await;
-                                    }
-                                }
-                            }
-                        },
-                        Err(error) => {
-                            if !cli.disable_stderr {
-                                let _ = stderr.write_all(error.to_string().as_bytes()).await;
-                            }
-                        }
-                    },
-                    Err(error) => {
-                        if !cli.disable_stderr {
-                            let _ = stderr.write_all(error.to_string().as_bytes()).await;
+                    Err(_) if cli.disable_stderr => continue,
+                    Ok(_) | Err(_) => {
+                        if pathbuf_sender
+                            .send(entry.map_err(|error| error.into()))
+                            .await
+                            .is_err()
+                        {
+                            break;
                         }
                     }
                 }
             }
-        } else {
-            // Read from stdin
+        }));
+        // Read files
+        tasks.extend((0..num_cpus::get()).map(|_| {
+            let file_sender = file_sender.clone();
+            let pathbuf_receiver = pathbuf_receiver.clone();
+            executor.spawn(async move {
+                while let Ok(msg) = pathbuf_receiver.recv().await {
+                    match msg {
+                        Ok(pathbuf) => {
+                            let string = smol::fs::read_to_string(&pathbuf).await;
+                            match string {
+                                Err(_) if cli.disable_stderr => continue,
+                                Ok(_) | Err(_) => {
+                                    if file_sender
+                                        .send(
+                                            string
+                                                .map(move |string| (pathbuf, string))
+                                                .map_err(|error| error.into()),
+                                        )
+                                        .await
+                                        .is_err()
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        Err(error) => {
+                            if file_sender.send(Err(error)).await.is_err() {
+                                break;
+                            }
+                        }
+                    }
+                }
+            })
+        }));
+        // Parse and process values
+        tasks.push(executor.spawn(async move {
+            while let Ok(input) = file_receiver.recv().await {
+                match input {
+                    Ok((pathbuf, string)) => match DuperParser::parse_duper_trunk(&string) {
+                        Ok(trunk) => sink.process(trunk.static_clone()).await,
+                        Err(errors) => {
+                            if !cli.disable_stderr {
+                                if let Ok(parse_error) = DuperParser::prettify_error(
+                                    &string,
+                                    &errors,
+                                    Some(pathbuf.to_string_lossy().as_ref()),
+                                ) {
+                                    let _ = stderr.write_all(parse_error.as_bytes()).await;
+                                }
+                            }
+                        }
+                    },
+                    Err(error) => {
+                        let _ = stderr.write_all(error.to_string().as_bytes()).await;
+                    }
+                }
+            }
+        }));
+    } else {
+        // Read from stdin
+        tasks.push(executor.spawn(async move {
             let stdin = BufReader::new(Unblock::new(std::io::stdin()));
             let mut lines = stdin.lines();
             while let Some(Ok(line)) = lines.next().await {
@@ -108,8 +185,8 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
             }
-        }
-    }));
+        }));
+    }
 
     smol::block_on(executor.run(async move { futures::future::join_all(tasks).await }));
 

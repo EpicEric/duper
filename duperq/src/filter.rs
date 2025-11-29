@@ -7,10 +7,10 @@ use temporal_rs::{
     options::{Disambiguation, OffsetDisambiguation},
 };
 
-use crate::accessor::DuperAccessor;
+use crate::{accessor::DuperAccessor, types::DuperType};
 
 pub(crate) trait DuperFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'_>) -> bool;
+    fn filter<'v>(&self, value: &DuperValue<'_>) -> bool;
 }
 
 // Branchless filters
@@ -18,7 +18,7 @@ pub(crate) trait DuperFilter {
 pub(crate) struct TrueFilter;
 
 impl DuperFilter for TrueFilter {
-    fn filter<'v>(&self, _: &'v DuperValue<'v>) -> bool {
+    fn filter<'v>(&self, _: &DuperValue<'v>) -> bool {
         true
     }
 }
@@ -29,7 +29,7 @@ impl DuperFilter for TrueFilter {
 pub(crate) struct AndFilter(pub(crate) Vec<Box<dyn DuperFilter>>);
 
 impl DuperFilter for AndFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+    fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
         self.0.iter().all(|inner| inner.filter(value))
     }
 }
@@ -50,7 +50,7 @@ impl chumsky::container::Container<Box<dyn DuperFilter>> for AndFilter {
 pub(crate) struct OrFilter(pub(crate) Vec<Box<dyn DuperFilter>>);
 
 impl DuperFilter for OrFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+    fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
         self.0.iter().any(|inner| inner.filter(value))
     }
 }
@@ -70,8 +70,22 @@ impl<'a> chumsky::container::Container<Box<dyn DuperFilter>> for OrFilter {
 pub(crate) struct NotFilter(pub(crate) Box<dyn DuperFilter>);
 
 impl DuperFilter for NotFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+    fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
         !self.0.filter(value)
+    }
+}
+
+pub(crate) struct CastFilter {
+    pub(crate) typ: DuperType,
+    pub(crate) filter: Box<dyn DuperFilter>,
+}
+
+impl DuperFilter for CastFilter {
+    fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
+        self.typ
+            .cast(value)
+            .as_ref()
+            .is_some_and(|value| self.filter.filter(value))
     }
 }
 
@@ -81,7 +95,7 @@ pub(crate) struct AccessorFilter {
 }
 
 impl DuperFilter for AccessorFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'_>) -> bool {
+    fn filter<'v>(&self, value: &DuperValue<'_>) -> bool {
         self.accessor
             .access(value)
             .any(|inner| self.filter.filter(inner))
@@ -201,7 +215,7 @@ impl EqValue {
 pub(crate) struct EqFilter(pub(crate) EqValue);
 
 impl DuperFilter for EqFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+    fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
         match (&self.0, &value.inner) {
             (EqValue::Identifier(this), _) => match this {
                 Some(this) => value
@@ -272,7 +286,7 @@ impl DuperFilter for EqFilter {
 pub(crate) struct NeFilter(pub(crate) EqValue);
 
 impl DuperFilter for NeFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+    fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
         match (&self.0, &value.inner) {
             (EqValue::Identifier(this), _) => match this {
                 Some(this) => value
@@ -425,7 +439,7 @@ macro_rules! cmp_filter {
         pub(crate) struct $filter(pub(crate) CmpValue);
 
         impl DuperFilter for $filter {
-            fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+            fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
                 match (&self.0, &value.inner) {
                     (CmpValue::Len(this), DuperInner::Object(that)) => {
                         matches!(that.len().cmp(this), $ord)
@@ -496,40 +510,20 @@ cmp_filter!(LeFilter, Ordering::Less | Ordering::Equal);
 cmp_filter!(LtFilter, Ordering::Less);
 
 #[derive(Clone)]
-pub(crate) enum IsFilter {
-    Object,
-    Array,
-    Tuple,
-    String,
-    Bytes,
-    TemporalInstant,
-    TemporalZonedDateTime,
-    TemporalPlainDate,
-    TemporalPlainTime,
-    TemporalPlainDateTime,
-    TemporalPlainYearMonth,
-    TemporalPlainMonthDay,
-    TemporalDuration,
-    TemporalUnspecified,
-    Integer,
-    Float,
-    Number,
-    Boolean,
-    Null,
-}
+pub(crate) struct IsFilter(pub(crate) DuperType);
 
 impl DuperFilter for IsFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
-        match (&self, &value.inner) {
-            (IsFilter::Object, DuperInner::Object(_)) => true,
-            (IsFilter::Array, DuperInner::Array(_)) => true,
-            (IsFilter::Tuple, DuperInner::Tuple(_)) => true,
-            (IsFilter::String, DuperInner::String(_)) => true,
-            (IsFilter::Bytes, DuperInner::Bytes(_)) => true,
-            (IsFilter::TemporalInstant, DuperInner::Temporal(that)) => {
+    fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
+        match (&self.0, &value.inner) {
+            (DuperType::Object, DuperInner::Object(_)) => true,
+            (DuperType::Array, DuperInner::Array(_)) => true,
+            (DuperType::Tuple, DuperInner::Tuple(_)) => true,
+            (DuperType::String, DuperInner::String(_)) => true,
+            (DuperType::Bytes, DuperInner::Bytes(_)) => true,
+            (DuperType::TemporalInstant, DuperInner::Temporal(that)) => {
                 Instant::from_str(that.as_ref()).is_ok()
             }
-            (IsFilter::TemporalZonedDateTime, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalZonedDateTime, DuperInner::Temporal(that)) => {
                 ZonedDateTime::from_utf8(
                     that.as_ref().as_bytes(),
                     Disambiguation::Compatible,
@@ -537,30 +531,30 @@ impl DuperFilter for IsFilter {
                 )
                 .is_ok()
             }
-            (IsFilter::TemporalPlainDate, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalPlainDate, DuperInner::Temporal(that)) => {
                 PlainDate::from_str(that.as_ref()).is_ok()
             }
-            (IsFilter::TemporalPlainTime, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalPlainTime, DuperInner::Temporal(that)) => {
                 PlainTime::from_str(that.as_ref()).is_ok()
             }
-            (IsFilter::TemporalPlainDateTime, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalPlainDateTime, DuperInner::Temporal(that)) => {
                 PlainDateTime::from_str(that.as_ref()).is_ok()
             }
-            (IsFilter::TemporalPlainYearMonth, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalPlainYearMonth, DuperInner::Temporal(that)) => {
                 PlainYearMonth::from_str(that.as_ref()).is_ok()
             }
-            (IsFilter::TemporalPlainMonthDay, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalPlainMonthDay, DuperInner::Temporal(that)) => {
                 PlainMonthDay::from_str(that.as_ref()).is_ok()
             }
-            (IsFilter::TemporalDuration, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalDuration, DuperInner::Temporal(that)) => {
                 Duration::from_str(that.as_ref()).is_ok()
             }
-            (IsFilter::TemporalUnspecified, DuperInner::Temporal(_)) => true,
-            (IsFilter::Integer, DuperInner::Integer(_)) => true,
-            (IsFilter::Float, DuperInner::Float(_)) => true,
-            (IsFilter::Number, DuperInner::Integer(_) | DuperInner::Float(_)) => true,
-            (IsFilter::Boolean, DuperInner::Boolean(_)) => true,
-            (IsFilter::Null, DuperInner::Null) => true,
+            (DuperType::TemporalUnspecified, DuperInner::Temporal(_)) => true,
+            (DuperType::Integer, DuperInner::Integer(_)) => true,
+            (DuperType::Float, DuperInner::Float(_)) => true,
+            (DuperType::Number, DuperInner::Integer(_) | DuperInner::Float(_)) => true,
+            (DuperType::Boolean, DuperInner::Boolean(_)) => true,
+            (DuperType::Null, DuperInner::Null) => true,
             _ => false,
         }
     }
@@ -569,7 +563,7 @@ impl DuperFilter for IsFilter {
 pub(crate) struct RegexFilter(pub(crate) regex::bytes::Regex);
 
 impl DuperFilter for RegexFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+    fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
         match &value.inner {
             DuperInner::String(string) => self.0.find(string.as_ref().as_bytes()).is_some(),
             DuperInner::Bytes(bytes) => self.0.find(bytes.as_ref()).is_some(),
@@ -582,7 +576,7 @@ impl DuperFilter for RegexFilter {
 pub(crate) struct RegexIdentifierFilter(pub(crate) regex::Regex);
 
 impl DuperFilter for RegexIdentifierFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
+    fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
         value
             .identifier
             .as_ref()
@@ -593,7 +587,7 @@ impl DuperFilter for RegexIdentifierFilter {
 pub(crate) struct IsTruthyFilter;
 
 impl DuperFilter for IsTruthyFilter {
-    fn filter<'v>(&self, value: &'v DuperValue<'_>) -> bool {
+    fn filter<'v>(&self, value: &DuperValue<'_>) -> bool {
         match &value.inner {
             DuperInner::Object(object) => !object.is_empty(),
             DuperInner::Array(array) => !array.is_empty(),

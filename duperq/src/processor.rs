@@ -99,11 +99,11 @@ impl Processor for SkipProcessor {
 
 pub(crate) struct OutputProcessor {
     stdout: Unblock<std::io::Stdout>,
-    printer: Box<dyn FnMut(DuperValue<'static>) -> String>,
+    printer: Box<dyn FnMut(DuperValue<'static>) -> Vec<u8>>,
 }
 
 impl OutputProcessor {
-    pub(crate) fn new(printer: Box<dyn FnMut(DuperValue<'static>) -> String>) -> Self {
+    pub(crate) fn new(printer: Box<dyn FnMut(DuperValue<'static>) -> Vec<u8>>) -> Self {
         Self {
             stdout: Unblock::new(std::io::stdout()),
             printer,
@@ -115,7 +115,7 @@ impl OutputProcessor {
 impl Processor for OutputProcessor {
     async fn process(&mut self, value: DuperValue<'static>) {
         self.stdout
-            .write_all((self.printer)(value).as_bytes())
+            .write_all((self.printer)(value).as_ref())
             .await
             .expect("stdout was closed");
         self.stdout

@@ -1,6 +1,6 @@
 use chumsky::prelude::*;
 use duper::{
-    DuperInner, DuperValue, PrettyPrinter, Serializer,
+    Ansi, DuperInner, DuperValue, PrettyPrinter, Serializer,
     escape::unescape_str,
     parser::{identified_value, identifier, integer, object_key},
 };
@@ -12,12 +12,13 @@ use crate::{
         IndexAccessor, RangeIndexAccessor, ReverseIndexAccessor,
     },
     filter::{
-        AccessorFilter, AndFilter, CmpValue, DuperFilter, EqFilter, EqValue, GeFilter, GtFilter,
-        IsFilter, IsTruthyFilter, LeFilter, LtFilter, NeFilter, NotFilter, OrFilter, RegexFilter,
-        RegexIdentifierFilter, TrueFilter, TryFromDuperValueError,
+        AccessorFilter, AndFilter, CastFilter, CmpValue, DuperFilter, EqFilter, EqValue, GeFilter,
+        GtFilter, IsFilter, IsTruthyFilter, LeFilter, LtFilter, NeFilter, NotFilter, OrFilter,
+        RegexFilter, RegexIdentifierFilter, TrueFilter, TryFromDuperValueError,
     },
     formatter::{Formatter, FormatterAtom},
     processor::{FilterProcessor, OutputProcessor, Processor, SkipProcessor, TakeProcessor},
+    types::DuperType,
 };
 
 pub(crate) type CreateProcessorFn =
@@ -65,17 +66,28 @@ pub fn query<'a>()
     .then(
         just('|')
             .padded()
-            .ignore_then(just("format").padded().ignore_then(fmt().padded()).or(
+            .ignore_then(choice((
+                just("format").padded().ignore_then(fmt().padded()),
+                just("ansi").padded().map(|_| {
+                    let mut ansi = Ansi::default();
+                    OutputProcessor::new(Box::new(move |value| {
+                        ansi.to_ansi(value).unwrap_or_default()
+                    }))
+                }),
                 just("pretty-print").padded().map(|_| {
                     let mut pretty_printer = PrettyPrinter::default();
-                    OutputProcessor::new(Box::new(move |value| pretty_printer.pretty_print(value)))
+                    OutputProcessor::new(Box::new(move |value| {
+                        pretty_printer.pretty_print(value).into_bytes()
+                    }))
                 }),
-            ))
+            )))
             .or_not()
             .map(|processor| {
                 Box::new(processor.unwrap_or_else(|| {
                     let mut serializer = Serializer::default();
-                    OutputProcessor::new(Box::new(move |value| serializer.serialize(value)))
+                    OutputProcessor::new(Box::new(move |value| {
+                        serializer.serialize(value).into_bytes()
+                    }))
                 })) as Box<dyn Processor>
             }),
     )
@@ -84,8 +96,9 @@ pub fn query<'a>()
 fn filter<'a>() -> impl Parser<'a, &'a str, Box<dyn DuperFilter>, extra::Err<Rich<'a, char>>> + Clone
 {
     recursive(|filter| {
-        let atom = leaf_filter(accessor())
-            .or(filter.delimited_by(just('('), just(')')))
+        let atom = filter
+            .delimited_by(just('('), just(')'))
+            .or(leaf_filter(accessor()))
             .padded();
 
         let unary = just('!')
@@ -126,8 +139,8 @@ fn filter<'a>() -> impl Parser<'a, &'a str, Box<dyn DuperFilter>, extra::Err<Ric
 fn accessor<'a>()
 -> impl Parser<'a, &'a str, Box<dyn DuperAccessor>, extra::Err<Rich<'a, char>>> + Clone {
     recursive(|accessor| {
-        let access = just('.').or_not().ignore_then(choice((
-            object_key().padded().map(|key: duper::DuperKey<'a>| {
+        let access = just('.').ignore_then(choice((
+            object_key().map(|key: duper::DuperKey<'a>| {
                 Box::new(FieldAccessor(key.as_ref().into())) as Box<dyn DuperAccessor>
             }),
             integer()
@@ -137,7 +150,6 @@ fn accessor<'a>()
                 .then(just('=').or_not())
                 .then(integer().or_not().padded())
                 .delimited_by(just('['), just(']'))
-                .padded()
                 .try_map(|((start, end_inclusive), end), span| match (start, end) {
                     (Some(start), _) if start < 0 => {
                         Err(Rich::custom(span, "range start must be positive"))
@@ -174,7 +186,6 @@ fn accessor<'a>()
             integer()
                 .padded()
                 .delimited_by(just('['), just(']'))
-                .padded()
                 .map(|int| {
                     if int < 0 {
                         Box::new(ReverseIndexAccessor(int.unsigned_abs() as usize))
@@ -186,11 +197,9 @@ fn accessor<'a>()
             leaf_filter(accessor)
                 .padded()
                 .delimited_by(just('['), just(']'))
-                .padded()
                 .map(|filter| Box::new(FilterAccessor(filter)) as Box<dyn DuperAccessor>),
             text::whitespace()
                 .delimited_by(just('['), just(']'))
-                .padded()
                 .map(|_| Box::new(AnyAccessor) as Box<dyn DuperAccessor>),
         )));
 
@@ -207,6 +216,31 @@ fn accessor<'a>()
 fn leaf_filter<'a>(
     accessor: impl Parser<'a, &'a str, Box<dyn DuperAccessor>, extra::Err<Rich<'a, char>>> + Clone,
 ) -> impl Parser<'a, &'a str, Box<dyn DuperFilter>, extra::Err<Rich<'a, char>>> + Clone {
+    type ConsumeAccessor = Box<dyn FnOnce(Box<dyn DuperFilter>) -> Box<dyn DuperFilter>>;
+
+    let cast_accessor = just("cast")
+        .padded()
+        .ignore_then(
+            accessor
+                .clone()
+                .then_ignore(just(','))
+                .then(duper_type().padded())
+                .map(|(accessor, typ)| {
+                    Box::new(|filter: Box<dyn DuperFilter>| {
+                        Box::new(AccessorFilter {
+                            filter: Box::new(CastFilter { filter, typ }),
+                            accessor,
+                        }) as Box<dyn DuperFilter>
+                    }) as ConsumeAccessor
+                })
+                .delimited_by(just('('), just(')')),
+        )
+        .or(accessor.map(|accessor| {
+            Box::new(|filter: Box<dyn DuperFilter>| {
+                Box::new(AccessorFilter { filter, accessor }) as Box<dyn DuperFilter>
+            }) as ConsumeAccessor
+        }));
+
     let eq_op = just("==").ignored().or(just('=').ignored()).padded();
     let ne_op = just("!=").ignored().or(just("<>").ignored()).padded();
     let lt_op = just("<").ignored().padded();
@@ -217,7 +251,7 @@ fn leaf_filter<'a>(
     let is_op = just("is").ignored().padded();
 
     let len_filter = just("len")
-        .ignore_then(accessor.clone().delimited_by(just('('), just(')')))
+        .ignore_then(cast_accessor.clone().delimited_by(just('('), just(')')))
         .then(choice((
             eq_op
                 .clone()
@@ -306,7 +340,7 @@ fn leaf_filter<'a>(
         )));
 
     let identifier_filter = just("identifier")
-        .ignore_then(accessor.clone().delimited_by(just('('), just(')')))
+        .ignore_then(cast_accessor.clone().delimited_by(just('('), just(')')))
         .then(choice((
             eq_op
                 .clone()
@@ -345,14 +379,14 @@ fn leaf_filter<'a>(
         )));
 
     let exists_filter = just("exists")
-        .ignore_then(accessor.clone().delimited_by(just('('), just(')')))
+        .ignore_then(cast_accessor.clone().delimited_by(just('('), just(')')))
         .map(|accessor| (accessor, Box::new(TrueFilter) as Box<dyn DuperFilter>));
 
     choice((
         len_filter,
         identifier_filter,
         exists_filter,
-        accessor.clone().then(choice((
+        cast_accessor.clone().then(choice((
             eq_op
                 .ignore_then(identified_value().padded())
                 .try_map(|value, span| {
@@ -407,40 +441,36 @@ fn leaf_filter<'a>(
                     )),
                 }),
             is_op
-                .ignore_then(
-                    choice((
-                        just("Object").to(IsFilter::Object),
-                        just("Array").to(IsFilter::Array),
-                        just("Tuple").to(IsFilter::Tuple),
-                        just("String").to(IsFilter::String),
-                        just("Bytes").to(IsFilter::Bytes),
-                        just("Instant").to(IsFilter::TemporalInstant),
-                        just("ZonedDateTime").to(IsFilter::TemporalZonedDateTime),
-                        just("PlainDate").to(IsFilter::TemporalPlainDate),
-                        just("PlainTime").to(IsFilter::TemporalPlainTime),
-                        just("PlainDateTime").to(IsFilter::TemporalPlainDateTime),
-                        just("PlainYearMonth").to(IsFilter::TemporalPlainYearMonth),
-                        just("PlainMonthDay").to(IsFilter::TemporalPlainMonthDay),
-                        just("Duration").to(IsFilter::TemporalDuration),
-                        just("Temporal").to(IsFilter::TemporalUnspecified),
-                        just("Integer").to(IsFilter::Integer),
-                        just("Float").to(IsFilter::Float),
-                        just("Number").to(IsFilter::Number),
-                        just("Boolean").to(IsFilter::Boolean),
-                        just("Null").to(IsFilter::Null),
-                    ))
-                    .padded(),
-                )
-                .map(|value| Box::new(value) as Box<dyn DuperFilter>),
+                .ignore_then(duper_type().padded())
+                .map(|typ| Box::new(IsFilter(typ)) as Box<dyn DuperFilter>),
         ))),
     ))
-    .map(|(accessor, filter)| Box::new(AccessorFilter { accessor, filter }) as Box<dyn DuperFilter>)
-    .or(accessor.map(|accessor| {
-        Box::new(AccessorFilter {
-            accessor,
-            filter: Box::new(IsTruthyFilter),
-        }) as Box<dyn DuperFilter>
-    }))
+    .map(|(accessor, filter)| (accessor)(filter))
+    .or(cast_accessor.map(|accessor| (accessor)(Box::new(IsTruthyFilter))))
+}
+
+fn duper_type<'a>() -> impl Parser<'a, &'a str, DuperType, extra::Err<Rich<'a, char>>> + Clone {
+    choice((
+        just("Object").to(DuperType::Object),
+        just("Array").to(DuperType::Array),
+        just("Tuple").to(DuperType::Tuple),
+        just("String").to(DuperType::String),
+        just("Bytes").to(DuperType::Bytes),
+        just("Instant").to(DuperType::TemporalInstant),
+        just("ZonedDateTime").to(DuperType::TemporalZonedDateTime),
+        just("PlainDate").to(DuperType::TemporalPlainDate),
+        just("PlainTime").to(DuperType::TemporalPlainTime),
+        just("PlainDateTime").to(DuperType::TemporalPlainDateTime),
+        just("PlainYearMonth").to(DuperType::TemporalPlainYearMonth),
+        just("PlainMonthDay").to(DuperType::TemporalPlainMonthDay),
+        just("Duration").to(DuperType::TemporalDuration),
+        just("Temporal").to(DuperType::TemporalUnspecified),
+        just("Integer").to(DuperType::Integer),
+        just("Float").to(DuperType::Float),
+        just("Number").to(DuperType::Number),
+        just("Boolean").to(DuperType::Boolean),
+        just("Null").to(DuperType::Null),
+    ))
 }
 
 fn fmt<'a>() -> impl Parser<'a, &'a str, OutputProcessor, extra::Err<Rich<'a, char>>> {
@@ -458,7 +488,7 @@ fn fmt<'a>() -> impl Parser<'a, &'a str, OutputProcessor, extra::Err<Rich<'a, ch
         .delimited_by(just('"'), just('"'))
         .map(|atoms| {
             let mut formatter = Formatter::new(atoms);
-            OutputProcessor::new(Box::new(move |value| formatter.format(value)))
+            OutputProcessor::new(Box::new(move |value| formatter.format(value).into_bytes()))
         })
 }
 
