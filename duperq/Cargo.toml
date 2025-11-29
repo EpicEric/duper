@@ -15,12 +15,9 @@ anyhow = "1.0.100"
 async-trait = "0.1.89"
 chumsky = "0.11.2"
 clap = { version = "4.5.53", features = ["derive"] }
-duper = { version = "0.4.2", path = "../duper" }
+duper = { version = "0.4.3", path = "../duper" }
+futures = "0.3.31"
 glob = "0.3.3"
-owo-colors = "4.2.3"
 regex = "1.12.2"
 smol = "2.0.2"
 temporal_rs = "0.1.2"
-tinyvec = { version = "1.10.0", features = ["alloc"] }
-tracing = "0.1.41"
-tracing-subscriber = "0.3.20"

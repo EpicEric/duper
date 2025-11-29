@@ -4,11 +4,13 @@ use duper::{DuperInner, DuperValue};
 
 use crate::filter::DuperFilter;
 
+type AccessorReturn<'value> = Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value>;
+
 pub(crate) trait DuperAccessor {
     fn access<'accessor: 'value, 'value>(
         &'accessor self,
         value: &'value DuperValue<'value>,
-    ) -> Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value>;
+    ) -> AccessorReturn<'value>;
 }
 
 // Flattened accessor
@@ -19,13 +21,11 @@ impl DuperAccessor for FlattenedAccessor {
     fn access<'accessor: 'value, 'value>(
         &'accessor self,
         value: &'value DuperValue<'value>,
-    ) -> Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value> {
-        let mut values: Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value> =
-            Box::new(iter::once(value));
-        for accessor in self.0.iter() {
-            values = Box::new(values.flat_map(|value| accessor.access(value)));
-        }
-        values
+    ) -> AccessorReturn<'value> {
+        self.0.iter().fold(
+            Box::new(iter::once(value)) as AccessorReturn<'value>,
+            |values, accessor| Box::new(values.flat_map(|value| accessor.access(value))),
+        )
     }
 }
 
@@ -37,7 +37,7 @@ impl DuperAccessor for FieldAccessor {
     fn access<'accessor: 'value, 'value>(
         &'accessor self,
         value: &'value DuperValue<'value>,
-    ) -> Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value> {
+    ) -> AccessorReturn<'value> {
         if let DuperInner::Object(object) = &value.inner {
             Box::new(
                 object
@@ -69,7 +69,7 @@ impl DuperAccessor for IndexAccessor {
     fn access<'accessor: 'value, 'value>(
         &'accessor self,
         value: &'value DuperValue<'value>,
-    ) -> Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value> {
+    ) -> AccessorReturn<'value> {
         if let DuperInner::Array(array) = &value.inner {
             Box::new(array.get(self.0).into_iter())
         } else {
@@ -84,7 +84,7 @@ impl DuperAccessor for ReverseIndexAccessor {
     fn access<'accessor: 'value, 'value>(
         &'accessor self,
         value: &'value DuperValue<'value>,
-    ) -> Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value> {
+    ) -> AccessorReturn<'value> {
         if let DuperInner::Array(array) = &value.inner {
             Box::new(array.get(array.len() - self.0).into_iter())
         } else {
@@ -102,7 +102,7 @@ impl DuperAccessor for RangeIndexAccessor {
     fn access<'accessor: 'value, 'value>(
         &'accessor self,
         value: &'value DuperValue<'value>,
-    ) -> Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value> {
+    ) -> AccessorReturn<'value> {
         if let DuperInner::Array(array) = &value.inner {
             let start = match self.start {
                 Bound::Included(i) => i,
@@ -126,7 +126,7 @@ impl DuperAccessor for AnyAccessor {
     fn access<'accessor: 'value, 'value>(
         &'accessor self,
         value: &'value DuperValue<'value>,
-    ) -> Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value> {
+    ) -> AccessorReturn<'value> {
         if let DuperInner::Array(array) = &value.inner {
             Box::new(array.iter())
         } else {
@@ -141,7 +141,7 @@ impl DuperAccessor for FilterAccessor {
     fn access<'accessor: 'value, 'value>(
         &'accessor self,
         value: &'value DuperValue<'value>,
-    ) -> Box<dyn Iterator<Item = &'value DuperValue<'value>> + 'value> {
+    ) -> AccessorReturn<'value> {
         if let DuperInner::Array(array) = &value.inner {
             Box::new(array.iter().filter_map(|value| {
                 if self.0.filter(value) {

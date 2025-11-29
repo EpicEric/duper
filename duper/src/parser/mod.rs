@@ -66,12 +66,12 @@ impl DuperParser {
 
 // Base rules
 
-pub fn duper_trunk<'a>()
+pub(crate) fn duper_trunk<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_trunk().then_ignore(end())
 }
 
-pub fn duper_value<'a>()
+pub(crate) fn duper_value<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_value().then_ignore(end())
 }
@@ -124,7 +124,7 @@ pub fn identifier<'a>()
         .map(|identifier| DuperIdentifier(Cow::Borrowed(identifier)))
 }
 
-pub(crate) fn identified_trunk<'a>()
+pub fn identified_trunk<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     let inner_trunk = choice((
         object(identified_value()).map(DuperInner::Object),
@@ -146,7 +146,7 @@ pub(crate) fn identified_trunk<'a>()
         .padded_by(whitespace_and_comments())
 }
 
-pub(crate) fn identified_value<'a>()
+pub fn identified_value<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     recursive(move |identified_value| {
         let inner_value = choice((

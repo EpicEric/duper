@@ -25,34 +25,42 @@ struct Cli {
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    smol::block_on(async move {
-        let mut stderr = Unblock::new(std::io::stderr());
-        let (pipeline_fns, output) = match query().parse(&cli.query).into_result() {
-            Ok(pipeline) => pipeline,
-            Err(errors) => {
-                return Err(anyhow::anyhow!(DuperParser::prettify_error(
-                    &cli.query, &errors, None
-                )?));
-            }
-        };
 
-        let executor = LocalExecutor::new();
-        let mut tasks = Vec::with_capacity(pipeline_fns.len());
-        let mut sink = pipeline_fns
-            .into_iter()
-            .rfold(output, |mut output, pipeline_fn| {
-                let (sender, receiver) = smol::channel::bounded(1024);
-                tasks.push(executor.spawn(async move {
-                    while let Ok(value) = receiver.recv().await {
-                        output.process(value).await;
-                    }
-                }));
-                (pipeline_fn)(sender)
-            });
+    let mut stderr = Unblock::new(std::io::stderr());
+    let (pipeline_fns, output) = match query().parse(&cli.query).into_result() {
+        Ok(pipeline) => pipeline,
+        Err(errors) => {
+            return Err(anyhow::anyhow!(DuperParser::prettify_error(
+                &cli.query, &errors, None
+            )?));
+        }
+    };
 
-        if let Some(duper_glob) = cli.glob {
+    let executor = LocalExecutor::new();
+
+    let mut tasks = Vec::with_capacity(pipeline_fns.len());
+    let mut sink = pipeline_fns
+        .into_iter()
+        .rfold(output, |mut output, pipeline_fn| {
+            let (sender, receiver) = smol::channel::bounded(1024);
+            tasks.push(executor.spawn(async move {
+                while let Ok(value) = receiver.recv().await {
+                    output.process(value).await;
+                }
+            }));
+            (pipeline_fn)(sender)
+        });
+
+    let glob = if let Some(duper_glob) = cli.glob {
+        Some(glob(&duper_glob)?)
+    } else {
+        None
+    };
+
+    tasks.push(executor.spawn(async move {
+        if let Some(glob) = glob {
             // Read from files
-            for entry in glob(&duper_glob)? {
+            for entry in glob {
                 match entry {
                     Ok(path) => match smol::fs::read_to_string(&path).await {
                         Ok(input) => match DuperParser::parse_duper_trunk(&input) {
@@ -101,11 +109,9 @@ fn main() -> anyhow::Result<()> {
                 }
             }
         }
+    }));
 
-        for task in tasks.into_iter().rev() {
-            task.await;
-        }
+    smol::block_on(executor.run(async move { futures::future::join_all(tasks).await }));
 
-        Ok(())
-    })
+    Ok(())
 }

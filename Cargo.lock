@@ -928,7 +928,7 @@ dependencies = [
 
 [[package]]
 name = "duper"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "ariadne",
  "base64",
@@ -1028,14 +1028,11 @@ dependencies = [
  "chumsky",
  "clap",
  "duper",
+ "futures",
  "glob",
- "owo-colors",
  "regex",
  "smol",
  "temporal_rs",
- "tinyvec",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

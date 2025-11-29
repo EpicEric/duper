@@ -258,6 +258,10 @@ impl DuperFilter for EqFilter {
             (EqValue::Float(this, epsilon), DuperInner::Float(that)) => {
                 (this - that).abs() <= epsilon.unwrap_or(0.0).abs()
             }
+            (EqValue::Integer(this), DuperInner::Float(that)) => *this == *that as i64,
+            (EqValue::Float(this, epsilon), DuperInner::Integer(that)) => {
+                (this - *that as f64).abs() <= epsilon.unwrap_or(0.0).abs()
+            }
             (EqValue::Boolean(this), DuperInner::Boolean(that)) => this == that,
             (EqValue::Null, DuperInner::Null) => true,
             _ => false,
@@ -340,6 +344,10 @@ impl DuperFilter for NeFilter {
             (EqValue::Float(this, epsilon), DuperInner::Float(that)) => {
                 (this - that).abs() > epsilon.unwrap_or(0.0).abs()
             }
+            (EqValue::Integer(this), DuperInner::Float(that)) => *this != *that as i64,
+            (EqValue::Float(this, epsilon), DuperInner::Integer(that)) => {
+                (this - *that as f64).abs() > epsilon.unwrap_or(0.0).abs()
+            }
             (EqValue::Boolean(this), DuperInner::Boolean(that)) => this != that,
             (EqValue::Null, DuperInner::Null) => false,
             _ => true,
@@ -420,20 +428,20 @@ macro_rules! cmp_filter {
             fn filter<'v>(&self, value: &'v DuperValue<'v>) -> bool {
                 match (&self.0, &value.inner) {
                     (CmpValue::Len(this), DuperInner::Object(that)) => {
-                        matches!(this.cmp(&that.len()), $ord)
+                        matches!(that.len().cmp(this), $ord)
                     }
                     (CmpValue::Len(this), DuperInner::Array(that)) => {
-                        matches!(this.cmp(&that.len()), $ord)
+                        matches!(that.len().cmp(this), $ord)
                     }
                     (CmpValue::Len(this), DuperInner::String(that)) => {
-                        matches!(this.cmp(&that.as_ref().len()), $ord)
+                        matches!(that.as_ref().len().cmp(this), $ord)
                     }
                     (CmpValue::Len(this), DuperInner::Bytes(that)) => {
-                        matches!(this.cmp(&that.as_ref().len()), $ord)
+                        matches!(that.as_ref().len().cmp(this), $ord)
                     }
                     (CmpValue::TemporalInstant(this), DuperInner::Temporal(that)) => {
                         Instant::from_str(that.as_ref())
-                            .is_ok_and(|that| matches!(this.cmp(&that), $ord))
+                            .is_ok_and(|that| matches!(that.cmp(this), $ord))
                     }
                     (CmpValue::TemporalZonedDateTime(this), DuperInner::Temporal(that)) => {
                         ZonedDateTime::from_utf8(
@@ -441,33 +449,39 @@ macro_rules! cmp_filter {
                             Disambiguation::Compatible,
                             OffsetDisambiguation::Prefer,
                         )
-                        .is_ok_and(|that| matches!(this.compare_instant(&that), $ord))
+                        .is_ok_and(|that| matches!(that.compare_instant(this), $ord))
                     }
                     (CmpValue::TemporalPlainDate(this), DuperInner::Temporal(that)) => {
                         PlainDate::from_str(that.as_ref())
-                            .is_ok_and(|that| matches!(this.compare_iso(&that), $ord))
+                            .is_ok_and(|that| matches!(that.compare_iso(this), $ord))
                     }
                     (CmpValue::TemporalPlainTime(this), DuperInner::Temporal(that)) => {
                         PlainTime::from_str(that.as_ref())
-                            .is_ok_and(|that| matches!(this.cmp(&that), $ord))
+                            .is_ok_and(|that| matches!(that.cmp(this), $ord))
                     }
                     (CmpValue::TemporalPlainDateTime(this), DuperInner::Temporal(that)) => {
                         PlainDateTime::from_str(that.as_ref())
-                            .is_ok_and(|that| matches!(this.compare_iso(&that), $ord))
+                            .is_ok_and(|that| matches!(that.compare_iso(this), $ord))
                     }
                     (CmpValue::TemporalPlainYearMonth(this), DuperInner::Temporal(that)) => {
                         PlainYearMonth::from_str(that.as_ref())
-                            .is_ok_and(|that| matches!(this.compare_iso(&that), $ord))
+                            .is_ok_and(|that| matches!(that.compare_iso(this), $ord))
                     }
                     (CmpValue::TemporalDuration(this), DuperInner::Temporal(that)) => {
                         Duration::from_str(that.as_ref())
-                            .is_ok_and(|that| matches!(this.partial_cmp(&that), Some($ord)))
+                            .is_ok_and(|that| matches!(that.partial_cmp(this), Some($ord)))
                     }
                     (CmpValue::Integer(this), DuperInner::Integer(that)) => {
-                        matches!(this.cmp(that), $ord)
+                        matches!(that.cmp(this), $ord)
                     }
                     (CmpValue::Float(this), DuperInner::Float(that)) => {
-                        matches!(this.partial_cmp(that), Some($ord))
+                        matches!(that.partial_cmp(this), Some($ord))
+                    }
+                    (CmpValue::Integer(this), DuperInner::Float(that)) => {
+                        matches!((*that as i64).cmp(this), $ord)
+                    }
+                    (CmpValue::Float(this), DuperInner::Integer(that)) => {
+                        matches!((*that as f64).partial_cmp(this), Some($ord))
                     }
                     _ => false,
                 }

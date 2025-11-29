@@ -2,7 +2,7 @@ use chumsky::prelude::*;
 use duper::{
     DuperInner, DuperValue, PrettyPrinter, Serializer,
     escape::unescape_str,
-    parser::{duper_value, identifier, integer, object_key},
+    parser::{identified_value, identifier, integer, object_key},
 };
 use smol::channel;
 
@@ -320,7 +320,7 @@ fn leaf_filter<'a>(
                 }),
             re_op
                 .clone()
-                .ignore_then(duper_value().padded())
+                .ignore_then(identified_value().padded())
                 .try_map(|value, span| match value.inner {
                     DuperInner::String(string) => regex::Regex::new(string.as_ref())
                         .map(|regex| Box::new(RegexIdentifierFilter(regex)) as Box<dyn DuperFilter>)
@@ -342,49 +342,49 @@ fn leaf_filter<'a>(
         exists_filter,
         accessor.clone().then(choice((
             eq_op
-                .ignore_then(duper_value().padded())
+                .ignore_then(identified_value().padded())
                 .try_map(|value, span| {
                     EqValue::try_from_duper(value, None)
                         .map(|value| Box::new(EqFilter(value)) as Box<dyn DuperFilter>)
                         .map_err(|error| Rich::custom(span, error))
                 }),
             ne_op
-                .ignore_then(duper_value().padded())
+                .ignore_then(identified_value().padded())
                 .try_map(|value, span| {
                     EqValue::try_from_duper(value, None)
                         .map(|value| Box::new(NeFilter(value)) as Box<dyn DuperFilter>)
                         .map_err(|error| Rich::custom(span, error))
                 }),
             lt_op
-                .ignore_then(duper_value().padded())
+                .ignore_then(identified_value().padded())
                 .try_map(|value, span| {
                     CmpValue::try_from(value)
                         .map(|value| Box::new(LtFilter(value)) as Box<dyn DuperFilter>)
                         .map_err(|error| Rich::custom(span, error))
                 }),
             le_op
-                .ignore_then(duper_value().padded())
+                .ignore_then(identified_value().padded())
                 .try_map(|value, span| {
                     CmpValue::try_from(value)
                         .map(|value| Box::new(LeFilter(value)) as Box<dyn DuperFilter>)
                         .map_err(|error| Rich::custom(span, error))
                 }),
             gt_op
-                .ignore_then(duper_value().padded())
+                .ignore_then(identified_value().padded())
                 .try_map(|value, span| {
                     CmpValue::try_from(value)
                         .map(|value| Box::new(GtFilter(value)) as Box<dyn DuperFilter>)
                         .map_err(|error| Rich::custom(span, error))
                 }),
             ge_op
-                .ignore_then(duper_value().padded())
+                .ignore_then(identified_value().padded())
                 .try_map(|value, span| {
                     CmpValue::try_from(value)
                         .map(|value| Box::new(GeFilter(value)) as Box<dyn DuperFilter>)
                         .map_err(|error| Rich::custom(span, error))
                 }),
             re_op
-                .ignore_then(duper_value().padded())
+                .ignore_then(identified_value().padded())
                 .try_map(|value, span| match value.inner {
                     DuperInner::String(string) => regex::bytes::Regex::new(string.as_ref())
                         .map(|regex| Box::new(RegexFilter(regex)) as Box<dyn DuperFilter>)
