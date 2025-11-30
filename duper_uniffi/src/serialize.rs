@@ -11,9 +11,7 @@ impl Value {
     pub(crate) fn serialize(self) -> Result<DuperValue<'static>, DuperError> {
         match self {
             Value::Object { identifier, value } => Ok(DuperValue {
-                identifier: identifier
-                    .map(|identifier| DuperIdentifier::try_from(identifier))
-                    .transpose()?,
+                identifier: identifier.map(DuperIdentifier::try_from).transpose()?,
                 inner: DuperInner::Object(DuperObject::try_from(
                     value
                         .into_iter()
@@ -24,9 +22,7 @@ impl Value {
                 )?),
             }),
             Value::Array { identifier, value } => Ok(DuperValue {
-                identifier: identifier
-                    .map(|identifier| DuperIdentifier::try_from(identifier))
-                    .transpose()?,
+                identifier: identifier.map(DuperIdentifier::try_from).transpose()?,
                 inner: DuperInner::Array(DuperArray::from(
                     value
                         .into_iter()
@@ -35,9 +31,7 @@ impl Value {
                 )),
             }),
             Value::Tuple { identifier, value } => Ok(DuperValue {
-                identifier: identifier
-                    .map(|identifier| DuperIdentifier::try_from(identifier))
-                    .transpose()?,
+                identifier: identifier.map(DuperIdentifier::try_from).transpose()?,
                 inner: DuperInner::Tuple(DuperTuple::from(
                     value
                         .into_iter()
@@ -46,15 +40,11 @@ impl Value {
                 )),
             }),
             Value::String { identifier, value } => Ok(DuperValue {
-                identifier: identifier
-                    .map(|identifier| DuperIdentifier::try_from(identifier))
-                    .transpose()?,
+                identifier: identifier.map(DuperIdentifier::try_from).transpose()?,
                 inner: DuperInner::String(DuperString::from(value)),
             }),
             Value::Bytes { identifier, value } => Ok(DuperValue {
-                identifier: identifier
-                    .map(|identifier| DuperIdentifier::try_from(identifier))
-                    .transpose()?,
+                identifier: identifier.map(DuperIdentifier::try_from).transpose()?,
                 inner: DuperInner::Bytes(DuperBytes::from(value)),
             }),
             Value::Temporal { identifier, value } => Ok(DuperValue {
@@ -77,32 +67,22 @@ impl Value {
                     Some("Duration") => DuperTemporal::try_duration_from(Cow::Owned(value))?,
                     Some(_) | None => DuperTemporal::try_unspecified_from(Cow::Owned(value))?,
                 }),
-                identifier: identifier
-                    .map(|identifier| DuperIdentifier::try_from(identifier))
-                    .transpose()?,
+                identifier: identifier.map(DuperIdentifier::try_from).transpose()?,
             }),
             Value::Integer { identifier, value } => Ok(DuperValue {
-                identifier: identifier
-                    .map(|identifier| DuperIdentifier::try_from(identifier))
-                    .transpose()?,
+                identifier: identifier.map(DuperIdentifier::try_from).transpose()?,
                 inner: DuperInner::Integer(value),
             }),
             Value::Float { identifier, value } => Ok(DuperValue {
-                identifier: identifier
-                    .map(|identifier| DuperIdentifier::try_from(identifier))
-                    .transpose()?,
+                identifier: identifier.map(DuperIdentifier::try_from).transpose()?,
                 inner: DuperInner::Float(value),
             }),
             Value::Boolean { identifier, value } => Ok(DuperValue {
-                identifier: identifier
-                    .map(|identifier| DuperIdentifier::try_from(identifier))
-                    .transpose()?,
+                identifier: identifier.map(DuperIdentifier::try_from).transpose()?,
                 inner: DuperInner::Boolean(value),
             }),
             Value::Null { identifier } => Ok(DuperValue {
-                identifier: identifier
-                    .map(|identifier| DuperIdentifier::try_from(identifier))
-                    .transpose()?,
+                identifier: identifier.map(DuperIdentifier::try_from).transpose()?,
                 inner: DuperInner::Null,
             }),
         }

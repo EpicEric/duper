@@ -127,16 +127,13 @@ fn filter<'a>() -> impl Parser<'a, &'a str, Box<dyn DuperFilter>, extra::Err<Ric
             .or(unary)
             .padded();
 
-        let or = and
-            .clone()
+        and.clone()
             .separated_by(just("||").or(just("or")))
             .at_least(2)
             .collect::<OrFilter>()
             .map(|filter| Box::new(filter) as Box<dyn DuperFilter>)
             .or(and)
-            .padded();
-
-        or
+            .padded()
     })
     .boxed()
 }
@@ -261,7 +258,6 @@ fn leaf_filter<'a>(
         .ignore_then(cast_accessor.clone().delimited_by(just('('), just(')')))
         .then(choice((
             eq_op
-                .clone()
                 .ignore_then(integer().padded())
                 .try_map(|value, span| {
                     if value >= 0 {
@@ -275,7 +271,6 @@ fn leaf_filter<'a>(
                     }
                 }),
             ne_op
-                .clone()
                 .ignore_then(integer().padded())
                 .try_map(|value, span| {
                     if value >= 0 {
@@ -289,7 +284,6 @@ fn leaf_filter<'a>(
                     }
                 }),
             lt_op
-                .clone()
                 .ignore_then(integer().padded())
                 .try_map(|value, span| {
                     if value >= 0 {
@@ -303,7 +297,6 @@ fn leaf_filter<'a>(
                     }
                 }),
             le_op
-                .clone()
                 .ignore_then(integer().padded())
                 .try_map(|value, span| {
                     if value >= 0 {
@@ -317,7 +310,6 @@ fn leaf_filter<'a>(
                     }
                 }),
             gt_op
-                .clone()
                 .ignore_then(integer().padded())
                 .try_map(|value, span| {
                     if value >= 0 {
@@ -331,7 +323,6 @@ fn leaf_filter<'a>(
                     }
                 }),
             ge_op
-                .clone()
                 .ignore_then(integer().padded())
                 .try_map(|value, span| {
                     if value >= 0 {
@@ -350,7 +341,6 @@ fn leaf_filter<'a>(
         .ignore_then(cast_accessor.clone().delimited_by(just('('), just(')')))
         .then(choice((
             eq_op
-                .clone()
                 .ignore_then(
                     quoted_string()
                         .map(|identifier| Some(identifier.into_owned()))
@@ -361,7 +351,6 @@ fn leaf_filter<'a>(
                     Box::new(EqFilter(EqValue::Identifier(value))) as Box<dyn DuperFilter>
                 }),
             ne_op
-                .clone()
                 .ignore_then(
                     quoted_string()
                         .map(|identifier| Some(identifier.into_owned()))
@@ -372,7 +361,6 @@ fn leaf_filter<'a>(
                     Box::new(NeFilter(EqValue::Identifier(value))) as Box<dyn DuperFilter>
                 }),
             re_op
-                .clone()
                 .ignore_then(identified_value().padded())
                 .try_map(|value, span| match value.inner {
                     DuperInner::String(string) => regex::Regex::new(string.as_ref())

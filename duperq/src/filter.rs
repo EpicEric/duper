@@ -10,7 +10,7 @@ use temporal_rs::{
 use crate::{accessor::DuperAccessor, types::DuperType};
 
 pub(crate) trait DuperFilter {
-    fn filter<'v>(&self, value: &DuperValue<'_>) -> bool;
+    fn filter<'v>(&self, value: &DuperValue<'v>) -> bool;
 }
 
 // Branchless filters
@@ -61,7 +61,7 @@ impl FromIterator<Box<dyn DuperFilter>> for OrFilter {
     }
 }
 
-impl<'a> chumsky::container::Container<Box<dyn DuperFilter>> for OrFilter {
+impl chumsky::container::Container<Box<dyn DuperFilter>> for OrFilter {
     fn push(&mut self, item: Box<dyn DuperFilter>) {
         self.0.push(item);
     }
@@ -165,9 +165,7 @@ impl EqValue {
                 let vec: Result<Vec<_>, _> = tuple
                     .into_inner()
                     .into_iter()
-                    .map(|value| {
-                        EqValue::try_from_duper(value, epsilon).map(|value| EqFilter(value))
-                    })
+                    .map(|value| EqValue::try_from_duper(value, epsilon).map(EqFilter))
                     .collect();
                 Ok(EqValue::Tuple(vec?))
             }

@@ -33,10 +33,8 @@ impl FilterProcessor {
 #[async_trait(?Send)]
 impl Processor for FilterProcessor {
     async fn process(&mut self, value: DuperValue<'static>) {
-        if self.is_open && self.filter.filter(&value) {
-            if self.sender.send(value).await.is_err() {
-                self.is_open = false;
-            }
+        if self.is_open && self.filter.filter(&value) && self.sender.send(value).await.is_err() {
+            self.is_open = false;
         }
     }
 }
@@ -89,10 +87,8 @@ impl Processor for SkipProcessor {
     async fn process(&mut self, value: DuperValue<'static>) {
         if self.to_skip > 0 {
             self.to_skip = self.to_skip.saturating_sub(1);
-        } else if self.is_open {
-            if self.sender.send(value).await.is_err() {
-                self.is_open = false;
-            }
+        } else if self.is_open && self.sender.send(value).await.is_err() {
+            self.is_open = false;
         }
     }
 }

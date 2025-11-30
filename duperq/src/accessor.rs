@@ -166,13 +166,7 @@ impl DuperAccessor for FilterAccessor {
         value: &'value DuperValue<'value>,
     ) -> AccessorReturn<'value> {
         if let DuperInner::Array(array) = &value.inner {
-            Box::new(array.iter().filter_map(|value| {
-                if self.0.filter(value) {
-                    Some(value)
-                } else {
-                    None
-                }
-            }))
+            Box::new(array.iter().filter(|value| self.0.filter(value)))
         } else {
             Box::new(iter::empty())
         }

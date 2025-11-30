@@ -65,12 +65,11 @@ fn main() -> anyhow::Result<()> {
                 match DuperParser::parse_duper_trunk(&line) {
                     Ok(trunk) => sink.process(trunk.static_clone()).await,
                     Err(errors) => {
-                        if !cli.disable_stderr {
-                            if let Ok(parse_error) =
+                        if !cli.disable_stderr
+                            && let Ok(parse_error) =
                                 DuperParser::prettify_error(&line, &errors, None)
-                            {
-                                let _ = stderr.write_all(parse_error.as_bytes()).await;
-                            }
+                        {
+                            let _ = stderr.write_all(parse_error.as_bytes()).await;
                         }
                     }
                 }
@@ -118,15 +117,15 @@ fn main() -> anyhow::Result<()> {
                     Ok((pathbuf, string)) => match DuperParser::parse_duper_trunk(&string) {
                         Ok(trunk) => sink.process(trunk.static_clone()).await,
                         Err(errors) => {
-                            if !cli.disable_stderr {
-                                if let Ok(parse_error) = DuperParser::prettify_error(
+                            if !cli.disable_stderr
+                                && let Ok(parse_error) = DuperParser::prettify_error(
                                     &string,
                                     &errors,
                                     Some(pathbuf.to_string_lossy().as_ref()),
-                                ) {
-                                    let _ = stderr.write_all(parse_error.as_bytes()).await;
-                                    let _ = stderr.flush().await;
-                                }
+                                )
+                            {
+                                let _ = stderr.write_all(parse_error.as_bytes()).await;
+                                let _ = stderr.flush().await;
                             }
                         }
                     },

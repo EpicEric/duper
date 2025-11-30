@@ -19,7 +19,7 @@ impl DuperVisitor for UniffiVisitor {
         for (key, val) in object.iter() {
             value.push(DuperObjectEntry {
                 key: key.as_ref().to_string(),
-                value: val.accept(self).into(),
+                value: val.accept(self),
             });
         }
         DuperValue::Object {
@@ -35,7 +35,7 @@ impl DuperVisitor for UniffiVisitor {
     ) -> Self::Value {
         let mut value = Vec::with_capacity(array.len());
         for val in array.iter() {
-            value.push(val.accept(self).into());
+            value.push(val.accept(self));
         }
         DuperValue::Array {
             identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
@@ -50,7 +50,7 @@ impl DuperVisitor for UniffiVisitor {
     ) -> Self::Value {
         let mut value = Vec::with_capacity(tuple.len());
         for val in tuple.iter() {
-            value.push(val.accept(self).into());
+            value.push(val.accept(self));
         }
         DuperValue::Tuple {
             identifier: identifier.map(|identifier| identifier.as_ref().to_string()),

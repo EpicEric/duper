@@ -40,9 +40,9 @@ impl Formatter {
         let mut buf = String::new();
         for atom in &self.atoms {
             match atom {
-                FormatterAtom::Fixed(fixed) => buf.push_str(&fixed),
+                FormatterAtom::Fixed(fixed) => buf.push_str(fixed),
                 FormatterAtom::Dynamic(duper_accessor, typ) => {
-                    match duper_accessor.access(&value).into_iter().next() {
+                    match duper_accessor.access(&value).next() {
                         Some(value) => {
                             if let Some(typ) = typ {
                                 if let Some(value) = typ.cast(value) {

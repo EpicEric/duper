@@ -11,7 +11,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>The format that's super!</description>
     <readme>README.md</readme>
-    <releaseNotes>Handling of more types and QoL improvements; see the changelog for details.</releaseNotes>
+    <releaseNotes>See the changelog for details.</releaseNotes>
     <copyright>Copyright 2025</copyright>
     <tags>Duper encoding format serialization parsing</tags>
     <dependencies>

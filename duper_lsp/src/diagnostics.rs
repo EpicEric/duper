@@ -7,19 +7,19 @@ use regex::Regex;
 use tracing::{error, warn};
 use tree_sitter::{Query, QueryCursor, StreamingIterator, Tree};
 
-const QUERY_ERRORS: LazyLock<Query> = LazyLock::new(|| {
+static QUERY_ERRORS: LazyLock<Query> = LazyLock::new(|| {
     let text = r"(ERROR) @error";
-    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid errors query");
-    query
+
+    Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid errors query")
 });
 
-const QUERY_MISSING: LazyLock<Query> = LazyLock::new(|| {
+static QUERY_MISSING: LazyLock<Query> = LazyLock::new(|| {
     let text = r"(MISSING) @missing";
-    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid missing query");
-    query
+
+    Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid missing query")
 });
 
-const QUERY_OBJECT_KEYS: LazyLock<Query> = LazyLock::new(|| {
+static QUERY_OBJECT_KEYS: LazyLock<Query> = LazyLock::new(|| {
     let text = r#"
         (object
             .
@@ -40,65 +40,60 @@ const QUERY_OBJECT_KEYS: LazyLock<Query> = LazyLock::new(|| {
                 _*
             )*
         )"#;
-    let query =
-        Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid object keys query");
-    query
+
+    Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid object keys query")
 });
 
-const QUERY_UNIDENTIFIED_QUOTED_STRINGS: LazyLock<Query> = LazyLock::new(|| {
+static QUERY_UNIDENTIFIED_QUOTED_STRINGS: LazyLock<Query> = LazyLock::new(|| {
     let text = r#"
         (duper_value
             (string
                 (quoted_string
                     (quoted_content) @quote)))"#;
-    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text)
-        .expect("valid unidentified quoted strings query");
-    query
+
+    Query::new(&tree_sitter_duper::LANGUAGE.into(), text)
+        .expect("valid unidentified quoted strings query")
 });
 
-const QUERY_QUOTED_BYTES: LazyLock<Query> = LazyLock::new(|| {
+static QUERY_QUOTED_BYTES: LazyLock<Query> = LazyLock::new(|| {
     let text = r#"
         (bytes
             (quoted_bytes
                 (quoted_content) @quote))"#;
-    let query =
-        Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid quoted bytes query");
-    query
+
+    Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid quoted bytes query")
 });
 
-const QUERY_BASE64_BYTES: LazyLock<Query> = LazyLock::new(|| {
+static QUERY_BASE64_BYTES: LazyLock<Query> = LazyLock::new(|| {
     let text = r#"
         (bytes
             (base64_bytes
                 (base64_content) @base64))"#;
-    let query =
-        Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid base64 bytes query");
-    query
+
+    Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid base64 bytes query")
 });
 
-const QUERY_IDENTIFIED_TEMPORAL: LazyLock<Query> = LazyLock::new(|| {
+static QUERY_IDENTIFIED_TEMPORAL: LazyLock<Query> = LazyLock::new(|| {
     let text = r#"
         (duper_value
             (identified_value
                 (identifier) @identifier
                 (temporal
                     (temporal_content) @temporal)))"#;
-    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text)
-        .expect("valid identified Temporal query");
-    query
+
+    Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid identified Temporal query")
 });
 
-const QUERY_UNSPECIFIED_TEMPORAL: LazyLock<Query> = LazyLock::new(|| {
+static QUERY_UNSPECIFIED_TEMPORAL: LazyLock<Query> = LazyLock::new(|| {
     let text = r#"
         (duper_value
             (temporal
                 (temporal_content) @temporal))"#;
-    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text)
-        .expect("valid unspecified Temporal query");
-    query
+
+    Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid unspecified Temporal query")
 });
 
-const QUERY_IDENTIFIED_STRINGS: LazyLock<Query> = LazyLock::new(|| {
+static QUERY_IDENTIFIED_STRINGS: LazyLock<Query> = LazyLock::new(|| {
     let text = r#"
         (duper_value
             (identified_value
@@ -111,29 +106,27 @@ const QUERY_IDENTIFIED_STRINGS: LazyLock<Query> = LazyLock::new(|| {
                         (raw_content) @raw
                     )
                 ])))"#;
-    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text)
-        .expect("valid identified strings query");
-    query
+
+    Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid identified strings query")
 });
 
-const QUERY_INTEGERS: LazyLock<Query> = LazyLock::new(|| {
+static QUERY_INTEGERS: LazyLock<Query> = LazyLock::new(|| {
     let text = r#"
         (integer) @integer
     "#;
-    let query =
-        Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid integers query");
-    query
+
+    Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid integers query")
 });
 
-const QUERY_FLOATS: LazyLock<Query> = LazyLock::new(|| {
+static QUERY_FLOATS: LazyLock<Query> = LazyLock::new(|| {
     let text = r#"
         (float) @float
     "#;
-    let query = Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid floats query");
-    query
+
+    Query::new(&tree_sitter_duper::LANGUAGE.into(), text).expect("valid floats query")
 });
 
-const REGEX_UUID: LazyLock<Regex> =
+static REGEX_UUID: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)^UUID(v?\d)?$").expect("valid UUID regex"));
 
 pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<Diagnostic> {
@@ -141,9 +134,9 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
     let index = LineIndex::new(source);
 
     // Return errors
-    let query = QUERY_ERRORS;
+    let query = &QUERY_ERRORS;
     let mut cursor = QueryCursor::new();
-    let mut captures = cursor.captures(&query, tree.root_node(), source.as_bytes());
+    let mut captures = cursor.captures(query, tree.root_node(), source.as_bytes());
     while let Some((m, _)) = {
         captures.advance();
         captures.get()
@@ -162,9 +155,9 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
     }
 
     // Return missing values
-    let query: LazyLock<Query> = QUERY_MISSING;
+    let query = &QUERY_MISSING;
     let mut cursor = QueryCursor::new();
-    let mut captures = cursor.captures(&query, tree.root_node(), source.as_bytes());
+    let mut captures = cursor.captures(query, tree.root_node(), source.as_bytes());
     while let Some((m, _)) = {
         captures.advance();
         captures.get()
@@ -183,9 +176,9 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
     }
 
     // Check that objects don't have duplicate keys
-    let query = QUERY_OBJECT_KEYS;
+    let query = &QUERY_OBJECT_KEYS;
     let mut cursor = QueryCursor::new();
-    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    let mut matches = cursor.matches(query, tree.root_node(), source.as_bytes());
     while let Some(m) = {
         matches.advance();
         matches.get()
@@ -203,7 +196,7 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
                                 Some(DiagnosticSeverity::ERROR),
                                 None,
                                 None,
-                                format!("Duplicate key"),
+                                "Duplicate key".to_string(),
                                 None,
                                 None,
                             ))
@@ -230,7 +223,7 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
                                     Some(DiagnosticSeverity::ERROR),
                                     None,
                                     None,
-                                    format!("Duplicate key"),
+                                    "Duplicate key".to_string(),
                                     None,
                                     None,
                                 ))
@@ -266,7 +259,7 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
                                 Some(DiagnosticSeverity::ERROR),
                                 None,
                                 None,
-                                format!("Duplicate key"),
+                                "Duplicate key".to_string(),
                                 None,
                                 None,
                             ))
@@ -296,9 +289,9 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
     }
 
     // Check escaping on unidentified string values
-    let query = QUERY_UNIDENTIFIED_QUOTED_STRINGS;
+    let query = &QUERY_UNIDENTIFIED_QUOTED_STRINGS;
     let mut cursor = QueryCursor::new();
-    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    let mut matches = cursor.matches(query, tree.root_node(), source.as_bytes());
     while let Some(m) = {
         matches.advance();
         matches.get()
@@ -343,9 +336,9 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
     }
 
     // Check escaping on bytes values
-    let query = QUERY_QUOTED_BYTES;
+    let query = &QUERY_QUOTED_BYTES;
     let mut cursor = QueryCursor::new();
-    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    let mut matches = cursor.matches(query, tree.root_node(), source.as_bytes());
     while let Some(m) = {
         matches.advance();
         matches.get()
@@ -390,9 +383,9 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
     }
 
     // Check Base64 bytes values
-    let query = QUERY_BASE64_BYTES;
+    let query = &QUERY_BASE64_BYTES;
     let mut cursor = QueryCursor::new();
-    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    let mut matches = cursor.matches(query, tree.root_node(), source.as_bytes());
     while let Some(m) = {
         matches.advance();
         matches.get()
@@ -468,9 +461,9 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
     }
 
     // Check identified Temporal values
-    let query = QUERY_IDENTIFIED_TEMPORAL;
+    let query = &QUERY_IDENTIFIED_TEMPORAL;
     let mut cursor = QueryCursor::new();
-    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    let mut matches = cursor.matches(query, tree.root_node(), source.as_bytes());
     while let Some(m) = {
         matches.advance();
         matches.get()
@@ -642,7 +635,7 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
                             Some(DiagnosticSeverity::ERROR),
                             None,
                             None,
-                            format!("Invalid Temporal value"),
+                            "Invalid Temporal value".to_string(),
                             None,
                             None,
                         ));
@@ -659,9 +652,9 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
     }
 
     // Check unspecified Temporal values
-    let query = QUERY_UNSPECIFIED_TEMPORAL;
+    let query = &QUERY_UNSPECIFIED_TEMPORAL;
     let mut cursor = QueryCursor::new();
-    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    let mut matches = cursor.matches(query, tree.root_node(), source.as_bytes());
     while let Some(m) = {
         matches.advance();
         matches.get()
@@ -705,9 +698,9 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
     }
 
     // Check integers
-    let query = QUERY_INTEGERS;
+    let query = &QUERY_INTEGERS;
     let mut cursor = QueryCursor::new();
-    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    let mut matches = cursor.matches(query, tree.root_node(), source.as_bytes());
     while let Some(m) = {
         matches.advance();
         matches.get()
@@ -751,9 +744,9 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
     }
 
     // Check floats
-    let query = QUERY_FLOATS;
+    let query = &QUERY_FLOATS;
     let mut cursor = QueryCursor::new();
-    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    let mut matches = cursor.matches(query, tree.root_node(), source.as_bytes());
     while let Some(m) = {
         matches.advance();
         matches.get()
@@ -797,9 +790,9 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
     }
 
     // Check well-known string types
-    let query = QUERY_IDENTIFIED_STRINGS;
+    let query = &QUERY_IDENTIFIED_STRINGS;
     let mut cursor = QueryCursor::new();
-    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    let mut matches = cursor.matches(query, tree.root_node(), source.as_bytes());
     'm: while let Some(m) = {
         matches.advance();
         matches.get()
@@ -885,18 +878,18 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
             }
         }
         if let (Some(identifier), Some((string, node))) = (identifier, value.as_ref()) {
-            if REGEX_UUID.is_match(identifier) {
-                if let Err(err) = uuid::Uuid::try_parse(string) {
-                    diagnostics.push(Diagnostic::new(
-                        to_range(node.range(), &index, is_utf8),
-                        Some(DiagnosticSeverity::WARNING),
-                        None,
-                        None,
-                        format!("Invalid UUID: {err}"),
-                        None,
-                        None,
-                    ))
-                }
+            if REGEX_UUID.is_match(identifier)
+                && let Err(err) = uuid::Uuid::try_parse(string)
+            {
+                diagnostics.push(Diagnostic::new(
+                    to_range(node.range(), &index, is_utf8),
+                    Some(DiagnosticSeverity::WARNING),
+                    None,
+                    None,
+                    format!("Invalid UUID: {err}"),
+                    None,
+                    None,
+                ))
             }
             // TO-DO: Validate more well-known types
         } else {

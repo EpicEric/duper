@@ -110,9 +110,7 @@ impl DuperType {
             (DuperType::TemporalInstant, DuperInner::Bytes(bytes)) => {
                 str::from_utf8(bytes.as_ref())
                     .ok()
-                    .and_then(|string| {
-                        DuperTemporal::try_instant_from(Cow::Borrowed(string.as_ref())).ok()
-                    })
+                    .and_then(|string| DuperTemporal::try_instant_from(Cow::Borrowed(string)).ok())
                     .map(|temporal| DuperValue {
                         identifier: Some(
                             DuperIdentifier::try_from("Instant").expect("valid identifier"),
@@ -134,7 +132,7 @@ impl DuperType {
                 str::from_utf8(bytes.as_ref())
                     .ok()
                     .and_then(|string| {
-                        DuperTemporal::try_zoned_date_time_from(Cow::Borrowed(string.as_ref())).ok()
+                        DuperTemporal::try_zoned_date_time_from(Cow::Borrowed(string)).ok()
                     })
                     .map(|temporal| DuperValue {
                         identifier: Some(
@@ -157,7 +155,7 @@ impl DuperType {
                 str::from_utf8(bytes.as_ref())
                     .ok()
                     .and_then(|string| {
-                        DuperTemporal::try_plain_date_from(Cow::Borrowed(string.as_ref())).ok()
+                        DuperTemporal::try_plain_date_from(Cow::Borrowed(string)).ok()
                     })
                     .map(|temporal| DuperValue {
                         identifier: Some(
@@ -180,7 +178,7 @@ impl DuperType {
                 str::from_utf8(bytes.as_ref())
                     .ok()
                     .and_then(|string| {
-                        DuperTemporal::try_plain_time_from(Cow::Borrowed(string.as_ref())).ok()
+                        DuperTemporal::try_plain_time_from(Cow::Borrowed(string)).ok()
                     })
                     .map(|temporal| DuperValue {
                         identifier: Some(
@@ -203,7 +201,7 @@ impl DuperType {
                 str::from_utf8(bytes.as_ref())
                     .ok()
                     .and_then(|string| {
-                        DuperTemporal::try_plain_date_time_from(Cow::Borrowed(string.as_ref())).ok()
+                        DuperTemporal::try_plain_date_time_from(Cow::Borrowed(string)).ok()
                     })
                     .map(|temporal| DuperValue {
                         identifier: Some(
@@ -226,8 +224,7 @@ impl DuperType {
                 str::from_utf8(bytes.as_ref())
                     .ok()
                     .and_then(|string| {
-                        DuperTemporal::try_plain_year_month_from(Cow::Borrowed(string.as_ref()))
-                            .ok()
+                        DuperTemporal::try_plain_year_month_from(Cow::Borrowed(string)).ok()
                     })
                     .map(|temporal| DuperValue {
                         identifier: Some(
@@ -250,7 +247,7 @@ impl DuperType {
                 str::from_utf8(bytes.as_ref())
                     .ok()
                     .and_then(|string| {
-                        DuperTemporal::try_plain_month_day_from(Cow::Borrowed(string.as_ref())).ok()
+                        DuperTemporal::try_plain_month_day_from(Cow::Borrowed(string)).ok()
                     })
                     .map(|temporal| DuperValue {
                         identifier: Some(
@@ -272,9 +269,7 @@ impl DuperType {
             (DuperType::TemporalDuration, DuperInner::Bytes(bytes)) => {
                 str::from_utf8(bytes.as_ref())
                     .ok()
-                    .and_then(|string| {
-                        DuperTemporal::try_duration_from(Cow::Borrowed(string.as_ref())).ok()
-                    })
+                    .and_then(|string| DuperTemporal::try_duration_from(Cow::Borrowed(string)).ok())
                     .map(|temporal| DuperValue {
                         identifier: Some(
                             DuperIdentifier::try_from("Duration").expect("valid identifier"),
@@ -294,7 +289,7 @@ impl DuperType {
                 str::from_utf8(bytes.as_ref())
                     .ok()
                     .and_then(|string| {
-                        DuperTemporal::try_unspecified_from(Cow::Borrowed(string.as_ref())).ok()
+                        DuperTemporal::try_unspecified_from(Cow::Borrowed(string)).ok()
                     })
                     .map(|temporal| DuperValue {
                         identifier: None,

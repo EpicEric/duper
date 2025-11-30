@@ -181,8 +181,7 @@ pub fn temporal_unspecified<'a>()
 
 // Inner values
 
-pub fn zoned_date_time<'a>()
--> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+pub fn zoned_date_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     date_time()
         .then(time_offset())
         .then(timezone())
@@ -208,8 +207,7 @@ pub fn instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>>
     ))
 }
 
-pub fn non_z_instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
-{
+pub fn non_z_instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         non_z_zoned_date_time(),
         date_time().then(time_num_offset()).padded().ignored(),
@@ -230,16 +228,14 @@ pub fn plain_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char
     ))
 }
 
-pub fn plain_date_time<'a>()
--> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+pub fn plain_date_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         non_z_instant(),
         date_time().then(suffix_tag().repeated()).padded().ignored(),
     ))
 }
 
-pub fn plain_year_month<'a>()
--> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+pub fn plain_year_month<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         plain_date(),
         year_month()
@@ -249,8 +245,7 @@ pub fn plain_year_month<'a>()
     ))
 }
 
-pub fn plain_month_day<'a>()
--> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
+pub fn plain_month_day<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         plain_date(),
         month_day().then(suffix_tag().repeated()).padded().ignored(),
@@ -320,8 +315,7 @@ pub fn duration<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>
         .ignored()
 }
 
-pub fn unspecified<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
-{
+pub fn unspecified<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         instant(),
         plain_year_month(),

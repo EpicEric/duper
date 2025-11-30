@@ -147,7 +147,6 @@ fn main() -> miette::Result<()> {
                 .duration_since(time::UNIX_EPOCH)
                 .into_diagnostic()?
                 .as_micros()
-                .to_string()
         ));
         fs::write(&tmp_file, &buf).into_diagnostic()?;
         fs::rename(&tmp_file, output).into_diagnostic()?;

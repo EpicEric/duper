@@ -263,7 +263,7 @@ async fn main() {
                 );
                 let _ = state.client.publish_diagnostics(PublishDiagnosticsParams {
                     uri,
-                    diagnostics: get_diagnostics(&document.text, &tree, state.is_utf8),
+                    diagnostics: get_diagnostics(&document.text, tree, state.is_utf8),
                     version: Some(params.text_document.version),
                 });
                 ControlFlow::Continue(())
