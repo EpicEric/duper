@@ -10,4 +10,4 @@
 
 The official Duper formatting library and CLI.
 
-[Check out the official website for Duper.](https://duper.dev.br)
+[Check out the documentation on the Duper website.](https://duper.dev.br/duperfmt.html)

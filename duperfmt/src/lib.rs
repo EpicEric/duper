@@ -1,6 +1,6 @@
 #![doc(html_logo_url = "https://duper.dev.br/logos/duper-100-100.png")]
 //!
-#![doc = include_str!("../../duper_website/docs/duperfmt.md")]
+#![doc = include_str!("./duperfmt.md")]
 //!
 
 use std::io::Write;

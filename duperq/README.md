@@ -10,4 +10,4 @@
 
 A fast Duper and JSON filter/processor.
 
-[Check out the official website for Duper.](https://duper.dev.br)
+[Check out the documentation on the Duper website.](https://duper.dev.br/duperq.html)
