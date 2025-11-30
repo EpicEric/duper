@@ -10,11 +10,11 @@ use duper::{
     visitor::DuperVisitor,
 };
 
-use crate::accessor::DuperAccessor;
+use crate::{accessor::DuperAccessor, types::DuperType};
 
 pub(crate) enum FormatterAtom {
     Fixed(String),
-    Dynamic(Box<dyn DuperAccessor>),
+    Dynamic(Box<dyn DuperAccessor>, Option<DuperType>),
 }
 
 pub(crate) struct Formatter {
@@ -41,10 +41,20 @@ impl Formatter {
         for atom in &self.atoms {
             match atom {
                 FormatterAtom::Fixed(fixed) => buf.push_str(&fixed),
-                FormatterAtom::Dynamic(duper_accessor) => {
+                FormatterAtom::Dynamic(duper_accessor, typ) => {
                     match duper_accessor.access(&value).into_iter().next() {
-                        Some(value) => buf.push_str(&self.visitor.visit(value)),
-                        None => buf.push_str("-MISSING-"),
+                        Some(value) => {
+                            if let Some(typ) = typ {
+                                if let Some(value) = typ.cast(value) {
+                                    buf.push_str(&self.visitor.visit(&value))
+                                } else {
+                                    buf.push_str("<INVALID CAST>")
+                                }
+                            } else {
+                                buf.push_str(&self.visitor.visit(value))
+                            }
+                        }
+                        None => buf.push_str("<MISSING>"),
                     }
                 }
             }

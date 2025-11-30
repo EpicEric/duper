@@ -59,4 +59,5 @@ See [the specification](https://duper.dev.br/spec.html) or the [EBNF grammar](ht
   - [`duperfmt`](./duperfmt/): Duper formatter based on Topiary.
     - [`duper_lsp`](./duper_lsp/): Duper LSP.
       - [`duper-vs-code`](./duper-vs-code/): Duper extension for Visual Studio Code.
+- [`duperq`](./duperq): A fast Duper and JSON filter/processor. 
 - [`duper_website`](./duper_website/): Official website for Duper, including the specification and WebAssembly-based playground.

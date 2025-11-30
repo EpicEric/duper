@@ -17,7 +17,6 @@ chumsky = "0.11.2"
 clap = { version = "4.5.53", features = ["derive"] }
 duper = { version = "0.4.3", path = "../duper", features = ["ansi"] }
 futures = "0.3.31"
-glob = "0.3.3"
 num_cpus = "1.17.0"
 regex = "1.12.2"
 smol = "2.0.2"

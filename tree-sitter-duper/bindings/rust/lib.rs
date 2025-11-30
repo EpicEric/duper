@@ -1,3 +1,4 @@
+#![doc(html_logo_url = "https://duper.dev.br/logos/duper-100-100.png")]
 //! This crate provides Duper language support for the [tree-sitter] parsing library.
 //!
 //! Typically, you will use the [`LANGUAGE`] constant to add this language to a

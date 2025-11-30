@@ -8,6 +8,6 @@
     <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
 </p>
 
-A high-performance Duper/JSON filter and processor.
+A fast Duper and JSON filter/processor.
 
 [Check out the official website for Duper.](https://duper.dev.br)

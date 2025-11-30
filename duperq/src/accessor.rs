@@ -31,6 +31,17 @@ impl DuperAccessor for FlattenedAccessor {
 
 // Base accessors
 
+pub(crate) struct SelfAccessor;
+
+impl DuperAccessor for SelfAccessor {
+    fn access<'accessor: 'value, 'value>(
+        &'accessor self,
+        value: &'value DuperValue<'value>,
+    ) -> AccessorReturn<'value> {
+        Box::new(iter::once(value))
+    }
+}
+
 pub(crate) struct FieldAccessor(pub(crate) String);
 
 impl DuperAccessor for FieldAccessor {
@@ -72,6 +83,8 @@ impl DuperAccessor for IndexAccessor {
     ) -> AccessorReturn<'value> {
         if let DuperInner::Array(array) = &value.inner {
             Box::new(array.get(self.0).into_iter())
+        } else if let DuperInner::Tuple(tuple) = &value.inner {
+            Box::new(tuple.get(self.0).into_iter())
         } else {
             Box::new(iter::empty())
         }
@@ -86,7 +99,17 @@ impl DuperAccessor for ReverseIndexAccessor {
         value: &'value DuperValue<'value>,
     ) -> AccessorReturn<'value> {
         if let DuperInner::Array(array) = &value.inner {
-            Box::new(array.get(array.len() - self.0).into_iter())
+            if let Some(index) = array.len().checked_sub(self.0) {
+                Box::new(array.get(index).into_iter())
+            } else {
+                Box::new(iter::empty())
+            }
+        } else if let DuperInner::Tuple(tuple) = &value.inner {
+            if let Some(index) = tuple.len().checked_sub(self.0) {
+                Box::new(tuple.get(index).into_iter())
+            } else {
+                Box::new(iter::empty())
+            }
         } else {
             Box::new(iter::empty())
         }

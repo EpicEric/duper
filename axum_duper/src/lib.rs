@@ -5,8 +5,6 @@
 //!
 //! This crate provides the [`Duper`] struct, which can be used to extract typed
 //! information from request's body, or to serialize a structured response.
-//!
-//! Under the hood, it wraps [`serde_duper`].
 
 use std::ops::Deref;
 

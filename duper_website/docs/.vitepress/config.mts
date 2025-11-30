@@ -69,6 +69,13 @@ export default async () => {
           text: "Editor support",
           items: [{ text: "Visual Studio Code", link: "/vs-code" }],
         },
+        {
+          text: "Tools",
+          items: [
+            { text: "duperq", link: "/duperq" },
+            { text: "duperfmt", link: "/duperfmt" },
+          ],
+        },
         { text: "Specification", link: "/spec" },
       ],
 

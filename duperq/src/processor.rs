@@ -123,4 +123,9 @@ impl Processor for OutputProcessor {
             .await
             .expect("stdout was closed");
     }
+
+    async fn close(&mut self) {
+        self.stdout.flush().await.expect("stdout was closed");
+        self.stdout.close().await.expect("stdout was closed");
+    }
 }

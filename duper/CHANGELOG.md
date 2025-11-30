@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Expose most parser functions to the public API.
+
 ## 0.4.2 (2025-11-25)
 
 ### Fixed

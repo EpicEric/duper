@@ -1029,7 +1029,6 @@ dependencies = [
  "clap",
  "duper",
  "futures",
- "glob",
  "num_cpus",
  "regex",
  "smol",

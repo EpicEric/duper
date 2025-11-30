@@ -1,3 +1,8 @@
+#![doc(html_logo_url = "https://duper.dev.br/logos/duper-100-100.png")]
+//!
+#![doc = include_str!("../../duper_website/docs/duperfmt.md")]
+//!
+
 use std::io::Write;
 
 use topiary_core::{Language, Operation, TopiaryQuery, formatter_tree};
@@ -5,6 +10,7 @@ use tree_sitter::Tree;
 
 const DUPER_QUERY: &str = include_str!("./duper.scm");
 
+/// Given a Duper [`Tree`] built from an input, formats said input into the output buffer.
 pub fn format_duper(
     tree: Tree,
     input: &str,

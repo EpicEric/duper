@@ -108,8 +108,8 @@ bool tree_sitter_duper_external_scanner_scan(void *payload, TSLexer *lexer,
           for (int i = 0; i < 2; i++) {
             lexer->advance(lexer, false);
             if (lexer->lookahead < '0' ||
-                lexer->lookahead > '9' && lexer->lookahead < 'A' ||
-                lexer->lookahead > 'F' && lexer->lookahead < 'a' ||
+                (lexer->lookahead > '9' && lexer->lookahead < 'A') ||
+                (lexer->lookahead > 'F' && lexer->lookahead < 'a') ||
                 lexer->lookahead > 'f') {
               return false;
             }
@@ -118,8 +118,8 @@ bool tree_sitter_duper_external_scanner_scan(void *payload, TSLexer *lexer,
           for (int i = 0; i < 4; i++) {
             lexer->advance(lexer, false);
             if (lexer->lookahead < '0' ||
-                lexer->lookahead > '9' && lexer->lookahead < 'A' ||
-                lexer->lookahead > 'F' && lexer->lookahead < 'a' ||
+                (lexer->lookahead > '9' && lexer->lookahead < 'A') ||
+                (lexer->lookahead > 'F' && lexer->lookahead < 'a') ||
                 lexer->lookahead > 'f') {
               return false;
             }
@@ -128,8 +128,8 @@ bool tree_sitter_duper_external_scanner_scan(void *payload, TSLexer *lexer,
           for (int i = 0; i < 8; i++) {
             lexer->advance(lexer, false);
             if (lexer->lookahead < '0' ||
-                lexer->lookahead > '9' && lexer->lookahead < 'A' ||
-                lexer->lookahead > 'F' && lexer->lookahead < 'a' ||
+                (lexer->lookahead > '9' && lexer->lookahead < 'A') ||
+                (lexer->lookahead > 'F' && lexer->lookahead < 'a') ||
                 lexer->lookahead > 'f') {
               return false;
             }

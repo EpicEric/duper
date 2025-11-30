@@ -1,10 +1,9 @@
-use std::{fmt::Display, path::PathBuf};
+use std::path::PathBuf;
 
 use chumsky::Parser as _;
 use clap::Parser;
 use duper::DuperParser;
 use duperq::query;
-use glob::glob;
 use smol::{
     LocalExecutor, Unblock,
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
@@ -14,41 +13,16 @@ use smol::{
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    /// Query to run.
-    query: String,
-
-    /// Glob of files to read from. If missing, defaults to stdin.
-    glob: Option<String>,
-
     /// If set, disables logs about parsing errors from being printed to stderr.
     #[arg(short = 'E', long)]
     disable_stderr: bool,
-}
 
-enum FileReadError {
-    Glob(glob::GlobError),
-    Io(std::io::Error),
-}
+    /// Query to run.
+    query: String,
 
-impl From<glob::GlobError> for FileReadError {
-    fn from(value: glob::GlobError) -> Self {
-        Self::Glob(value)
-    }
-}
-
-impl From<std::io::Error> for FileReadError {
-    fn from(value: std::io::Error) -> Self {
-        Self::Io(value)
-    }
-}
-
-impl Display for FileReadError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FileReadError::Glob(error) => error.fmt(f),
-            FileReadError::Io(error) => error.fmt(f),
-        }
-    }
+    /// Files to read from. If missing, defaults to stdin.
+    #[arg(name = "FILE")]
+    files: Vec<PathBuf>,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -75,35 +49,43 @@ fn main() -> anyhow::Result<()> {
                 while let Ok(value) = receiver.recv().await {
                     output.process(value).await;
                 }
+                output.close().await;
             }));
             (pipeline_fn)(sender)
         });
 
-    let glob = if let Some(duper_glob) = cli.glob {
-        Some(glob(&duper_glob)?)
-    } else {
-        None
-    };
+    let files = cli.files;
 
-    if let Some(glob) = glob {
-        let (pathbuf_sender, pathbuf_receiver) =
-            smol::channel::bounded::<Result<PathBuf, FileReadError>>(128);
-        let (file_sender, file_receiver) =
-            smol::channel::bounded::<Result<(PathBuf, String), FileReadError>>(128);
-        // Iterate over glob
+    if files.is_empty() {
+        // Read from stdin
         tasks.push(executor.spawn(async move {
-            for entry in glob {
-                match entry {
-                    Err(_) if cli.disable_stderr => continue,
-                    Ok(_) | Err(_) => {
-                        if pathbuf_sender
-                            .send(entry.map_err(|error| error.into()))
-                            .await
-                            .is_err()
-                        {
-                            break;
+            let stdin = BufReader::new(Unblock::new(std::io::stdin()));
+            let mut lines = stdin.lines();
+            while let Some(Ok(line)) = lines.next().await {
+                match DuperParser::parse_duper_trunk(&line) {
+                    Ok(trunk) => sink.process(trunk.static_clone()).await,
+                    Err(errors) => {
+                        if !cli.disable_stderr {
+                            if let Ok(parse_error) =
+                                DuperParser::prettify_error(&line, &errors, None)
+                            {
+                                let _ = stderr.write_all(parse_error.as_bytes()).await;
+                            }
                         }
                     }
+                }
+            }
+            sink.close().await;
+        }));
+    } else {
+        let (pathbuf_sender, pathbuf_receiver) = smol::channel::bounded::<PathBuf>(128);
+        let (file_sender, file_receiver) =
+            smol::channel::bounded::<Result<(PathBuf, String), std::io::Error>>(128);
+        // Iterate over files
+        tasks.push(executor.spawn(async move {
+            for entry in files {
+                if pathbuf_sender.send(entry).await.is_err() {
+                    break;
                 }
             }
         }));
@@ -112,29 +94,16 @@ fn main() -> anyhow::Result<()> {
             let file_sender = file_sender.clone();
             let pathbuf_receiver = pathbuf_receiver.clone();
             executor.spawn(async move {
-                while let Ok(msg) = pathbuf_receiver.recv().await {
-                    match msg {
-                        Ok(pathbuf) => {
-                            let string = smol::fs::read_to_string(&pathbuf).await;
-                            match string {
-                                Err(_) if cli.disable_stderr => continue,
-                                Ok(_) | Err(_) => {
-                                    if file_sender
-                                        .send(
-                                            string
-                                                .map(move |string| (pathbuf, string))
-                                                .map_err(|error| error.into()),
-                                        )
-                                        .await
-                                        .is_err()
-                                    {
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        Err(error) => {
-                            if file_sender.send(Err(error)).await.is_err() {
+                while let Ok(pathbuf) = pathbuf_receiver.recv().await {
+                    let string = smol::fs::read_to_string(&pathbuf).await;
+                    match string {
+                        Err(_) if cli.disable_stderr => continue,
+                        Ok(_) | Err(_) => {
+                            if file_sender
+                                .send(string.map(move |string| (pathbuf, string)))
+                                .await
+                                .is_err()
+                            {
                                 break;
                             }
                         }
@@ -156,35 +125,18 @@ fn main() -> anyhow::Result<()> {
                                     Some(pathbuf.to_string_lossy().as_ref()),
                                 ) {
                                     let _ = stderr.write_all(parse_error.as_bytes()).await;
+                                    let _ = stderr.flush().await;
                                 }
                             }
                         }
                     },
                     Err(error) => {
                         let _ = stderr.write_all(error.to_string().as_bytes()).await;
+                        let _ = stderr.flush().await;
                     }
                 }
             }
-        }));
-    } else {
-        // Read from stdin
-        tasks.push(executor.spawn(async move {
-            let stdin = BufReader::new(Unblock::new(std::io::stdin()));
-            let mut lines = stdin.lines();
-            while let Some(Ok(line)) = lines.next().await {
-                match DuperParser::parse_duper_trunk(&line) {
-                    Ok(trunk) => sink.process(trunk.static_clone()).await,
-                    Err(errors) => {
-                        if !cli.disable_stderr {
-                            if let Ok(parse_error) =
-                                DuperParser::prettify_error(&line, &errors, None)
-                            {
-                                let _ = stderr.write_all(parse_error.as_bytes()).await;
-                            }
-                        }
-                    }
-                }
-            }
+            sink.close().await;
         }));
     }
 

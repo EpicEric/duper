@@ -2,14 +2,14 @@ use chumsky::prelude::*;
 use duper::{
     Ansi, DuperInner, DuperValue, PrettyPrinter, Serializer,
     escape::unescape_str,
-    parser::{identified_value, identifier, integer, object_key},
+    parser::{identified_value, integer, object_key, quoted_string},
 };
 use smol::channel;
 
 use crate::{
     accessor::{
         AnyAccessor, DuperAccessor, FieldAccessor, FilterAccessor, FlattenedAccessor,
-        IndexAccessor, RangeIndexAccessor, ReverseIndexAccessor,
+        IndexAccessor, RangeIndexAccessor, ReverseIndexAccessor, SelfAccessor,
     },
     filter::{
         AccessorFilter, AndFilter, CastFilter, CmpValue, DuperFilter, EqFilter, EqValue, GeFilter,
@@ -24,9 +24,27 @@ use crate::{
 pub(crate) type CreateProcessorFn =
     Box<dyn FnOnce(channel::Sender<DuperValue<'static>>) -> Box<dyn Processor>>;
 
+/// Parses a `duperq` query.
 pub fn query<'a>()
 -> impl Parser<'a, &'a str, (Vec<CreateProcessorFn>, Box<dyn Processor>), extra::Err<Rich<'a, char>>>
 {
+    let output = choice((
+        just("format").padded().ignore_then(fmt().padded()),
+        just("ansi").padded().map(|_| {
+            let mut ansi = Ansi::default();
+            OutputProcessor::new(Box::new(move |value| {
+                ansi.to_ansi(value).unwrap_or_default()
+            }))
+        }),
+        just("pretty-print").padded().map(|_| {
+            let mut pretty_printer = PrettyPrinter::default();
+            OutputProcessor::new(Box::new(move |value| {
+                pretty_printer.pretty_print(value).into_bytes()
+            }))
+        }),
+    ))
+    .padded();
+
     choice((
         just("filter").padded().ignore_then(filter()).map(|filter| {
             Box::new(move |sender| {
@@ -62,28 +80,14 @@ pub fn query<'a>()
             }),
     ))
     .separated_by(just('|'))
-    .collect()
+    .collect::<Vec<_>>()
     .then(
         just('|')
             .padded()
-            .ignore_then(choice((
-                just("format").padded().ignore_then(fmt().padded()),
-                just("ansi").padded().map(|_| {
-                    let mut ansi = Ansi::default();
-                    OutputProcessor::new(Box::new(move |value| {
-                        ansi.to_ansi(value).unwrap_or_default()
-                    }))
-                }),
-                just("pretty-print").padded().map(|_| {
-                    let mut pretty_printer = PrettyPrinter::default();
-                    OutputProcessor::new(Box::new(move |value| {
-                        pretty_printer.pretty_print(value).into_bytes()
-                    }))
-                }),
-            )))
+            .ignore_then(output.padded())
             .or_not()
-            .map(|processor| {
-                Box::new(processor.unwrap_or_else(|| {
+            .map(|output| {
+                Box::new(output.unwrap_or_else(|| {
                     let mut serializer = Serializer::default();
                     OutputProcessor::new(Box::new(move |value| {
                         serializer.serialize(value).into_bytes()
@@ -91,6 +95,7 @@ pub fn query<'a>()
                 })) as Box<dyn Processor>
             }),
     )
+    .then_ignore(end())
 }
 
 fn filter<'a>() -> impl Parser<'a, &'a str, Box<dyn DuperFilter>, extra::Err<Rich<'a, char>>> + Clone
@@ -139,10 +144,11 @@ fn filter<'a>() -> impl Parser<'a, &'a str, Box<dyn DuperFilter>, extra::Err<Ric
 fn accessor<'a>()
 -> impl Parser<'a, &'a str, Box<dyn DuperAccessor>, extra::Err<Rich<'a, char>>> + Clone {
     recursive(|accessor| {
-        let access = just('.').ignore_then(choice((
-            object_key().map(|key: duper::DuperKey<'a>| {
+        let access = choice((
+            just('.').ignore_then(object_key().map(|key: duper::DuperKey<'a>| {
                 Box::new(FieldAccessor(key.as_ref().into())) as Box<dyn DuperAccessor>
-            }),
+            })),
+            just('.').map(|_| Box::new(SelfAccessor) as Box<dyn DuperAccessor>),
             integer()
                 .or_not()
                 .padded()
@@ -201,7 +207,7 @@ fn accessor<'a>()
             text::whitespace()
                 .delimited_by(just('['), just(']'))
                 .map(|_| Box::new(AnyAccessor) as Box<dyn DuperAccessor>),
-        )));
+        ));
 
         access
             .clone()
@@ -223,6 +229,7 @@ fn leaf_filter<'a>(
         .ignore_then(
             accessor
                 .clone()
+                .padded()
                 .then_ignore(just(','))
                 .then(duper_type().padded())
                 .map(|(accessor, typ)| {
@@ -345,8 +352,8 @@ fn leaf_filter<'a>(
             eq_op
                 .clone()
                 .ignore_then(
-                    identifier()
-                        .map(|identifier| Some(identifier.to_string()))
+                    quoted_string()
+                        .map(|identifier| Some(identifier.into_owned()))
                         .or(just("null").to(None))
                         .padded(),
                 )
@@ -356,8 +363,8 @@ fn leaf_filter<'a>(
             ne_op
                 .clone()
                 .ignore_then(
-                    identifier()
-                        .map(|identifier| Some(identifier.to_string()))
+                    quoted_string()
+                        .map(|identifier| Some(identifier.into_owned()))
                         .or(just("null").to(None))
                         .padded(),
                 )
@@ -473,10 +480,24 @@ fn duper_type<'a>() -> impl Parser<'a, &'a str, DuperType, extra::Err<Rich<'a, c
     ))
 }
 
-fn fmt<'a>() -> impl Parser<'a, &'a str, OutputProcessor, extra::Err<Rich<'a, char>>> {
+fn fmt<'a>() -> impl Parser<'a, &'a str, OutputProcessor, extra::Err<Rich<'a, char>>> + Clone {
     just('$')
-        .ignore_then(accessor().padded().delimited_by(just('{'), just('}')))
-        .map(|accessor| FormatterAtom::Dynamic(accessor))
+        .ignore_then(
+            just("cast")
+                .padded()
+                .ignore_then(
+                    accessor()
+                        .padded()
+                        .then_ignore(just(','))
+                        .then(duper_type().padded())
+                        .map(|(accessor, typ)| FormatterAtom::Dynamic(accessor, Some(typ)))
+                        .delimited_by(just('('), just(')')),
+                )
+                .or(accessor()
+                    .map(|accessor| FormatterAtom::Dynamic(accessor, None))
+                    .padded())
+                .delimited_by(just('{'), just('}')),
+        )
         .or(
             quoted_inner().try_map(|slice: &str, span| match unescape_str(slice) {
                 Ok(unescaped) => Ok(FormatterAtom::Fixed(unescaped.clone().into_owned())),

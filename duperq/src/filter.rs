@@ -226,6 +226,7 @@ impl DuperFilter for EqFilter {
             },
             (EqValue::Len(this), DuperInner::Object(that)) => *this == that.len(),
             (EqValue::Len(this), DuperInner::Array(that)) => *this == that.len(),
+            (EqValue::Len(this), DuperInner::Tuple(that)) => *this == that.len(),
             (EqValue::Len(this), DuperInner::String(that)) => *this == that.as_ref().len(),
             (EqValue::Len(this), DuperInner::Bytes(that)) => *this == that.as_ref().len(),
             (EqValue::Tuple(this), DuperInner::Tuple(that)) => {
