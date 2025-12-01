@@ -1,8 +1,11 @@
 # Quick start
 
-## JavaScript (WebAssembly)
+## JavaScript
 
 ```bash
+# Node.JS
+npm install --save @duper-js/node
+# Vite (via WebAssembly)
 npm install --save @duper-js/wasm
 ```
 

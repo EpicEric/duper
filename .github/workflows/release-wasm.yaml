@@ -81,3 +81,5 @@ jobs:
         working-directory: duper-js-wasm
         run: |
           npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ''

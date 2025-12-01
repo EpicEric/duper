@@ -1,13 +1,17 @@
 # JavaScript guide
 
-Get started with Duper in JavaScript/TypeScript with the [`@duper-js/wasm`](https://www.npmjs.com/package/@duper-js/wasm) package.
+Get started with Duper in Node.JS and the browser with the [`@duper-js/node`](https://www.npmjs.com/package/@duper-js/node) and [`@duper-js/wasm`](https://www.npmjs.com/package/@duper-js/wasm) packages.
 
 ## Installation
 
 ### Node.js
 
+::: warning
+Node.JS support is considered alpha. Please use at your own risk. Testing and [opening issues](https://github.com/EpicEric/duper/issues/new) is more than welcome.
+:::
+
 ```bash
-npm install --save @duper-js/wasm
+npm install --save @duper-js/node
 ```
 
 ### Vite

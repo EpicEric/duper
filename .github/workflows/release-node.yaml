@@ -157,3 +157,5 @@ jobs:
         working-directory: duper-js-node
         run: |
           npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ''
