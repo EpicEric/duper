@@ -1,4 +1,4 @@
-name: "[Release] Build @duper-js/node package"
+description: Build and release @duper-js/node
 
 on:
   workflow_dispatch:
@@ -81,7 +81,7 @@ jobs:
       - name: Install dependencies
         working-directory: duper-js-node
         run: |
-          npm install
+          npm ci
       - name: Build with cargo-zigbuild (Linux)
         if: matrix.runner == 'ubuntu-24.04'
         working-directory: duper-js-node
@@ -153,9 +153,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: 'https://registry.npmjs.org'
+      - name: Update NPM
+        run: npm install npm@11 -g
       - name: Publish to NPM
         working-directory: duper-js-node
         run: |
-          npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ''
+          npm publish --provenance --access public

@@ -1,4 +1,4 @@
-name: "[Release] Build duper_lsp and package extensions"
+description: Build duper_lsp and release package extensions
 
 on:
   workflow_dispatch:
@@ -108,7 +108,7 @@ jobs:
       - name: Build extension
         working-directory: duper-vs-code
         run: |
-          npm install
+          npm ci
           npm run build
           npx vsce package --out "../dist/duper-vs-code-${{ matrix.vscode-target }}.vsix" --target ${{ matrix.vscode-target }}
       - name: Upload artifacts
@@ -169,7 +169,7 @@ jobs:
       - name: Install dependencies
         working-directory: duper-vs-code
         run: |
-          npm install
+          npm ci
       - name: Publish to Visual Studio Marketplace
         working-directory: duper-vs-code
         run: |

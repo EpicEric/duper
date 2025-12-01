@@ -1,4 +1,4 @@
-name: Validate
+description: Validate
 
 on:
   push:
@@ -148,7 +148,7 @@ jobs:
       - name: Install Node dependencies and build
         working-directory: ./duper-js-node
         run: |
-          npm install
+          npm ci
           npm run build
           npm run bundle
       - name: Test with Jest
@@ -186,7 +186,7 @@ jobs:
       - name: Install Node dependencies and build WASM
         working-directory: ./duper-js-wasm
         run: |
-          npm install
+          npm ci
           npm run build:ci
       - name: Test with Vitest
         working-directory: ./duper-js-wasm

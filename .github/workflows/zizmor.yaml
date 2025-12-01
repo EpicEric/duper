@@ -1,4 +1,4 @@
-name: Analyze GitHub Actions with zizmor
+description: Analyze GitHub Actions with zizmor
 
 on:
   push:

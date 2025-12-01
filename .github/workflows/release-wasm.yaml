@@ -1,4 +1,4 @@
-name: "[Release] Build @duper-js/wasm package"
+description: Build and release @duper-js/wasm
 
 on:
   workflow_dispatch:
@@ -46,7 +46,7 @@ jobs:
       - name: Install dependencies and build
         working-directory: duper-js-wasm
         run: |
-          npm install
+          npm ci
           npm run build:release
       - name: Upload artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -77,9 +77,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: 'https://registry.npmjs.org'
+      - name: Update NPM
+        run: npm install npm@11 -g
       - name: Publish to NPM
         working-directory: duper-js-wasm
         run: |
-          npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ''
+          npm publish --provenance --access public

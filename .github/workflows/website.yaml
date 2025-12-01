@@ -1,4 +1,4 @@
-name: Build website with VitePress
+description: Build website with VitePress
 
 on:
   push:
@@ -56,7 +56,7 @@ jobs:
       - name: Install Node dependencies and build
         working-directory: ./duper_website
         run: |
-          npm install
+          npm ci
           npm run wasm:build
           npm run wasm:bindgen
           ../binaryen/bin/wasm-opt -Os ./pkg/duper_website_bg.wasm -o ./pkg/duper_website_bg.wasm

@@ -1,4 +1,4 @@
-name: "[Release] Build duper-python package"
+description: Build and release duper-python
 
 on:
   workflow_dispatch:

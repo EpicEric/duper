@@ -1,4 +1,4 @@
-name: "[Release] Build .NET package"
+description: Build and release the .NET package
 
 on:
   workflow_dispatch:
