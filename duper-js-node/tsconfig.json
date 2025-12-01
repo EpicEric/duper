@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "types": ["node", "@types/jest"],
     "target": "ESNext",
     "module": "CommonJS",
     "moduleResolution": "node",
