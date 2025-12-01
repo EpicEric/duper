@@ -828,7 +828,7 @@ export function parse(value: string, jsonSafe?: false): DuperValue;
 export function parse(value: string, jsonSafe: true): any;
 export function parse(value: string, jsonSafe?: boolean): DuperValue | any {
   const parsed = duperNapi.parse(value, true);
-  const transformed = fromNapi(parsed);
+  const transformed = fromNapi(parsed as NapiValue);
   if (jsonSafe) {
     return transformed.toJSON();
   }

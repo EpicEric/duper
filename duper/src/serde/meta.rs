@@ -44,28 +44,28 @@ impl<'a> DuperValue<'a> {
                 state.serialize_field("inner", &SerDuperTuple(tuple))?;
                 state.serialize_field("type", TYPE_TUPLE)?;
             }
-            DuperInner::String(_) => {
-                state.serialize_field("inner", &self.inner)?;
+            DuperInner::String(string) => {
+                state.serialize_field("inner", string.as_ref())?;
                 state.serialize_field("type", TYPE_STRING)?;
             }
-            DuperInner::Bytes(_) => {
-                state.serialize_field("inner", &self.inner)?;
+            DuperInner::Bytes(bytes) => {
+                state.serialize_field("inner", bytes.as_ref())?;
                 state.serialize_field("type", TYPE_BYTES)?;
             }
             DuperInner::Temporal(temporal) => {
                 state.serialize_field("inner", temporal.as_ref())?;
                 state.serialize_field("type", TYPE_TEMPORAL)?;
             }
-            DuperInner::Integer(_) => {
-                state.serialize_field("inner", &self.inner)?;
+            DuperInner::Integer(integer) => {
+                state.serialize_field("inner", integer)?;
                 state.serialize_field("type", TYPE_INTEGER)?;
             }
-            DuperInner::Float(_) => {
-                state.serialize_field("inner", &self.inner)?;
+            DuperInner::Float(float) => {
+                state.serialize_field("inner", float)?;
                 state.serialize_field("type", TYPE_FLOAT)?;
             }
-            DuperInner::Boolean(_) => {
-                state.serialize_field("inner", &self.inner)?;
+            DuperInner::Boolean(bool) => {
+                state.serialize_field("inner", bool)?;
                 state.serialize_field("type", TYPE_BOOLEAN)?;
             }
             DuperInner::Null => {
