@@ -1,13 +1,12 @@
-use std::{
-    fmt::{Debug, Display},
-    marker::PhantomData,
-};
+use std::{fmt::Debug, marker::PhantomData};
 
 use napi::{
     Env,
     bindgen_prelude::{Array, BigInt, Null, Object, Uint8Array},
 };
 use serde_core::ser::Error;
+
+use crate::SerdeError;
 
 #[repr(transparent)]
 pub(crate) struct DuperMetaSerializer<'a, 'ser> {
@@ -21,23 +20,6 @@ impl<'ser> DuperMetaSerializer<'_, 'ser> {
             _marker: Default::default(),
             env,
         }
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum SerdeError {
-    #[error("{0}")]
-    Custom(String),
-    #[error("NAPI error: {0}")]
-    NAPI(#[from] napi::Error),
-}
-
-impl serde_core::ser::Error for SerdeError {
-    fn custom<T>(msg: T) -> Self
-    where
-        T: Display,
-    {
-        SerdeError::Custom(msg.to_string())
     }
 }
 
@@ -205,7 +187,7 @@ impl<'ser, 'a> serde_core::Serializer for &'ser DuperMetaSerializer<'a, 'ser> {
             })
         } else {
             Err(SerdeError::custom(format!(
-                "expected DuperValue struct with 3 fields, found {name} struct with {len} fields"
+                "expected DuperValue struct with 3 fields, found {name} struct with {len} field(s)"
             )))
         }
     }

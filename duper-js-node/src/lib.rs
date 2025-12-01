@@ -1,14 +1,33 @@
+use std::fmt::Display;
+
 use duper::{
     DuperIdentifierTryFromError, DuperObjectTryFromError, DuperParser, DuperTemporalTryFromError,
     DuperValue, PrettyPrinter, Serializer,
 };
 use napi::{Env, bindgen_prelude::Object};
 use napi_derive::napi;
-use serde_core::de::IntoDeserializer;
 
-use crate::ser::{DuperMetaSerializer, SerdeError};
+use crate::{de::DuperMetaDeserializer, ser::DuperMetaSerializer};
 
+mod de;
 mod ser;
+
+#[derive(Debug, thiserror::Error)]
+pub enum SerdeError {
+    #[error("{0}")]
+    Custom(String),
+    #[error("NAPI error: {0}")]
+    NAPI(#[from] napi::Error),
+}
+
+impl serde_core::ser::Error for SerdeError {
+    fn custom<T>(msg: T) -> Self
+    where
+        T: Display,
+    {
+        SerdeError::Custom(msg.to_string())
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum DuperError {
@@ -50,11 +69,7 @@ pub struct SerializeOptions {
 }
 
 #[napi]
-pub fn serialize(
-    env: &Env,
-    value: serde_json::Value,
-    options: Option<SerializeOptions>,
-) -> anyhow::Result<String> {
+pub fn serialize(value: Object, options: Option<SerializeOptions>) -> anyhow::Result<String> {
     let SerializeOptions {
         indent,
         strip_identifiers,
@@ -73,10 +88,15 @@ pub fn serialize(
         } else {
             Ok(PrettyPrinter::new(strip_identifiers, indent.as_ref())
                 .map_err(DuperError::SerializeOptions)?
-                .pretty_print(DuperValue::deserialize_meta(value.into_deserializer())?))
+                .pretty_print(DuperValue::deserialize_meta(DuperMetaDeserializer {
+                    object: value,
+                })?))
         }
     } else {
-        Ok(Serializer::new(strip_identifiers, minify)
-            .serialize(DuperValue::deserialize_meta(value.into_deserializer())?))
+        Ok(
+            Serializer::new(strip_identifiers, minify).serialize(DuperValue::deserialize_meta(
+                DuperMetaDeserializer { object: value },
+            )?),
+        )
     }
 }
