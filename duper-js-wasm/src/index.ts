@@ -637,7 +637,7 @@ function toFfi(
     return toFfi(value.toJSON(), true);
   } else if (typeof value !== "function" && typeof value !== "symbol") {
     const array = Object.entries(value).map(([key, val]) =>
-      duperFfi.DuperObjectEntry.new({ key, value: toFfi(val) }),
+      duperFfi.DuperObjectEntry.new({ key, value: toFfi(val as any) }),
     );
     return duperFfi.DuperValue.Object.new({
       identifier: undefined,

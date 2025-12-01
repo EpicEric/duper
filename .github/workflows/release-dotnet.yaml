@@ -1,4 +1,4 @@
-name: "[Release] Build UniFFI packages"
+name: "[Release] Build .NET package"
 
 on:
   workflow_dispatch:
@@ -36,7 +36,7 @@ jobs:
           # - runner: ubuntu-24.04
           #   target: aarch64-pc-windows-msvc
           #   os: windows
-          - runner: macos-15-intel
+          - runner: macos-15-intel # TO-DO: Change to macos-15
             target: x86_64-apple-darwin
             os: macos
           - runner: macos-15
@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: true
-      - name: Fetch MSRV and target
+      - name: Fetch MSRV and add target
         run: |
           rustup toolchain install ${RUST_VERSION}
           rustup override set ${RUST_VERSION}
@@ -112,10 +112,12 @@ jobs:
           name: dist-${{ matrix.target }}
           path: dist
 
-  dotnet:
+  release:
     name: Release .NET package
     runs-on: ubuntu-24.04
     environment: nuget
+    permissions:
+      id-token: write
     needs: build
     steps:
       - name: Checkout repository
@@ -166,7 +168,14 @@ jobs:
         run: |
           dotnet build
           dotnet pack
+      - name: Login to NuGet
+        uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1
+        id: login
+        with:
+          user: ${{ vars.NUGET_USER }}
       - name: Publish to NuGet
         working-directory: duper_uniffi/dotnet
         run: |
-          dotnet nuget push bin/Release/*.nupkg --api-key ${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json
+          dotnet nuget push bin/Release/*.nupkg --api-key ${NUGET_API_KEY} --source https://api.nuget.org/v3/index.json
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}

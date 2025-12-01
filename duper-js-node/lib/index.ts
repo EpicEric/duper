@@ -1,9 +1,7 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: Serialization/Deserialization involves a lot of `any` */
 import duperNapi from "./napi";
 
 const duperSymbol: unique symbol = Symbol();
-
-const SERDE_JSON_ARBITRARY_PRECISION_NUMBER =
-  "$serde_json::private::Number" as const;
 
 /**
  * A valid Duper value.
