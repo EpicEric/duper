@@ -460,7 +460,8 @@ impl<'de> de::MapAccess<'de> for MapDeserializer<'de> {
         match self.iter.next() {
             Some((key, value)) => {
                 self.value = Some(value);
-                seed.deserialize(key.as_ref().into_deserializer()).map(Some)
+                seed.deserialize(key.into_inner().into_deserializer())
+                    .map(Some)
             }
             None => Ok(None),
         }

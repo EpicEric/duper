@@ -460,19 +460,19 @@ type NapiValue = {
     }
   | {
       type: "Bytes";
-      inner: number[];
+      inner: Uint8Array;
     }
   | {
       type: "Temporal";
       inner: string;
     }
   | {
-      type: "Integer" | "Float";
+      type: "Integer";
+      inner: bigint;
+    }
+  | {
+      type: "Float";
       inner: number;
-      // | {
-      //     [SERDE_JSON_ARBITRARY_PRECISION_NUMBER]: string;
-      //   }
-      // | number;
     }
   | {
       type: "Boolean";
@@ -534,7 +534,7 @@ function toNapi(
           return {
             identifier: value.identifier || null,
             type: "Bytes",
-            inner: [...value.value.values()],
+            inner: value.value,
           };
         }
         case "Temporal": {
@@ -548,7 +548,7 @@ function toNapi(
           return {
             identifier: value.identifier || null,
             type: "Integer",
-            inner: Number(value.value),
+            inner: value.value,
           };
         }
         case "Float": {
@@ -593,7 +593,7 @@ function toNapi(
       return {
         identifier: null,
         type: "Integer",
-        inner: Number(value),
+        inner: value,
       };
     } else if (typeof value === "number") {
       return {
@@ -605,7 +605,7 @@ function toNapi(
       return {
         identifier: null,
         type: "Bytes",
-        inner: [...value.values()],
+        inner: value,
       };
     } else if (typeof value === "string") {
       return {
@@ -746,11 +746,7 @@ function fromNapi(value: NapiValue): DuperValue {
       return DuperValue.String(value.inner, value.identifier ?? undefined);
     }
     case "Bytes": {
-      const uint8array = new Uint8Array(value.inner.length);
-      value.inner.forEach((val, i) => {
-        uint8array[i] = val;
-      });
-      return DuperValue.Bytes(uint8array, value.identifier ?? undefined);
+      return DuperValue.Bytes(value.inner, value.identifier ?? undefined);
     }
     case "Temporal": {
       return DuperValue.Temporal(value.inner, value.identifier ?? undefined);
@@ -828,7 +824,7 @@ export function parse(value: string, jsonSafe?: false): DuperValue;
 export function parse(value: string, jsonSafe: true): any;
 export function parse(value: string, jsonSafe?: boolean): DuperValue | any {
   const parsed = duperNapi.parse(value, true);
-  const transformed = fromNapi(parsed);
+  const transformed = fromNapi(parsed as NapiValue);
   if (jsonSafe) {
     return transformed.toJSON();
   }

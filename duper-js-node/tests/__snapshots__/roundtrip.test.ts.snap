@@ -1,44 +1,42 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`parse then stringify doesn't modify original object 1`] = `"Product({date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'), dimensions: (18.5, 15.2, 7.8), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"], weight: Kilograms(0.285)})"`;
+exports[`parse then stringify doesn't modify original object 1`] = `"Product({dimensions: (18.5, 15.2, 7), weight: Kilograms(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"], date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]')})"`;
 
-exports[`parse then stringify inserts object entry 1`] = `"Product({date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'), dimensions: (18.5, 15.2, 7.8), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"], test: {foo: "bar"}, weight: Kilograms(0.285)})"`;
+exports[`parse then stringify inserts object entry 1`] = `"Product({dimensions: (18.5, 15.2, 7), weight: Kilograms(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"], date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'), test: {foo: "bar"}})"`;
 
-exports[`parse then stringify minifies output 1`] = `"{date:'2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]',dimensions:(18.5,15.2,7.8),image_thumbnail:b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=",tags:["electronics","audio","wireless"],weight:0.285}"`;
+exports[`parse then stringify minifies output 1`] = `"{dimensions:(18.5,15.2,7),weight:0.285,image_thumbnail:b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=",tags:["electronics","audio","wireless"],date:'2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'}"`;
 
 exports[`parse then stringify pretty-prints output 1`] = `
 "Product({
-  date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'),
   dimensions: (
     18.5,
     15.2,
-    7.8,
+    7,
   ),
+  weight: Kilograms(0.285),
   image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
   tags: [
     "electronics",
     "audio",
     "wireless",
   ],
-  weight: Kilograms(0.285),
+  date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'),
 })"
 `;
 
-exports[`parse then stringify removes identifier 1`] = `"Product({date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'), dimensions: (18.5, 15.2, 7.8), image_thumbnail: b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=", tags: ["electronics", "audio", "wireless"], weight: Kilograms(0.285)})"`;
+exports[`parse then stringify removes identifier 1`] = `"Product({dimensions: (18.5, 15.2, 7), weight: Kilograms(0.285), image_thumbnail: b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=", tags: ["electronics", "audio", "wireless"], date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]')})"`;
 
-exports[`parse then stringify removes value 1`] = `"Product({date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"], weight: Kilograms(0.285)})"`;
+exports[`parse then stringify removes value 1`] = `"Product({weight: Kilograms(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"], date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]')})"`;
 
-exports[`parse then stringify strips identifiers 1`] = `"{date: '2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]', dimensions: (18.5, 15.2, 7.8), image_thumbnail: b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=", tags: ["electronics", "audio", "wireless"], weight: 0.285}"`;
+exports[`parse then stringify strips identifiers 1`] = `"{dimensions: (18.5, 15.2, 7), weight: 0.285, image_thumbnail: b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=", tags: ["electronics", "audio", "wireless"], date: '2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'}"`;
 
-exports[`parse then stringify swaps identifier 1`] = `"Product({date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'), dimensions: (18.5, 15.2, 7.8), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"], weight: Pounds(0.285)})"`;
+exports[`parse then stringify swaps identifier 1`] = `"Product({dimensions: (18.5, 15.2, 7), weight: Pounds(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ["electronics", "audio", "wireless"], date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]')})"`;
 
-exports[`parse then stringify swaps value 1`] = `"Product({date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]'), dimensions: (18.5, 15.2, 7.8), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ("music", DeprecatedTag("hi-fi")), weight: Kilograms(0.285)})"`;
+exports[`parse then stringify swaps value 1`] = `"Product({dimensions: (18.5, 15.2, 7), weight: Kilograms(0.285), image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="), tags: ("music", DeprecatedTag("hi-fi")), date: ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]')})"`;
 
-exports[`stringify then parse properly serializes then deserializes to Duper 1`] = `"Tcp({chunk: Stream(b""), connections: [IPv4Socket("192.168.0.50:12345"), IPv46ocket("[2001:1d8::1]:29876")], date: '2025-11-08', port: 5173})"`;
+exports[`stringify then parse properly serializes then deserializes to Duper 1`] = `"Tcp({chunk: Stream(b""), port: 5173, connections: [IPv4Socket("192.168.0.50:12345"), IPv46ocket("[2001:1d8::1]:29876")], date: '2025-11-08'})"`;
 
-exports[`stringify then parse properly serializes then deserializes to JSON-safe 1`] = `"Tcp({chunk: Stream(b""), connections: [IPv4Socket("192.168.0.50:12345"), IPv46ocket("[2001:1d8::1]:29876")], date: '2025-11-08', port: 5173})"`;
-
-exports[`stringify then parse properly serializes then deserializes to JSON-safe 2`] = `
+exports[`stringify then parse properly serializes then deserializes to JSON-safe 1`] = `
 {
   "chunk": [],
   "connections": [

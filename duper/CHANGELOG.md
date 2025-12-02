@@ -6,6 +6,10 @@
 
 - **Breaking:** Change meta-`serde` types to titlecase.
 
+### Fixed
+
+- Fix meta-(de)serialization.
+
 ## 0.4.3 (2025-11-30)
 
 ### Changed

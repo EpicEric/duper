@@ -44,28 +44,28 @@ impl<'a> DuperValue<'a> {
                 state.serialize_field("inner", &SerDuperTuple(tuple))?;
                 state.serialize_field("type", TYPE_TUPLE)?;
             }
-            DuperInner::String(_) => {
-                state.serialize_field("inner", &self.inner)?;
+            DuperInner::String(string) => {
+                state.serialize_field("inner", string.as_ref())?;
                 state.serialize_field("type", TYPE_STRING)?;
             }
-            DuperInner::Bytes(_) => {
-                state.serialize_field("inner", &self.inner)?;
+            DuperInner::Bytes(bytes) => {
+                state.serialize_field("inner", &SerDuperBytes(bytes))?;
                 state.serialize_field("type", TYPE_BYTES)?;
             }
             DuperInner::Temporal(temporal) => {
                 state.serialize_field("inner", temporal.as_ref())?;
                 state.serialize_field("type", TYPE_TEMPORAL)?;
             }
-            DuperInner::Integer(_) => {
-                state.serialize_field("inner", &self.inner)?;
+            DuperInner::Integer(integer) => {
+                state.serialize_field("inner", integer)?;
                 state.serialize_field("type", TYPE_INTEGER)?;
             }
-            DuperInner::Float(_) => {
-                state.serialize_field("inner", &self.inner)?;
+            DuperInner::Float(float) => {
+                state.serialize_field("inner", float)?;
                 state.serialize_field("type", TYPE_FLOAT)?;
             }
-            DuperInner::Boolean(_) => {
-                state.serialize_field("inner", &self.inner)?;
+            DuperInner::Boolean(bool) => {
+                state.serialize_field("inner", bool)?;
                 state.serialize_field("type", TYPE_BOOLEAN)?;
             }
             DuperInner::Null => {
@@ -142,6 +142,17 @@ impl<'b> Serialize for SerDuperTuple<'b> {
             tup.serialize_element(&SerDuperValue(element))?;
         }
         tup.end()
+    }
+}
+
+struct SerDuperBytes<'b>(&'b DuperBytes<'b>);
+
+impl<'b> Serialize for SerDuperBytes<'b> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde_core::Serializer,
+    {
+        serializer.serialize_bytes(self.0.as_ref())
     }
 }
 
@@ -792,6 +803,65 @@ impl<'b> TryFrom<&'b str> for DeDuperType {
     }
 }
 
+enum DeDuperIdentifier<'de> {
+    None,
+    Some(Cow<'de, str>),
+}
+
+struct DeDuperIdentifierVisitor;
+
+impl<'de> Visitor<'de> for DeDuperIdentifierVisitor {
+    type Value = DeDuperIdentifier<'de>;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a meta Duper identifier")
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperIdentifier::None)
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperIdentifier::Some(Cow::Owned(v)))
+    }
+
+    fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(DeDuperIdentifier::Some(Cow::Borrowed(v)))
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_string(self)
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        self.visit_string(v.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for DeDuperIdentifier<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(DeDuperIdentifierVisitor)
+    }
+}
+
 impl<'de> Visitor<'de> for DeDuperValueVisitor {
     type Value = DeDuperValue<'de>;
 
@@ -815,7 +885,14 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
                         return Err(Error::duplicate_field("identifier"));
                     }
                     found_identifier = true;
-                    identifier = map.next_value()?;
+                    identifier = match map.next_value::<DeDuperIdentifier>()? {
+                        DeDuperIdentifier::None => None,
+                        DeDuperIdentifier::Some(identifier) => {
+                            Some(DuperIdentifier::try_from(identifier).map_err(|error| {
+                                A::Error::custom(format!("failed to parse identifier: {error}"))
+                            })?)
+                        }
+                    };
                 }
                 "inner" => {
                     if inner.is_some() {

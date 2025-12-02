@@ -38,11 +38,11 @@ jobs:
             target: x86_64-pc-windows-msvc
             vscode-target: win32-x64
             os: windows
-          - runner: windows-11-arm # TO-DO: Change to windows-latest
+          - runner: windows-latest
             target: aarch64-pc-windows-msvc
             vscode-target: win32-arm64
             os: windows
-          - runner: macos-15-intel # TO-DO: Change to macos-15
+          - runner: macos-15
             target: x86_64-apple-darwin
             vscode-target: darwin-x64
             os: macos

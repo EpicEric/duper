@@ -36,7 +36,7 @@ jobs:
           # - runner: ubuntu-24.04
           #   target: aarch64-pc-windows-msvc
           #   os: windows
-          - runner: macos-15-intel # TO-DO: Change to macos-15
+          - runner: macos-15
             target: x86_64-apple-darwin
             os: macos
           - runner: macos-15

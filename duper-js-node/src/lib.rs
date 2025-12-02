@@ -2,15 +2,25 @@ use duper::{
     DuperIdentifierTryFromError, DuperObjectTryFromError, DuperParser, DuperTemporalTryFromError,
     DuperValue, PrettyPrinter, Serializer,
 };
+use napi::{Env, bindgen_prelude::Object};
 use napi_derive::napi;
-use serde_core::de::IntoDeserializer;
+
+use crate::{
+    de::DuperMetaDeserializer,
+    ser::{DuperMetaSerializer, SerdeError},
+};
+
+mod de;
+mod ser;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DuperError {
     #[error("Parse error: {0}")]
     Parse(String),
+    #[error("serde_json error: {0}")]
+    SerdeJson(#[from] serde_json::Error),
     #[error("Serde error: {0}")]
-    Serde(#[from] serde_json::Error),
+    Serde(#[from] SerdeError),
     #[error("Invalid serialization options: {0}")]
     SerializeOptions(&'static str),
     #[error("Identifier error: {0}")]
@@ -22,7 +32,7 @@ pub enum DuperError {
 }
 
 #[napi]
-pub fn parse(input: String, parse_any: bool) -> anyhow::Result<serde_json::Value> {
+pub fn parse(env: &Env, input: String, parse_any: bool) -> anyhow::Result<Object<'_>> {
     let value = match parse_any {
         true => DuperParser::parse_duper_value(&input),
         false => DuperParser::parse_duper_trunk(&input),
@@ -32,7 +42,7 @@ pub fn parse(input: String, parse_any: bool) -> anyhow::Result<serde_json::Value
             DuperParser::prettify_error(&input, &err, None).unwrap_or_else(|_| format!("{err:?}")),
         )
     })?;
-    Ok(value.serialize_meta(serde_json::value::Serializer)?)
+    Ok(value.serialize_meta(&DuperMetaSerializer::new(env))?)
 }
 
 #[napi(object)]
@@ -44,7 +54,8 @@ pub struct SerializeOptions {
 
 #[napi]
 pub fn serialize(
-    value: serde_json::Value,
+    env: &Env,
+    value: Object,
     options: Option<SerializeOptions>,
 ) -> anyhow::Result<String> {
     let SerializeOptions {
@@ -65,10 +76,16 @@ pub fn serialize(
         } else {
             Ok(PrettyPrinter::new(strip_identifiers, indent.as_ref())
                 .map_err(DuperError::SerializeOptions)?
-                .pretty_print(DuperValue::deserialize_meta(value.into_deserializer())?))
+                .pretty_print(DuperValue::deserialize_meta(DuperMetaDeserializer {
+                    env,
+                    object: value,
+                })?))
         }
     } else {
-        Ok(Serializer::new(strip_identifiers, minify)
-            .serialize(DuperValue::deserialize_meta(value.into_deserializer())?))
+        Ok(
+            Serializer::new(strip_identifiers, minify).serialize(DuperValue::deserialize_meta(
+                DuperMetaDeserializer { env, object: value },
+            )?),
+        )
     }
 }
