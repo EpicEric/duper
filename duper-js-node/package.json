@@ -1,6 +1,6 @@
 {
   "name": "@duper-js/node",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Node.JS bindings for Duper, the format that's super!",
   "keywords": [
     "Duper",

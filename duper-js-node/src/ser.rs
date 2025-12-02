@@ -1,4 +1,7 @@
-use std::{fmt::Debug, marker::PhantomData};
+use std::{
+    fmt::{Debug, Display},
+    marker::PhantomData,
+};
 
 use napi::{
     Env,
@@ -6,7 +9,22 @@ use napi::{
 };
 use serde_core::ser::Error;
 
-use crate::SerdeError;
+#[derive(Debug, thiserror::Error)]
+pub enum SerdeError {
+    #[error("{0}")]
+    Custom(String),
+    #[error("NAPI error: {0}")]
+    NAPI(#[from] napi::Error),
+}
+
+impl serde_core::ser::Error for SerdeError {
+    fn custom<T>(msg: T) -> Self
+    where
+        T: Display,
+    {
+        SerdeError::Custom(msg.to_string())
+    }
+}
 
 #[repr(transparent)]
 pub(crate) struct DuperMetaSerializer<'a, 'ser> {
@@ -35,144 +53,6 @@ impl<'ser, 'a> serde_core::Serializer for &'ser DuperMetaSerializer<'a, 'ser> {
     type SerializeStruct = DuperMetaStructSerializer<'a, 'ser>;
     type SerializeStructVariant = DuperMetaSerializer<'a, 'ser>;
 
-    fn serialize_bool(self, _v: bool) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_i8(self, _v: i8) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_i16(self, _v: i16) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_i32(self, _v: i32) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_i64(self, _v: i64) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_u8(self, _v: u8) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_u64(self, _v: u64) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_f32(self, _v: f32) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_f64(self, _v: f64) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_str(self, _v: &str) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_some<T>(self, _value: &T) -> Result<Self::Ok, Self::Error>
-    where
-        T: ?Sized + serde_core::Serialize,
-    {
-        todo!()
-    }
-
-    fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_unit_variant(
-        self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-    ) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_newtype_struct<T>(
-        self,
-        _name: &'static str,
-        _value: &T,
-    ) -> Result<Self::Ok, Self::Error>
-    where
-        T: ?Sized + serde_core::Serialize,
-    {
-        todo!()
-    }
-
-    fn serialize_newtype_variant<T>(
-        self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-        _value: &T,
-    ) -> Result<Self::Ok, Self::Error>
-    where
-        T: ?Sized + serde_core::Serialize,
-    {
-        todo!()
-    }
-
-    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_tuple_struct(
-        self,
-        _name: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_tuple_variant(
-        self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        todo!()
-    }
-
-    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        todo!()
-    }
-
     fn serialize_struct(
         self,
         name: &'static str,
@@ -192,14 +72,164 @@ impl<'ser, 'a> serde_core::Serializer for &'ser DuperMetaSerializer<'a, 'ser> {
         }
     }
 
+    fn serialize_bool(self, _v: bool) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected bool".into()))
+    }
+
+    fn serialize_i8(self, _v: i8) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected i8".into()))
+    }
+
+    fn serialize_i16(self, _v: i16) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected i16".into()))
+    }
+
+    fn serialize_i32(self, _v: i32) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected i32".into()))
+    }
+
+    fn serialize_i64(self, _v: i64) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected i64".into()))
+    }
+
+    fn serialize_u8(self, _v: u8) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected u8".into()))
+    }
+
+    fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected u16".into()))
+    }
+
+    fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected u32".into()))
+    }
+
+    fn serialize_u64(self, _v: u64) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected u64".into()))
+    }
+
+    fn serialize_f32(self, _v: f32) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected f32".into()))
+    }
+
+    fn serialize_f64(self, _v: f64) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected f64".into()))
+    }
+
+    fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected char".into()))
+    }
+
+    fn serialize_str(self, _v: &str) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected str".into()))
+    }
+
+    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected bytes".into()))
+    }
+
+    fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected none".into()))
+    }
+
+    fn serialize_some<T>(self, _value: &T) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + serde_core::Serialize,
+    {
+        Err(SerdeError::Custom("unexpected some".into()))
+    }
+
+    fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom("unexpected unit".into()))
+    }
+
+    fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom(format!("unexpected unit struct {name}")))
+    }
+
+    fn serialize_unit_variant(
+        self,
+        name: &'static str,
+        _variant_index: u32,
+        variant: &'static str,
+    ) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom(format!(
+            "unexpected unit variant {name}::{variant}"
+        )))
+    }
+
+    fn serialize_newtype_struct<T>(
+        self,
+        name: &'static str,
+        _value: &T,
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + serde_core::Serialize,
+    {
+        Err(SerdeError::Custom(format!(
+            "unexpected newtype struct {name}"
+        )))
+    }
+
+    fn serialize_newtype_variant<T>(
+        self,
+        name: &'static str,
+        _variant_index: u32,
+        variant: &'static str,
+        _value: &T,
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized + serde_core::Serialize,
+    {
+        Err(SerdeError::Custom(format!(
+            "unexpected newtype variant {name}::{variant}"
+        )))
+    }
+
+    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+        Err(SerdeError::Custom("unexpected seq".into()))
+    }
+
+    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
+        Err(SerdeError::Custom("unexpected tuple".into()))
+    }
+
+    fn serialize_tuple_struct(
+        self,
+        name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleStruct, Self::Error> {
+        Err(SerdeError::Custom(format!(
+            "unexpected tuple struct {name}"
+        )))
+    }
+
+    fn serialize_tuple_variant(
+        self,
+        name: &'static str,
+        _variant_index: u32,
+        variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleVariant, Self::Error> {
+        Err(SerdeError::Custom(format!(
+            "unexpected tuple variant {name}::{variant}"
+        )))
+    }
+
+    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        Err(SerdeError::Custom("unexpected map".into()))
+    }
+
     fn serialize_struct_variant(
         self,
-        _name: &'static str,
+        name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        todo!()
+        Err(SerdeError::Custom(format!(
+            "unexpected struct variant {name}::{variant}"
+        )))
     }
 }
 
@@ -211,11 +241,11 @@ impl<'a, 'ser> serde_core::ser::SerializeSeq for DuperMetaSerializer<'a, 'ser> {
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        unreachable!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unreachable!()
     }
 }
 
@@ -227,11 +257,11 @@ impl<'a, 'ser> serde_core::ser::SerializeTuple for DuperMetaSerializer<'a, 'ser>
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        unreachable!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unreachable!()
     }
 }
 
@@ -243,11 +273,11 @@ impl<'a, 'ser> serde_core::ser::SerializeTupleStruct for DuperMetaSerializer<'a,
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        unreachable!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unreachable!()
     }
 }
 
@@ -259,11 +289,11 @@ impl<'a, 'ser> serde_core::ser::SerializeTupleVariant for DuperMetaSerializer<'a
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        unreachable!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unreachable!()
     }
 }
 
@@ -275,18 +305,18 @@ impl<'a, 'ser> serde_core::ser::SerializeMap for DuperMetaSerializer<'a, 'ser> {
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        unreachable!()
     }
 
     fn serialize_value<T>(&mut self, _value: &T) -> Result<(), Self::Error>
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        unreachable!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unreachable!()
     }
 }
 
@@ -298,11 +328,11 @@ impl<'a, 'ser> serde_core::ser::SerializeStructVariant for DuperMetaSerializer<'
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        unreachable!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unreachable!()
     }
 }
 
@@ -462,7 +492,7 @@ impl<'a, 'ser> serde_core::Serializer for &'ser DuperMetaInnerSerializer<'a, 'se
     }
 
     fn serialize_u64(self, _v: u64) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(SerdeError::Custom("unexpected u64".into()))
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
@@ -474,7 +504,7 @@ impl<'a, 'ser> serde_core::Serializer for &'ser DuperMetaInnerSerializer<'a, 'se
     }
 
     fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(SerdeError::Custom("unexpected char".into()))
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
@@ -500,41 +530,47 @@ impl<'a, 'ser> serde_core::Serializer for &'ser DuperMetaInnerSerializer<'a, 'se
         Ok(DuperMetaInner::Null(Null))
     }
 
-    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
-        todo!()
+    fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
+        Err(SerdeError::Custom(format!("unexpected unit struct {name}")))
     }
 
     fn serialize_unit_variant(
         self,
-        _name: &'static str,
+        name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(SerdeError::Custom(format!(
+            "unexpected unit variant {name}::{variant}"
+        )))
     }
 
     fn serialize_newtype_struct<T>(
         self,
-        _name: &'static str,
+        name: &'static str,
         _value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        Err(SerdeError::Custom(format!(
+            "unexpected newtype struct {name}"
+        )))
     }
 
     fn serialize_newtype_variant<T>(
         self,
-        _name: &'static str,
+        name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
         _value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        Err(SerdeError::Custom(format!(
+            "unexpected newtype variant {name}::{variant}"
+        )))
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
@@ -553,20 +589,24 @@ impl<'a, 'ser> serde_core::Serializer for &'ser DuperMetaInnerSerializer<'a, 'se
 
     fn serialize_tuple_struct(
         self,
-        _name: &'static str,
+        name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        todo!()
+        Err(SerdeError::Custom(format!(
+            "unexpected newtype struct {name}"
+        )))
     }
 
     fn serialize_tuple_variant(
         self,
-        _name: &'static str,
+        name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        todo!()
+        Err(SerdeError::Custom(format!(
+            "unexpected tuple variant {name}::{variant}"
+        )))
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
@@ -579,20 +619,22 @@ impl<'a, 'ser> serde_core::Serializer for &'ser DuperMetaInnerSerializer<'a, 'se
 
     fn serialize_struct(
         self,
-        _name: &'static str,
+        name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        todo!()
+        Err(SerdeError::Custom(format!("unexpected struct {name}")))
     }
 
     fn serialize_struct_variant(
         self,
-        _name: &'static str,
+        name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        todo!()
+        Err(SerdeError::Custom(format!(
+            "unexpected struct variant {name}::{variant}"
+        )))
     }
 }
 
@@ -604,11 +646,11 @@ impl<'a, 'ser> serde_core::ser::SerializeTupleStruct for DuperMetaInnerSerialize
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        unreachable!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unreachable!()
     }
 }
 
@@ -620,11 +662,11 @@ impl<'a, 'ser> serde_core::ser::SerializeTupleVariant for DuperMetaInnerSerializ
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        unreachable!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unreachable!()
     }
 }
 
@@ -636,11 +678,11 @@ impl<'a, 'ser> serde_core::ser::SerializeStruct for DuperMetaInnerSerializer<'a,
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        unreachable!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unreachable!()
     }
 }
 
@@ -652,11 +694,11 @@ impl<'a, 'ser> serde_core::ser::SerializeStructVariant for DuperMetaInnerSeriali
     where
         T: ?Sized + serde_core::Serialize,
     {
-        todo!()
+        unreachable!()
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        unreachable!()
     }
 }
 

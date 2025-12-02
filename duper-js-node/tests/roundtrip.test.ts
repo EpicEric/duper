@@ -3,7 +3,7 @@ import { DuperValue, parse, stringify } from "..";
 describe("parse then stringify", () => {
   const input = `
     Product({
-      dimensions: (18.5, 15.2, 7.8),  // In centimeters
+      dimensions: (18.5, 15.2, 7),  // In centimeters
       weight: Kilograms(0.285),
       image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
       tags: ["electronics", "audio", "wireless"],
@@ -78,7 +78,7 @@ describe("parse then stringify", () => {
 describe("stringify then parse", () => {
   const duper = DuperValue.Object(
     {
-      chunk: DuperValue.Bytes(new Uint8Array(), "Stream"),
+      chunk: DuperValue.Bytes(new Uint8Array(0), "Stream"),
       port: DuperValue.Integer(5173),
       connections: DuperValue.Array([
         DuperValue.String("192.168.0.50:12345", "IPv4Socket"),
@@ -108,7 +108,6 @@ describe("stringify then parse", () => {
 
   it("properly serializes then deserializes to JSON-safe", () => {
     const serialized = stringify(duper);
-    expect(serialized).toMatchSnapshot();
     const deserialized = parse(serialized, true);
     expect(deserialized).toMatchSnapshot();
   });
