@@ -13,6 +13,7 @@ members = [
   "duper_website",
   "serde_duper",
   "serde_duper_macros",
+  "tracing_duper",
   "tree-sitter-duper",
 ]
 

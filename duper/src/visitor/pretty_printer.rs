@@ -51,7 +51,7 @@ impl<'pp> PrettyPrinter<'pp> {
     }
 
     /// Convert the [`DuperValue`] into a pretty-printed [`String`].
-    pub fn pretty_print<'a>(&mut self, value: DuperValue<'a>) -> String {
+    pub fn pretty_print<'a>(&mut self, value: &DuperValue<'a>) -> String {
         self.buf.clear();
         value.accept(self);
         std::mem::take(&mut self.buf)
@@ -348,7 +348,9 @@ mod pretty_printer_tests {
             identifier: None,
             inner: DuperInner::Object(DuperObject(vec![])),
         };
-        let pp = PrettyPrinter::new(false, "  ").unwrap().pretty_print(value);
+        let pp = PrettyPrinter::new(false, "  ")
+            .unwrap()
+            .pretty_print(&value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
@@ -359,7 +361,9 @@ mod pretty_printer_tests {
             identifier: None,
             inner: DuperInner::Array(DuperArray(vec![])),
         };
-        let pp = PrettyPrinter::new(false, "  ").unwrap().pretty_print(value);
+        let pp = PrettyPrinter::new(false, "  ")
+            .unwrap()
+            .pretty_print(&value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
@@ -376,7 +380,9 @@ mod pretty_printer_tests {
                 },
             )])),
         };
-        let pp = PrettyPrinter::new(false, "  ").unwrap().pretty_print(value);
+        let pp = PrettyPrinter::new(false, "  ")
+            .unwrap()
+            .pretty_print(&value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
@@ -390,7 +396,9 @@ mod pretty_printer_tests {
                 inner: DuperInner::Integer(42),
             }])),
         };
-        let pp = PrettyPrinter::new(false, "  ").unwrap().pretty_print(value);
+        let pp = PrettyPrinter::new(false, "  ")
+            .unwrap()
+            .pretty_print(&value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
@@ -437,7 +445,9 @@ mod pretty_printer_tests {
                 ),
             ])),
         };
-        let pp = PrettyPrinter::new(false, "  ").unwrap().pretty_print(value);
+        let pp = PrettyPrinter::new(false, "  ")
+            .unwrap()
+            .pretty_print(&value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
@@ -461,7 +471,9 @@ mod pretty_printer_tests {
                 },
             ])),
         };
-        let pp = PrettyPrinter::new(false, "  ").unwrap().pretty_print(value);
+        let pp = PrettyPrinter::new(false, "  ")
+            .unwrap()
+            .pretty_print(&value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
@@ -508,7 +520,9 @@ mod pretty_printer_tests {
                 },
             )])),
         };
-        let pp = PrettyPrinter::new(false, "  ").unwrap().pretty_print(value);
+        let pp = PrettyPrinter::new(false, "  ")
+            .unwrap()
+            .pretty_print(&value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
@@ -538,7 +552,9 @@ mod pretty_printer_tests {
                 },
             ])),
         };
-        let pp = PrettyPrinter::new(false, "  ").unwrap().pretty_print(value);
+        let pp = PrettyPrinter::new(false, "  ")
+            .unwrap()
+            .pretty_print(&value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
@@ -610,7 +626,7 @@ mod pretty_printer_tests {
                 ),
             ])),
         };
-        let pp = PrettyPrinter::new(true, "  ").unwrap().pretty_print(value);
+        let pp = PrettyPrinter::new(true, "  ").unwrap().pretty_print(&value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }
@@ -671,7 +687,9 @@ mod pretty_printer_tests {
                 ),
             ])),
         };
-        let pp = PrettyPrinter::new(false, "\t").unwrap().pretty_print(value);
+        let pp = PrettyPrinter::new(false, "\t")
+            .unwrap()
+            .pretty_print(&value);
         assert_snapshot!(pp);
         let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
     }

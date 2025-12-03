@@ -33,13 +33,13 @@ pub fn query<'a>()
         just("ansi").padded().map(|_| {
             let mut ansi = Ansi::default();
             OutputProcessor::new(Box::new(move |value| {
-                ansi.to_ansi(value).unwrap_or_default()
+                ansi.to_ansi(&value).unwrap_or_default()
             }))
         }),
         just("pretty-print").padded().map(|_| {
             let mut pretty_printer = PrettyPrinter::default();
             OutputProcessor::new(Box::new(move |value| {
-                pretty_printer.pretty_print(value).into_bytes()
+                pretty_printer.pretty_print(&value).into_bytes()
             }))
         }),
     ))
@@ -90,7 +90,7 @@ pub fn query<'a>()
                 Box::new(output.unwrap_or_else(|| {
                     let mut serializer = Serializer::default();
                     OutputProcessor::new(Box::new(move |value| {
-                        serializer.serialize(value).into_bytes()
+                        serializer.serialize(&value).into_bytes()
                     }))
                 })) as Box<dyn Processor>
             }),

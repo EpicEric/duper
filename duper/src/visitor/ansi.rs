@@ -115,7 +115,7 @@ impl<'ansi> Ansi<'ansi> {
     }
 
     /// Convert the [`DuperValue`] into a [`Vec`] of bytes.
-    pub fn to_ansi<'a>(&mut self, value: DuperValue<'a>) -> Result<Vec<u8>, Error> {
+    pub fn to_ansi<'a>(&mut self, value: &DuperValue<'a>) -> Result<Vec<u8>, Error> {
         self.buf.clear();
         value.accept(self)?;
         Ok(std::mem::take(&mut self.buf))
@@ -698,7 +698,7 @@ mod ansi_tests {
     #[test]
     fn ansi() {
         let mut ansi = Ansi::new(false, ANSI_THEME);
-        let printed = ansi.to_ansi(example_value()).unwrap();
+        let printed = ansi.to_ansi(&example_value()).unwrap();
         println!("{}", str::from_utf8(&printed).unwrap());
         assert_debug_snapshot!(printed);
     }
@@ -706,7 +706,7 @@ mod ansi_tests {
     #[test]
     fn vscode_dark_plus() {
         let mut ansi = Ansi::new(false, VSCODE_DARK_PLUS_THEME);
-        let printed = ansi.to_ansi(example_value()).unwrap();
+        let printed = ansi.to_ansi(&example_value()).unwrap();
         println!("{}", str::from_utf8(&printed).unwrap());
         assert_debug_snapshot!(printed);
     }
