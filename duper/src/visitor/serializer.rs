@@ -31,7 +31,7 @@ impl Serializer {
     }
 
     /// Convert the [`DuperValue`] into a serialized [`String`].
-    pub fn serialize<'a>(&mut self, value: DuperValue<'a>) -> String {
+    pub fn serialize<'a>(&mut self, value: &DuperValue<'a>) -> String {
         self.buf.clear();
         value.accept(self);
         std::mem::take(&mut self.buf)

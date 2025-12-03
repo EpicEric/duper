@@ -87,19 +87,19 @@ mod duper_py {
                     &(0..indent).map(|_| ' ').collect::<String>(),
                 )
                 .map_err(|error| PyErr::new::<PyValueError, String>(error.into()))?
-                .pretty_print(value))
+                .pretty_print(&value))
             } else if indent.is_instance_of::<PyString>() {
                 let indent: &str = indent.extract()?;
                 Ok(PrettyPrinter::new(strip_identifiers, indent)
                     .map_err(|error| PyErr::new::<PyValueError, String>(error.into()))?
-                    .pretty_print(value))
+                    .pretty_print(&value))
             } else {
                 Err(PyErr::new::<PyValueError, String>(format!(
                     "expect indent to be string or int, found {indent:?}"
                 )))
             }
         } else {
-            Ok(Serializer::new(strip_identifiers, minify).serialize(value))
+            Ok(Serializer::new(strip_identifiers, minify).serialize(&value))
         }
     }
 
@@ -127,19 +127,19 @@ mod duper_py {
                         &(0..indent).map(|_| ' ').collect::<String>(),
                     )
                     .map_err(|error| PyErr::new::<PyValueError, String>(error.into()))?
-                    .pretty_print(value)
+                    .pretty_print(&value)
                 } else if indent.is_instance_of::<PyString>() {
                     let indent: &str = indent.extract()?;
                     PrettyPrinter::new(strip_identifiers, indent)
                         .map_err(|error| PyErr::new::<PyValueError, String>(error.into()))?
-                        .pretty_print(value)
+                        .pretty_print(&value)
                 } else {
                     return Err(PyErr::new::<PyValueError, String>(format!(
                         "expect indent to be string or int, found {indent:?}"
                     )));
                 }
             } else {
-                Serializer::new(strip_identifiers, minify).serialize(value)
+                Serializer::new(strip_identifiers, minify).serialize(&value)
             },),
         )?;
         Ok(())

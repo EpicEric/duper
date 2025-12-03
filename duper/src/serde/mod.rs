@@ -450,7 +450,7 @@ mod serde_tests {
         let ser = value
             .serialize(&mut Serializer::new())
             .expect("should serialize");
-        PrettyPrinter::new(false, "  ").unwrap().pretty_print(ser)
+        PrettyPrinter::new(false, "  ").unwrap().pretty_print(&ser)
     }
 
     fn deserialize_duper(value: &str) -> DuperValue<'_> {

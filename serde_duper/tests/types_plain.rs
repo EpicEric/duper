@@ -273,15 +273,20 @@ fn time() {
     }
 
     let value = Test {
-        duration: Duration::from_secs(3600),
+        duration: Duration::new(36, 100000),
         system_time: SystemTime::now(),
     };
 
     let serialized = serde_duper::to_string(&value).unwrap();
+    #[cfg(not(feature = "temporal"))]
     assert!(
         serialized.starts_with(
-        r#"Test({duration: Duration({secs: 3600, nanos: 0}), system_time: SystemTime({secs_since_epoch: "#)
+        r#"Test({duration: Duration({secs: 36, nanos: 100000}), system_time: SystemTime({secs_since_epoch: "#)
     );
+    #[cfg(feature = "temporal")]
+    assert!(serialized.starts_with(
+        r#"Test({duration: Duration('PT36.0001S'), system_time: SystemTime({secs_since_epoch: "#
+    ));
 
     let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
     assert_eq!(value.duration, deserialized.duration);

@@ -46,11 +46,25 @@ pub fn to_string<T>(value: &T) -> Result<String, DuperSerdeError>
 where
     T: Serialize,
 {
-    Ok(DuperSerializer::new(false, false).serialize(to_duper(value)?))
+    Ok(DuperSerializer::new(false, false).serialize(&to_duper(value)?))
 }
 
-/// Serialize the given data structure as a [`String`] of a Duper value, stripping
-/// identifiers from the output.
+/// Serialize the given data structure as a [`String`] of a Duper value, minifying
+/// the output.
+///
+/// # Errors
+///
+/// Serialization can fail if `T`'s implementation of [`Serialize`] decides to
+/// fail, or if `T` contains a map with non-string keys.
+pub fn to_string_compact<T>(value: &T) -> Result<String, DuperSerdeError>
+where
+    T: Serialize,
+{
+    Ok(DuperSerializer::new(false, true).serialize(&to_duper(value)?))
+}
+
+/// Serialize the given data structure as a [`String`] of a Duper value, minifying
+/// and stripping identifiers from the output.
 ///
 /// # Errors
 ///
@@ -60,7 +74,7 @@ pub fn to_string_minified<T>(value: &T) -> Result<String, DuperSerdeError>
 where
     T: Serialize,
 {
-    Ok(DuperSerializer::new(true, true).serialize(to_duper(value)?))
+    Ok(DuperSerializer::new(true, true).serialize(&to_duper(value)?))
 }
 
 /// Serialize the given data structure as a [`String`] of a Duper value,
@@ -76,7 +90,7 @@ where
 {
     Ok(DuperPrettyPrinter::new(false, indent)
         .map_err(DuperSerdeError::invalid_value)?
-        .pretty_print(to_duper(value)?))
+        .pretty_print(&to_duper(value)?))
 }
 
 impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {

@@ -2,9 +2,14 @@
 
 ## Unreleased
 
+### Added
+
+- `serde::to_string_compact` which minifies and doesn't remove identifiers.
+
 ### Changed
 
 - **Breaking:** Change meta-`serde` types to titlecase.
+- **Breaking:** Change visitors to receive borrowed values.
 
 ### Fixed
 

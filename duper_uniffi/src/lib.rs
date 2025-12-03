@@ -109,10 +109,10 @@ pub fn serialize(
         } else {
             Ok(PrettyPrinter::new(strip_identifiers, indent.as_ref())
                 .map_err(DuperError::SerializeOptions)?
-                .pretty_print(value.serialize()?))
+                .pretty_print(&value.serialize()?))
         }
     } else {
-        Ok(Serializer::new(strip_identifiers, minify).serialize(value.serialize()?))
+        Ok(Serializer::new(strip_identifiers, minify).serialize(&value.serialize()?))
     }
 }
 

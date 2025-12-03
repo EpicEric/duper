@@ -2,7 +2,7 @@
 
 use std::{
     borrow::Cow,
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     fmt::{Debug, Display},
 };
 
@@ -359,6 +359,20 @@ impl<'a> DuperObject<'a> {
     /// object.
     pub fn iter(&self) -> impl Iterator<Item = &(DuperKey<'a>, DuperValue<'a>)> {
         self.0.iter()
+    }
+}
+
+impl<'a> From<HashMap<DuperKey<'a>, DuperValue<'a>>> for DuperObject<'a> {
+    /// Create a valid object from the provided [`HashMap`].
+    fn from(value: HashMap<DuperKey<'a>, DuperValue<'a>>) -> Self {
+        Self(value.into_iter().collect())
+    }
+}
+
+impl<'a> From<BTreeMap<DuperKey<'a>, DuperValue<'a>>> for DuperObject<'a> {
+    /// Create a valid object from the provided [`BTreeMap`].
+    fn from(value: BTreeMap<DuperKey<'a>, DuperValue<'a>>) -> Self {
+        Self(value.into_iter().collect())
     }
 }
 

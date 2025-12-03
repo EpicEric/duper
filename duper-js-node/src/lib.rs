@@ -76,14 +76,14 @@ pub fn serialize(
         } else {
             Ok(PrettyPrinter::new(strip_identifiers, indent.as_ref())
                 .map_err(DuperError::SerializeOptions)?
-                .pretty_print(DuperValue::deserialize_meta(DuperMetaDeserializer {
+                .pretty_print(&DuperValue::deserialize_meta(DuperMetaDeserializer {
                     env,
                     object: value,
                 })?))
         }
     } else {
         Ok(
-            Serializer::new(strip_identifiers, minify).serialize(DuperValue::deserialize_meta(
+            Serializer::new(strip_identifiers, minify).serialize(&DuperValue::deserialize_meta(
                 DuperMetaDeserializer { env, object: value },
             )?),
         )

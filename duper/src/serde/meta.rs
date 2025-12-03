@@ -1079,7 +1079,7 @@ mod serde_meta_tests {
         let ser = value
             .serialize_meta(&mut Serializer::new())
             .expect("should serialize");
-        PrettyPrinter::new(false, "  ").unwrap().pretty_print(ser)
+        PrettyPrinter::new(false, "  ").unwrap().pretty_print(&ser)
     }
 
     fn deserialize_meta(value: &str) -> DuperValue<'_> {
