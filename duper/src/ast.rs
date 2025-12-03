@@ -54,7 +54,7 @@ pub enum DuperInner<'a> {
 }
 
 /// A key in a [`DuperObject`].
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DuperKey<'a>(pub(crate) Cow<'a, str>);
 
 /// An object (or map) from [`DuperKey`]s to [`DuperValue`]s.
@@ -359,6 +359,25 @@ impl<'a> DuperObject<'a> {
     /// object.
     pub fn iter(&self) -> impl Iterator<Item = &(DuperKey<'a>, DuperValue<'a>)> {
         self.0.iter()
+    }
+
+    /// Create a valid object from the provided [`Vec`], dropping any duplicate keys
+    /// and keeping the first one.
+    pub fn from_lossy(value: Vec<(DuperKey<'a>, DuperValue<'a>)>) -> Self {
+        let mut keys = std::collections::HashSet::with_capacity(value.len());
+        Self(
+            value
+                .into_iter()
+                .filter(|(key, _)| {
+                    if keys.contains(key) {
+                        false
+                    } else {
+                        keys.insert(key.clone());
+                        true
+                    }
+                })
+                .collect(),
+        )
     }
 }
 

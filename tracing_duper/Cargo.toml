@@ -10,7 +10,12 @@ repository = "https://github.com/EpicEric/duper"
 homepage = "https://duper.dev.br"
 readme = "README.md"
 
+[features]
+default = ["chrono"]
+chrono = ["dep:chrono"]
+
 [dependencies]
+chrono = { version = "0.4", optional = true }
 duper = { version = "0.5.0", path = "../duper", features = ["serde"] }
-tracing-core = "0.1.35"
+tracing-core = "0.1"
 tracing-subscriber = "0.3"

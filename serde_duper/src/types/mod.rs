@@ -971,5 +971,8 @@ pub mod DuperOptionBytesRegex {
     }
 }
 
+#[cfg(feature = "temporal")]
+pub mod temporal;
+
 #[cfg(feature = "uuid")]
 duper_serde_module!(DuperUuid, DuperOptionUuid, ::uuid::Uuid, "Uuid");
