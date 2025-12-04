@@ -3397,6 +3397,8 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "duper",
+ "serde_duper",
+ "tracing",
  "tracing-core",
  "tracing-subscriber",
 ]

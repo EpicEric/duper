@@ -9,12 +9,14 @@ authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 repository = "https://github.com/EpicEric/duper"
 homepage = "https://duper.dev.br"
 readme = "README.md"
+categories = ["development-tools"]
+keywords = ["duper", "formatting"]
 
 [dependencies]
-clap = { version = "4.5.53", features = ["derive"] }
-miette = { version = "7.6.0", features = ["fancy"] }
-thiserror = "2.0.17"
-topiary-core = "0.7.1"
-topiary-tree-sitter-facade = "0.7.1"
-tree-sitter = { version = "0.25.10", features = ["wasm"] }
-tree-sitter-duper = { version = "0.1.1", path = "../tree-sitter-duper" }
+clap = { version = "4", features = ["derive"] }
+miette = { version = "7", features = ["fancy"] }
+thiserror = "2"
+topiary-core = "0.7"
+topiary-tree-sitter-facade = "0.7"
+tree-sitter = { version = "0.25", features = ["wasm"] }
+tree-sitter-duper = { version = "0.1", path = "../tree-sitter-duper" }

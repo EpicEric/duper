@@ -9,13 +9,15 @@ authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 repository = "https://github.com/EpicEric/duper"
 homepage = "https://duper.dev.br"
 readme = "README.md"
+categories = ["command-line-utilities", "development-tools::debugging"]
+keywords = ["duper", "filter"]
 
 [dependencies]
 anyhow = "1.0.100"
 async-trait = "0.1.89"
 chumsky = "0.11.2"
 clap = { version = "4.5.53", features = ["derive"] }
-duper = { version = "0.5.0", path = "../duper", features = ["ansi"] }
+duper = { version = "0.5", path = "../duper", features = ["ansi"] }
 futures = "0.3.31"
 num_cpus = "1.17.0"
 regex = "1.12.2"

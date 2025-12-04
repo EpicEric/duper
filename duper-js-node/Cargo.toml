@@ -8,8 +8,6 @@ authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 repository = "https://github.com/EpicEric/duper"
 homepage = "https://duper.dev.br"
 readme = "README.md"
-categories = ["encoding", "parser-implementations"]
-keywords = ["duper", "serialization", "node", "napi"]
 publish = false
 
 [lib]
@@ -17,7 +15,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1"
-duper = { path = "../duper", version = "0.5.0", features = ["serde"] }
+duper = { path = "../duper", version = "0.5", features = ["serde"] }
 napi = { version = "3", features = ["anyhow", "napi6"] }
 napi-derive = "3"
 serde_core = "1"
