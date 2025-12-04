@@ -9,6 +9,8 @@ authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 repository = "https://github.com/EpicEric/duper"
 homepage = "https://duper.dev.br"
 readme = "README.md"
+categories = ["development-tools::debugging"]
+keywords = ["duper", "tracing"]
 
 [features]
 default = ["chrono"]
@@ -16,6 +18,14 @@ chrono = ["dep:chrono"]
 
 [dependencies]
 chrono = { version = "0.4", optional = true }
-duper = { version = "0.5.0", path = "../duper", features = ["serde"] }
+duper = { version = "0.5", path = "../duper" }
 tracing-core = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+  "std",
+  "registry",
+  "fmt",
+] }
+
+[dev-dependencies]
+tracing = "0.1"
+serde_duper = { version = "0.4", path = "../serde_duper" }

@@ -8,6 +8,6 @@
     <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
 </p>
 
-A [`tracing`](https://github.com/tokio-rs/tracing) subscriber for Duper.
+A [`tracing`](https://github.com/tokio-rs/tracing) layer for Duper.
 
 [Check out the Duper website.](https://duper.dev.br/)
