@@ -3,14 +3,16 @@ use std::borrow::Cow;
 use chumsky::prelude::*;
 
 use crate::{
-    DuperTemporal, DuperTemporalInner,
+    ast::{DuperTemporal, DuperTemporalDuration, DuperTemporalInstant, DuperTemporalPlainDate,
+    DuperTemporalPlainDateTime, DuperTemporalPlainMonthDay, DuperTemporalPlainTime,
+    DuperTemporalPlainYearMonth, DuperTemporalZonedDateTime, DuperValue, DuperTemporalUnspecified},
     parser::{ascii_alphabetic, ascii_alphanumeric, whitespace_and_comments},
 };
 
 // Duper Temporal values
 
 pub fn temporal_specified<'a>()
--> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     choice((
         temporal_instant(),
         temporal_zoned_date_time(),
@@ -25,7 +27,7 @@ pub fn temporal_specified<'a>()
 }
 
 pub fn temporal_instant<'a>()
--> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("Instant")
         .padded_by(whitespace_and_comments())
         .ignore_then(just('('))
@@ -39,11 +41,13 @@ pub fn temporal_instant<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperTemporal::Instant(DuperTemporalInner(Cow::Borrowed(instant))))
+        .map(|instant| DuperValue::Temporal(DuperTemporal::Instant {
+            inner: DuperTemporalInstant(Cow::Borrowed(instant)),
+        }))
 }
 
 pub fn temporal_zoned_date_time<'a>()
--> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("ZonedDateTime")
         .padded_by(whitespace_and_comments())
         .ignore_then(just('('))
@@ -57,11 +61,13 @@ pub fn temporal_zoned_date_time<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperTemporal::ZonedDateTime(DuperTemporalInner(Cow::Borrowed(instant))))
+        .map(|instant| DuperValue::Temporal(DuperTemporal::ZonedDateTime {
+            inner: DuperTemporalZonedDateTime(Cow::Borrowed(instant)),
+        }))
 }
 
 pub fn temporal_plain_date<'a>()
--> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainDate")
         .padded_by(whitespace_and_comments())
         .ignore_then(just('('))
@@ -75,11 +81,13 @@ pub fn temporal_plain_date<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperTemporal::PlainDate(DuperTemporalInner(Cow::Borrowed(instant))))
+        .map(|instant| DuperValue::Temporal(DuperTemporal::PlainDate {
+            inner: DuperTemporalPlainDate(Cow::Borrowed(instant)),
+        }))
 }
 
 pub fn temporal_plain_time<'a>()
--> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainTime")
         .padded_by(whitespace_and_comments())
         .ignore_then(just('('))
@@ -93,11 +101,13 @@ pub fn temporal_plain_time<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperTemporal::PlainTime(DuperTemporalInner(Cow::Borrowed(instant))))
+        .map(|instant| DuperValue::Temporal(DuperTemporal::PlainTime {
+            inner: DuperTemporalPlainTime(Cow::Borrowed(instant)),
+        }))
 }
 
 pub fn temporal_plain_date_time<'a>()
--> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainDateTime")
         .padded_by(whitespace_and_comments())
         .ignore_then(just('('))
@@ -111,11 +121,13 @@ pub fn temporal_plain_date_time<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperTemporal::PlainDateTime(DuperTemporalInner(Cow::Borrowed(instant))))
+        .map(|instant| DuperValue::Temporal(DuperTemporal::PlainDateTime {
+            inner: DuperTemporalPlainDateTime(Cow::Borrowed(instant)),
+        }))
 }
 
 pub fn temporal_plain_year_month<'a>()
--> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainYearMonth")
         .padded_by(whitespace_and_comments())
         .ignore_then(just('('))
@@ -129,11 +141,13 @@ pub fn temporal_plain_year_month<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperTemporal::PlainYearMonth(DuperTemporalInner(Cow::Borrowed(instant))))
+        .map(|instant| DuperValue::Temporal(DuperTemporal::PlainYearMonth {
+            inner: DuperTemporalPlainYearMonth(Cow::Borrowed(instant)),
+        }))
 }
 
 pub fn temporal_plain_month_day<'a>()
--> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainMonthDay")
         .padded_by(whitespace_and_comments())
         .ignore_then(just('('))
@@ -147,11 +161,13 @@ pub fn temporal_plain_month_day<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperTemporal::PlainMonthDay(DuperTemporalInner(Cow::Borrowed(instant))))
+        .map(|instant| DuperValue::Temporal(DuperTemporal::PlainMonthDay {
+            inner: DuperTemporalPlainMonthDay(Cow::Borrowed(instant)),
+        }))
 }
 
 pub fn temporal_duration<'a>()
--> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("Duration")
         .padded_by(whitespace_and_comments())
         .ignore_then(just('('))
@@ -165,18 +181,21 @@ pub fn temporal_duration<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|duration| DuperTemporal::Duration(DuperTemporalInner(Cow::Borrowed(duration))))
+        .map(|duration| DuperValue::Temporal(DuperTemporal::Duration {
+            inner: DuperTemporalDuration(Cow::Borrowed(duration)),
+        }))
 }
 
 pub fn temporal_unspecified<'a>()
--> impl Parser<'a, &'a str, DuperTemporal<'a>, extra::Err<Rich<'a, char>>> + Clone {
+-> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     unspecified()
         .to_slice()
         .delimited_by(just('\''), just('\''))
         .padded_by(whitespace_and_comments())
-        .map(|unspecified| {
-            DuperTemporal::Unspecified(DuperTemporalInner(Cow::Borrowed(unspecified)))
-        })
+        .map(|unspecified| DuperValue::Temporal(DuperTemporal::Unspecified {
+            identifier: None,
+            inner: DuperTemporalUnspecified(Cow::Borrowed(unspecified)),
+        }))
 }
 
 // Inner values

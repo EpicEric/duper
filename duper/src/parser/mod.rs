@@ -6,8 +6,7 @@ use chumsky::prelude::*;
 pub(crate) mod temporal;
 
 use crate::{
-    DuperBytes, DuperString, DuperTemporal,
-    ast::{DuperArray, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperTuple, DuperValue},
+    ast::{DuperIdentifier, DuperKey, DuperObject, DuperValue},
     escape::{unescape_bytes, unescape_str},
     parser::temporal::{temporal_specified, temporal_unspecified},
 };
@@ -20,8 +19,10 @@ impl DuperParser {
     /// A pretty-printed version of the error can be obtained from the `prettify_error` method.
     pub fn parse_duper_trunk<'a>(input: &'a str) -> Result<DuperValue<'a>, Vec<Rich<'a, char>>> {
         let value = duper_trunk().parse(input).into_result()?;
-        match &value.inner {
-            DuperInner::Object(_) | DuperInner::Array(_) | DuperInner::Tuple(_) => Ok(value),
+        match &value {
+            &DuperValue::Object { .. } | &DuperValue::Array { .. } | &DuperValue::Tuple { .. } => {
+                Ok(value)
+            }
             _ => unreachable!(),
         }
     }
@@ -127,22 +128,20 @@ pub fn identifier<'a>()
 pub fn identified_trunk<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     let inner_trunk = choice((
-        object(identified_value()).map(DuperInner::Object),
-        array(identified_value()).map(DuperInner::Array),
-        tuple(identified_value()).map(DuperInner::Tuple),
+        object(identified_value()),
+        array(identified_value()),
+        tuple(identified_value()),
     ))
     .padded_by(whitespace_and_comments());
 
     identifier()
         .then(inner_trunk.clone().delimited_by(just('('), just(')')))
-        .map(|(identifier, inner)| DuperValue {
-            identifier: Some(identifier),
-            inner,
+        .map(|(identifier, value)| {
+            value
+                .with_identifier(Some(identifier))
+                .expect("identifiers are always valid for non-Temporal values")
         })
-        .or(inner_trunk.map(|inner| DuperValue {
-            identifier: None,
-            inner,
-        }))
+        .or(inner_trunk)
         .padded_by(whitespace_and_comments())
 }
 
@@ -150,60 +149,64 @@ pub fn identified_value<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     recursive(move |identified_value| {
         let inner_value = choice((
-            object(identified_value.clone()).map(DuperInner::Object),
-            array(identified_value.clone()).map(DuperInner::Array),
-            tuple(identified_value).map(DuperInner::Tuple),
-            base64_bytes().map(|bytes| DuperInner::Bytes(DuperBytes(Cow::Owned(bytes)))),
-            quoted_bytes().map(|cow_bytes| DuperInner::Bytes(DuperBytes(cow_bytes))),
-            raw_bytes().map(|bytes| DuperInner::Bytes(DuperBytes(Cow::Borrowed(bytes)))),
-            quoted_string().map(|cow_str| DuperInner::String(DuperString(cow_str))),
-            raw_string().map(|str| DuperInner::String(DuperString(Cow::Borrowed(str)))),
-            float().map(DuperInner::Float),
-            integer().map(DuperInner::Integer),
-            boolean().map(DuperInner::Boolean),
-            null().map(|_| DuperInner::Null),
+            object(identified_value.clone()),
+            array(identified_value.clone()),
+            tuple(identified_value),
+            base64_bytes().map(|bytes| DuperValue::Bytes {
+                identifier: None,
+                inner: Cow::Owned(bytes),
+            }),
+            quoted_bytes().map(|cow_bytes| DuperValue::Bytes {
+                identifier: None,
+                inner: cow_bytes,
+            }),
+            raw_bytes().map(|bytes| DuperValue::Bytes {
+                identifier: None,
+                inner: Cow::Borrowed(bytes),
+            }),
+            quoted_string().map(|cow_str| DuperValue::String {
+                identifier: None,
+                inner: cow_str,
+            }),
+            raw_string().map(|str| DuperValue::String {
+                identifier: None,
+                inner: Cow::Borrowed(str),
+            }),
+            float().map(|inner| DuperValue::Float {
+                identifier: None,
+                inner,
+            }),
+            integer().map(|inner| DuperValue::Integer {
+                identifier: None,
+                inner,
+            }),
+            boolean().map(|inner| DuperValue::Boolean {
+                identifier: None,
+                inner,
+            }),
+            null().map(|_| DuperValue::Null { identifier: None }),
         ))
         .padded_by(whitespace_and_comments())
         .boxed();
 
         choice((
-            temporal_specified().map(|temporal| {
-                let identifier = match &temporal {
-                    DuperTemporal::Instant(_) => "Instant",
-                    DuperTemporal::ZonedDateTime(_) => "ZonedDateTime",
-                    DuperTemporal::PlainDate(_) => "PlainDate",
-                    DuperTemporal::PlainTime(_) => "PlainTime",
-                    DuperTemporal::PlainDateTime(_) => "PlainDateTime",
-                    DuperTemporal::PlainYearMonth(_) => "PlainYearMonth",
-                    DuperTemporal::PlainMonthDay(_) => "PlainMonthDay",
-                    DuperTemporal::Duration(_) => "Duration",
-                    DuperTemporal::Unspecified(_) => unreachable!(),
-                };
-                DuperValue {
-                    identifier: Some(DuperIdentifier(Cow::Borrowed(identifier))),
-                    inner: DuperInner::Temporal(temporal),
-                }
-            }),
+            temporal_specified(),
             identifier()
                 .then(temporal_unspecified().delimited_by(just('('), just(')')))
-                .map(|(identifier, temporal)| DuperValue {
-                    identifier: Some(identifier),
-                    inner: DuperInner::Temporal(temporal),
+                .try_map(|(identifier, temporal), span| {
+                    temporal
+                        .with_identifier(Some(identifier))
+                        .map_err(|err| Rich::custom(span, err))
                 }),
             identifier()
                 .then(inner_value.clone().delimited_by(just('('), just(')')))
-                .map(|(identifier, inner)| DuperValue {
-                    identifier: Some(identifier),
-                    inner,
+                .map(|(identifier, inner)| {
+                    inner
+                        .with_identifier(Some(identifier))
+                        .expect("identifiers are always valid for non-Temporal values")
                 }),
-            temporal_unspecified().map(|temporal| DuperValue {
-                identifier: None,
-                inner: DuperInner::Temporal(temporal),
-            }),
-            inner_value.map(|inner| DuperValue {
-                identifier: None,
-                inner,
-            }),
+            temporal_unspecified(),
+            inner_value,
         ))
         .padded_by(whitespace_and_comments())
     })
@@ -211,7 +214,7 @@ pub fn identified_value<'a>()
 
 pub fn object<'a>(
     identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
-) -> impl Parser<'a, &'a str, DuperObject<'a>, extra::Err<Rich<'a, char>>> + Clone {
+) -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     object_key()
         .padded_by(whitespace_and_comments())
         .then_ignore(just(':').padded_by(whitespace_and_comments()))
@@ -220,7 +223,12 @@ pub fn object<'a>(
         .allow_trailing()
         .collect::<Vec<_>>()
         .try_map(|object, span| {
-            DuperObject::try_from(object).map_err(|err| Rich::custom(span, err))
+            DuperObject::try_from(object)
+                .map_err(|err| Rich::custom(span, err))
+                .map(|object| DuperValue::Object {
+                    identifier: None,
+                    inner: object,
+                })
         })
         .padded_by(whitespace_and_comments())
         .delimited_by(
@@ -246,13 +254,16 @@ pub fn object_key<'a>() -> impl Parser<'a, &'a str, DuperKey<'a>, extra::Err<Ric
 
 pub fn array<'a>(
     identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
-) -> impl Parser<'a, &'a str, DuperArray<'a>, extra::Err<Rich<'a, char>>> + Clone {
+) -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_value
         .padded_by(whitespace_and_comments())
         .separated_by(just(',').padded_by(whitespace_and_comments()))
         .allow_trailing()
         .collect::<Vec<_>>()
-        .map(DuperArray)
+        .map(|inner| DuperValue::Array {
+            identifier: None,
+            inner,
+        })
         .padded_by(whitespace_and_comments())
         .delimited_by(
             just('[').padded_by(whitespace_and_comments()),
@@ -264,18 +275,24 @@ pub fn array<'a>(
                 just('[').padded_by(whitespace_and_comments()),
                 just(']').padded_by(whitespace_and_comments()),
             )
-            .map(|_| DuperArray(vec![])))
+            .map(|_| DuperValue::Array {
+                identifier: None,
+                inner: vec![],
+            }))
 }
 
 pub fn tuple<'a>(
     identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
-) -> impl Parser<'a, &'a str, DuperTuple<'a>, extra::Err<Rich<'a, char>>> + Clone {
+) -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_value
         .padded_by(whitespace_and_comments())
         .separated_by(just(',').padded_by(whitespace_and_comments()))
         .allow_trailing()
         .collect::<Vec<_>>()
-        .map(DuperTuple)
+        .map(|inner| DuperValue::Tuple {
+            identifier: None,
+            inner,
+        })
         .padded_by(whitespace_and_comments())
         .delimited_by(
             just('(').padded_by(whitespace_and_comments()),
@@ -287,7 +304,10 @@ pub fn tuple<'a>(
                 just('(').padded_by(whitespace_and_comments()),
                 just(')').padded_by(whitespace_and_comments()),
             )
-            .map(|_| DuperTuple(vec![])))
+            .map(|_| DuperValue::Tuple {
+                identifier: None,
+                inner: vec![],
+            }))
 }
 
 pub fn quoted_string<'a>()
@@ -590,8 +610,8 @@ pub(crate) fn control_character<'a>()
 #[cfg(test)]
 mod duper_parser_tests {
     use crate::{
-        DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperParser,
-        DuperString, DuperTemporal, DuperTemporalInner, DuperTuple, DuperValue,
+        DuperIdentifier, DuperKey, DuperObject, DuperParser, DuperTemporal, DuperTemporalInstant,
+        DuperValue,
     };
 
     #[test]
@@ -630,19 +650,19 @@ mod duper_parser_tests {
             (,)
         "#;
         let duper = DuperParser::parse_duper_trunk(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Tuple(_)));
+        assert!(matches!(duper, DuperValue::Tuple { .. }));
 
         let input = r#"
             {duper: 1337, _123: b"bar"}
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Object(_)));
+        assert!(matches!(duper, DuperValue::Object { .. }));
 
         let input = r#"
             [1, 2.2, null]
         "#;
         let duper = DuperParser::parse_duper_trunk(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Array(_)));
+        assert!(matches!(duper, DuperValue::Array { .. }));
     }
 
     #[test]
@@ -651,85 +671,85 @@ mod duper_parser_tests {
             "hello"
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::String(_)));
+        assert!(matches!(duper, DuperValue::String { .. }));
 
         let input = r#"
             b"\x1b\t\x00"
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Bytes(_)));
+        assert!(matches!(duper, DuperValue::Bytes { .. }));
 
         let input = r#"
             br"¯\_(ツ)_/¯"
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Bytes(_)));
+        assert!(matches!(duper, DuperValue::Bytes { .. }));
 
         let input = r#"
             b64"RHVwZXI"
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Bytes(_)));
+        assert!(matches!(duper, DuperValue::Bytes { .. }));
 
         let input = r#"
             9001
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Integer(_)));
+        assert!(matches!(duper, DuperValue::Integer { .. }));
 
         let input = r#"
             0x2001
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Integer(_)));
+        assert!(matches!(duper, DuperValue::Integer { .. }));
 
         let input = r#"
             0o755
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Integer(_)));
+        assert!(matches!(duper, DuperValue::Integer { .. }));
 
         let input = r#"
             0b0101_0101
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Integer(_)));
+        assert!(matches!(duper, DuperValue::Integer { .. }));
 
         let input = r#"
             3.14
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Float(_)));
+        assert!(matches!(duper, DuperValue::Float { .. }));
 
         let input = r#"
             12e-10
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Float(_)));
+        assert!(matches!(duper, DuperValue::Float { .. }));
 
         let input = r#"
             1_2.3_4E5_6
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Float(_)));
+        assert!(matches!(duper, DuperValue::Float { .. }));
 
         let input = r#"
             true
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Boolean(_)));
+        assert!(matches!(duper, DuperValue::Boolean { .. }));
 
         let input = r#"
             null
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Null));
+        assert!(matches!(duper, DuperValue::Null { .. }));
 
         let input = r#"
             (,)
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Tuple(_)));
+        assert!(matches!(duper, DuperValue::Tuple { .. }));
 
         let input = r#"
             {duper: 1337, _123: b"bar", _a-b_c
@@ -737,15 +757,15 @@ mod duper_parser_tests {
             true, "_": false, "": null}
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Object(_)));
+        assert!(matches!(duper, DuperValue::Object { .. }));
 
         let input = r#"
             '2022-02-28'
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
-            duper.inner,
-            DuperInner::Temporal(DuperTemporal::Unspecified(_))
+            duper,
+            DuperValue::Temporal(DuperTemporal::Unspecified { .. })
         ));
 
         let input = r#"
@@ -753,8 +773,8 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
-            duper.inner,
-            DuperInner::Temporal(DuperTemporal::Unspecified(_))
+            duper,
+            DuperValue::Temporal(DuperTemporal::Unspecified { .. })
         ));
 
         let input = r#"
@@ -762,8 +782,8 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
-            duper.inner,
-            DuperInner::Temporal(DuperTemporal::ZonedDateTime(_))
+            duper,
+            DuperValue::Temporal(DuperTemporal::ZonedDateTime { .. })
         ));
 
         let input = r#"
@@ -771,8 +791,8 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
-            duper.inner,
-            DuperInner::Temporal(DuperTemporal::Unspecified(_))
+            duper,
+            DuperValue::Temporal(DuperTemporal::Unspecified { .. })
         ));
 
         let input = r#"
@@ -780,8 +800,8 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
-            duper.inner,
-            DuperInner::Temporal(DuperTemporal::PlainDate(_))
+            duper,
+            DuperValue::Temporal(DuperTemporal::PlainDate { .. })
         ));
 
         let input = r#"
@@ -789,8 +809,8 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
-            duper.inner,
-            DuperInner::Temporal(DuperTemporal::PlainTime(_))
+            duper,
+            DuperValue::Temporal(DuperTemporal::PlainTime { .. })
         ));
 
         let input = r#"
@@ -798,8 +818,8 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
-            duper.inner,
-            DuperInner::Temporal(DuperTemporal::PlainMonthDay(_))
+            duper,
+            DuperValue::Temporal(DuperTemporal::PlainMonthDay { .. })
         ));
 
         let input = r#"
@@ -807,8 +827,8 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
-            duper.inner,
-            DuperInner::Temporal(DuperTemporal::Unspecified(_))
+            duper,
+            DuperValue::Temporal(DuperTemporal::Unspecified { .. })
         ));
 
         let input = r#"
@@ -816,8 +836,8 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
-            duper.inner,
-            DuperInner::Temporal(DuperTemporal::Unspecified(_))
+            duper,
+            DuperValue::Temporal(DuperTemporal::Unspecified { .. })
         ));
 
         let input = r#"
@@ -825,27 +845,30 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(
-            duper.inner,
-            DuperInner::Temporal(DuperTemporal::Unspecified(_))
+            duper,
+            DuperValue::Temporal(DuperTemporal::Unspecified { .. })
         ));
 
         let input = r#"
             'PT0.0021S'
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Temporal(_)));
+        assert!(matches!(
+            duper,
+            DuperValue::Temporal(DuperTemporal::Unspecified { .. })
+        ));
 
         let input = r#"
             Instant("2022-11-09")  // Misleading identifier
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::String(_)));
+        assert!(matches!(duper, DuperValue::String { .. }));
 
         let input = r#"
             [1, 2.2, null]
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Array(_)));
+        assert!(matches!(duper, DuperValue::Array { .. }));
 
         let input = r#"
             {
@@ -860,7 +883,7 @@ mod duper_parser_tests {
             }
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
-        assert!(matches!(duper.inner, DuperInner::Object(_)));
+        assert!(matches!(duper, DuperValue::Object { .. }));
     }
 
     #[test]
@@ -1345,209 +1368,190 @@ mod duper_parser_tests {
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert_eq!(
             duper,
-            DuperValue {
+            DuperValue::Object {
                 identifier: Some(DuperIdentifier(Cow::Borrowed("Product"))),
-                inner: DuperInner::Object(DuperObject(vec![
+                inner: DuperObject::try_from(vec![
                     (
                         DuperKey(Cow::Borrowed("product_id")),
-                        DuperValue {
+                        DuperValue::String {
                             identifier: Some(DuperIdentifier(Cow::Borrowed("Uuid"))),
-                            inner: DuperInner::String(DuperString(Cow::Borrowed(
-                                "1dd7b7aa-515e-405f-85a9-8ac812242609"
-                            ))),
+                            inner: Cow::Borrowed("1dd7b7aa-515e-405f-85a9-8ac812242609"),
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("name")),
-                        DuperValue {
+                        DuperValue::String {
                             identifier: None,
-                            inner: DuperInner::String(DuperString(Cow::Borrowed(
-                                "Wireless Bluetooth Headphones"
-                            ))),
+                            inner: Cow::Borrowed("Wireless Bluetooth Headphones"),
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("brand")),
-                        DuperValue {
+                        DuperValue::String {
                             identifier: None,
-                            inner: DuperInner::String(DuperString(Cow::Borrowed("AudioTech"))),
+                            inner: Cow::Borrowed("AudioTech"),
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("price")),
-                        DuperValue {
+                        DuperValue::String {
                             identifier: Some(DuperIdentifier(Cow::Borrowed("Decimal"))),
-                            inner: DuperInner::String(DuperString(Cow::Borrowed("129.99"))),
+                            inner: Cow::Borrowed("129.99"),
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("dimensions")),
-                        DuperValue {
+                        DuperValue::Tuple {
                             identifier: None,
-                            inner: DuperInner::Tuple(DuperTuple(vec![
-                                DuperValue {
+                            inner: vec![
+                                DuperValue::Float {
                                     identifier: None,
-                                    inner: DuperInner::Float(18.5)
+                                    inner: 18.5
                                 },
-                                DuperValue {
+                                DuperValue::Float {
                                     identifier: None,
-                                    inner: DuperInner::Float(15.2)
+                                    inner: 15.2
                                 },
-                                DuperValue {
+                                DuperValue::Float {
                                     identifier: None,
-                                    inner: DuperInner::Float(7.8)
+                                    inner: 7.8
                                 },
-                            ])),
+                            ],
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("weight")),
-                        DuperValue {
+                        DuperValue::Float {
                             identifier: Some(DuperIdentifier(Cow::Borrowed("Weight"))),
-                            inner: DuperInner::Float(0.285)
+                            inner: 0.285
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("in_stock")),
-                        DuperValue {
+                        DuperValue::Boolean {
                             identifier: None,
-                            inner: DuperInner::Boolean(true),
+                            inner: true
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("specifications")),
-                        DuperValue {
+                        DuperValue::Object {
                             identifier: None,
-                            inner: DuperInner::Object(DuperObject(vec![
+                            inner: DuperObject::try_from(vec![
                                 (
                                     DuperKey(Cow::Borrowed("battery_life")),
-                                    DuperValue {
+                                    DuperValue::String {
                                         identifier: Some(DuperIdentifier(Cow::Borrowed(
                                             "Duration"
                                         ))),
-                                        inner: DuperInner::String(DuperString(Cow::Borrowed(
-                                            "30h"
-                                        ))),
+                                        inner: Cow::Borrowed("30h"),
                                     }
                                 ),
                                 (
                                     DuperKey(Cow::Borrowed("noise_cancellation")),
-                                    DuperValue {
+                                    DuperValue::Boolean {
                                         identifier: None,
-                                        inner: DuperInner::Boolean(true),
+                                        inner: true
                                     }
                                 ),
                                 (
                                     DuperKey(Cow::Borrowed("connectivity")),
-                                    DuperValue {
+                                    DuperValue::Array {
                                         identifier: None,
-                                        inner: DuperInner::Array(DuperArray(vec![
-                                            DuperValue {
+                                        inner: vec![
+                                            DuperValue::String {
                                                 identifier: None,
-                                                inner: DuperInner::String(DuperString(
-                                                    Cow::Borrowed("Bluetooth 5.0")
-                                                ))
+                                                inner: Cow::Borrowed("Bluetooth 5.0")
                                             },
-                                            DuperValue {
+                                            DuperValue::String {
                                                 identifier: None,
-                                                inner: DuperInner::String(DuperString(
-                                                    Cow::Borrowed("3.5mm Jack")
-                                                ))
+                                                inner: Cow::Borrowed("3.5mm Jack")
                                             },
-                                        ])),
+                                        ],
                                     }
                                 ),
-                            ])),
+                            ])
+                            .unwrap(),
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("image_thumbnail")),
-                        DuperValue {
+                        DuperValue::Bytes {
                             identifier: Some(DuperIdentifier(Cow::Borrowed("Png"))),
-                            inner: DuperInner::Bytes(DuperBytes(Cow::Borrowed(
+                            inner: Cow::Borrowed(
                                 b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x64"
-                            ))),
+                            ),
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("tags")),
-                        DuperValue {
+                        DuperValue::Array {
                             identifier: None,
-                            inner: DuperInner::Array(DuperArray(vec![
-                                DuperValue {
+                            inner: vec![
+                                DuperValue::String {
                                     identifier: None,
-                                    inner: DuperInner::String(DuperString(Cow::Borrowed(
-                                        "electronics"
-                                    )))
+                                    inner: Cow::Borrowed("electronics")
                                 },
-                                DuperValue {
+                                DuperValue::String {
                                     identifier: None,
-                                    inner: DuperInner::String(DuperString(Cow::Borrowed("audio")))
+                                    inner: Cow::Borrowed("audio")
                                 },
-                                DuperValue {
+                                DuperValue::String {
                                     identifier: None,
-                                    inner: DuperInner::String(DuperString(Cow::Borrowed(
-                                        "wireless"
-                                    )))
+                                    inner: Cow::Borrowed("wireless")
                                 },
-                            ])),
+                            ],
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("release_date")),
-                        DuperValue {
+                        DuperValue::String {
                             identifier: Some(DuperIdentifier(Cow::Borrowed("Date"))),
-                            inner: DuperInner::String(DuperString(Cow::Borrowed("2023-11-15"))),
+                            inner: Cow::Borrowed("2023-11-15"),
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("warranty_period")),
-                        DuperValue {
-                            identifier: None,
-                            inner: DuperInner::Null,
-                        }
+                        DuperValue::Null { identifier: None }
                     ),
                     (
                         DuperKey(Cow::Borrowed("customer_ratings")),
-                        DuperValue {
+                        DuperValue::Object {
                             identifier: None,
-                            inner: DuperInner::Object(DuperObject(vec![
+                            inner: DuperObject::try_from(vec![
                                 (
                                     DuperKey(Cow::Borrowed("latest_review")),
-                                    DuperValue {
+                                    DuperValue::String {
                                         identifier: None,
-                                        inner: DuperInner::String(DuperString(Cow::Borrowed(
-                                            r#"Absolutely ""astounding""!! 😎"#
-                                        ))),
+                                        inner: Cow::Borrowed(r#"Absolutely ""astounding""!! 😎"#),
                                     }
                                 ),
                                 (
                                     DuperKey(Cow::Borrowed("average")),
-                                    DuperValue {
+                                    DuperValue::Float {
                                         identifier: None,
-                                        inner: DuperInner::Float(4.5)
+                                        inner: 4.5,
                                     }
                                 ),
                                 (
                                     DuperKey(Cow::Borrowed("count")),
-                                    DuperValue {
+                                    DuperValue::Integer {
                                         identifier: None,
-                                        inner: DuperInner::Integer(127)
+                                        inner: 127
                                     }
                                 ),
-                            ])),
+                            ])
+                            .unwrap(),
                         }
                     ),
                     (
                         DuperKey(Cow::Borrowed("created_at")),
-                        DuperValue {
-                            identifier: Some(DuperIdentifier(Cow::Borrowed("Instant"))),
-                            inner: DuperInner::Temporal(DuperTemporal::Instant(
-                                DuperTemporalInner(Cow::Borrowed("2023-11-17T21:50:43+00:00"))
-                            )),
-                        }
+                        DuperValue::Temporal(DuperTemporal::Instant {
+                            inner: DuperTemporalInstant(Cow::Borrowed("2023-11-17T21:50:43+00:00")),
+                        })
                     ),
-                ])),
+                ])
+                .unwrap()
             }
         );
     }

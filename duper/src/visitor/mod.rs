@@ -5,9 +5,7 @@ pub mod ansi;
 pub mod pretty_printer;
 pub mod serializer;
 
-use crate::ast::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTemporal, DuperTuple,
-};
+use crate::{DuperIdentifier, DuperTemporal, DuperValue, ast::DuperObject};
 
 /// A trait for implementing a Duper visitor. You can visit a `DuperValue`
 /// with `value.accept(&mut visitor)`.
@@ -40,10 +38,10 @@ use crate::ast::{
 ///     fn visit_array<'a>(
 ///         &mut self,
 ///         identifier: Option<&DuperIdentifier<'a>>,
-///         array: &DuperArray<'a>,
+///         array: &[DuperValue<'a>],
 ///     ) -> Self::Value {
 ///         println!("array with identifier: {:?}", identifier);
-///         for value in array.iter() {
+///         for value in array {
 ///             print!("-> ");
 ///             value.accept(self);
 ///         }
@@ -54,24 +52,23 @@ use crate::ast::{
 ///     # fn visit_tuple<'a>(
 ///     #     &mut self,
 ///     #     identifier: Option<&DuperIdentifier<'a>>,
-///     #     tuple: &DuperTuple<'a>,
+///     #     tuple: &[DuperValue<'a>],
 ///     # ) -> Self::Value {}
 ///     #
 ///     # fn visit_string<'a>(
 ///     #     &mut self,
 ///     #     identifier: Option<&DuperIdentifier<'a>>,
-///     #     string: &DuperString<'a>,
+///     #     string: &'a str,
 ///     # ) -> Self::Value {}
 ///     #
 ///     # fn visit_bytes<'a>(
 ///     #     &mut self,
 ///     #     identifier: Option<&DuperIdentifier<'a>>,
-///     #     bytes: &DuperBytes<'a>,
+///     #     bytes: &'a [u8],
 ///     # ) -> Self::Value {}
 ///     #
 ///     # fn visit_temporal<'a>(
 ///     #     &mut self,
-///     #     identifier: Option<&DuperIdentifier<'a>>,
 ///     #     temporal: &DuperTemporal<'a>,
 ///     # ) -> Self::Value {}
 ///     #
@@ -110,45 +107,36 @@ pub trait DuperVisitor {
         object: &DuperObject<'a>,
     ) -> Self::Value;
 
-    /// Visits an array. You can access an iterator of values by calling
-    /// `array.iter()`.
+    /// Visits an array.
     fn visit_array<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        array: &DuperArray<'a>,
+        array: &[DuperValue<'a>],
     ) -> Self::Value;
 
-    /// Visits a tuple. You can access an iterator of values by calling
-    /// `tuple.iter()`.
+    /// Visits a tuple.
     fn visit_tuple<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        tuple: &DuperTuple<'a>,
+        tuple: &[DuperValue<'a>],
     ) -> Self::Value;
 
-    /// Visits a string. You can access a `Cow` of a str slice by calling
-    /// `string.as_ref()`.
+    /// Visits a string.
     fn visit_string<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        string: &DuperString<'a>,
+        string: &'a str,
     ) -> Self::Value;
 
-    /// Visits bytes. You can access a `Cow` of a byte slice by calling
-    /// `bytes.as_ref()`.
+    /// Visits bytes.
     fn visit_bytes<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        bytes: &DuperBytes<'a>,
+        bytes: &'a [u8],
     ) -> Self::Value;
 
-    /// Visits a Temporal value. You can access a `&str` by calling
-    /// `temporal.as_ref()`.
-    fn visit_temporal<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        temporal: &DuperTemporal<'a>,
-    ) -> Self::Value;
+    /// Visits a Temporal value. You can access a `&str` by calling `temporal.as_ref()`.
+    fn visit_temporal<'a>(&mut self, temporal: &DuperTemporal<'a>) -> Self::Value;
 
     /// Visits an integer.
     fn visit_integer<'a>(

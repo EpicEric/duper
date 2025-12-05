@@ -3,10 +3,7 @@
 use std::io::{Error, Write};
 
 use crate::{
-    ast::{
-        DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTemporal,
-        DuperTuple, DuperValue,
-    },
+    ast::{DuperIdentifier, DuperObject, DuperTemporal, DuperValue},
     format::{
         format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
         format_key, format_null, format_temporal,
@@ -198,7 +195,7 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
     fn visit_array<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        array: &DuperArray<'a>,
+        array: &[DuperValue<'a>],
     ) -> Self::Value {
         let len = array.len();
 
@@ -242,7 +239,7 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
     fn visit_tuple<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        tuple: &DuperTuple<'a>,
+        tuple: &[DuperValue<'a>],
     ) -> Self::Value {
         let len = tuple.len();
 
@@ -286,7 +283,7 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
     fn visit_string<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        value: &DuperString<'a>,
+        value: &'a str,
     ) -> Self::Value {
         if !self.strip_identifiers
             && let Some(identifier) = identifier
@@ -316,7 +313,7 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
     fn visit_bytes<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        bytes: &DuperBytes<'a>,
+        bytes: &'a [u8],
     ) -> Self::Value {
         if !self.strip_identifiers
             && let Some(identifier) = identifier
@@ -343,11 +340,8 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
         Ok(())
     }
 
-    fn visit_temporal<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        temporal: &DuperTemporal<'a>,
-    ) -> Self::Value {
+    fn visit_temporal<'a>(&mut self, temporal: &DuperTemporal<'a>) -> Self::Value {
+        let identifier = temporal.identifier();
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
@@ -488,210 +482,193 @@ mod ansi_tests {
 
     use insta::assert_debug_snapshot;
 
-    use crate::{
-        Ansi, DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject,
-        DuperString, DuperTuple, DuperValue,
-        visitor::ansi::{ANSI_THEME, VSCODE_DARK_PLUS_THEME},
-    };
+    use super::{ANSI_THEME, Ansi, VSCODE_DARK_PLUS_THEME};
+    use crate::{DuperIdentifier, DuperKey, DuperObject, DuperValue};
 
     fn example_value() -> DuperValue<'static> {
-        DuperValue {
+        DuperValue::Object {
             identifier: Some(DuperIdentifier(Cow::Borrowed("Product"))),
-            inner: DuperInner::Object(DuperObject(vec![
+            inner: DuperObject::try_from(vec![
                 (
                     DuperKey(Cow::Borrowed("product_id")),
-                    DuperValue {
+                    DuperValue::String {
                         identifier: Some(DuperIdentifier(Cow::Borrowed("Uuid"))),
-                        inner: DuperInner::String(DuperString(Cow::Borrowed(
-                            "1dd7b7aa-515e-405f-85a9-8ac812242609",
-                        ))),
+                        inner: Cow::Borrowed("1dd7b7aa-515e-405f-85a9-8ac812242609"),
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("name")),
-                    DuperValue {
+                    DuperValue::String {
                         identifier: None,
-                        inner: DuperInner::String(DuperString(Cow::Borrowed(
-                            "Wireless Bluetooth Headphones",
-                        ))),
+                        inner: Cow::Borrowed("Wireless Bluetooth Headphones"),
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("brand")),
-                    DuperValue {
+                    DuperValue::String {
                         identifier: None,
-                        inner: DuperInner::String(DuperString(Cow::Borrowed("AudioTech"))),
+                        inner: Cow::Borrowed("AudioTech"),
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("price")),
-                    DuperValue {
+                    DuperValue::String {
                         identifier: Some(DuperIdentifier(Cow::Borrowed("Decimal"))),
-                        inner: DuperInner::String(DuperString(Cow::Borrowed("129.99"))),
+                        inner: Cow::Borrowed("129.99"),
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("dimensions")),
-                    DuperValue {
+                    DuperValue::Tuple {
                         identifier: None,
-                        inner: DuperInner::Tuple(DuperTuple(vec![
-                            DuperValue {
+                        inner: vec![
+                            DuperValue::Float {
                                 identifier: None,
-                                inner: DuperInner::Float(18.5),
+                                inner: 18.5,
                             },
-                            DuperValue {
+                            DuperValue::Float {
                                 identifier: None,
-                                inner: DuperInner::Float(15.2),
+                                inner: 15.2,
                             },
-                            DuperValue {
+                            DuperValue::Float {
                                 identifier: None,
-                                inner: DuperInner::Float(7.8),
+                                inner: 7.8,
                             },
-                        ])),
+                        ],
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("weight")),
-                    DuperValue {
+                    DuperValue::Float {
                         identifier: Some(DuperIdentifier(Cow::Borrowed("Weight"))),
-                        inner: DuperInner::Float(0.285),
+                        inner: 0.285,
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("in_stock")),
-                    DuperValue {
+                    DuperValue::Boolean {
                         identifier: None,
-                        inner: DuperInner::Boolean(true),
+                        inner: true,
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("specifications")),
-                    DuperValue {
+                    DuperValue::Object {
                         identifier: None,
-                        inner: DuperInner::Object(DuperObject(vec![
+                        inner: DuperObject::try_from(vec![
                             (
                                 DuperKey(Cow::Borrowed("battery_life")),
-                                DuperValue {
+                                DuperValue::String {
                                     identifier: Some(DuperIdentifier(Cow::Borrowed("Duration"))),
-                                    inner: DuperInner::String(DuperString(Cow::Borrowed("30h"))),
+                                    inner: Cow::Borrowed("30h"),
                                 },
                             ),
                             (
                                 DuperKey(Cow::Borrowed("noise_cancellation")),
-                                DuperValue {
+                                DuperValue::Boolean {
                                     identifier: None,
-                                    inner: DuperInner::Boolean(true),
+                                    inner: true,
                                 },
                             ),
                             (
                                 DuperKey(Cow::Borrowed("connectivity")),
-                                DuperValue {
+                                DuperValue::Array {
                                     identifier: None,
-                                    inner: DuperInner::Array(DuperArray(vec![
-                                        DuperValue {
+                                    inner: vec![
+                                        DuperValue::String {
                                             identifier: None,
-                                            inner: DuperInner::String(DuperString(Cow::Borrowed(
-                                                "Bluetooth 5.0",
-                                            ))),
+                                            inner: Cow::Borrowed("Bluetooth 5.0"),
                                         },
-                                        DuperValue {
+                                        DuperValue::String {
                                             identifier: None,
-                                            inner: DuperInner::String(DuperString(Cow::Borrowed(
-                                                "3.5mm Jack",
-                                            ))),
+                                            inner: Cow::Borrowed("3.5mm Jack"),
                                         },
-                                    ])),
+                                    ],
                                 },
                             ),
-                        ])),
+                        ])
+                        .unwrap(),
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("image_thumbnail")),
-                    DuperValue {
+                    DuperValue::Bytes {
                         identifier: Some(DuperIdentifier(Cow::Borrowed("Png"))),
-                        inner: DuperInner::Bytes(DuperBytes(Cow::Borrowed(
+                        inner: Cow::Borrowed(
                             b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x64",
-                        ))),
+                        ),
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("tags")),
-                    DuperValue {
+                    DuperValue::Array {
                         identifier: None,
-                        inner: DuperInner::Array(DuperArray(vec![
-                            DuperValue {
+                        inner: vec![
+                            DuperValue::String {
                                 identifier: None,
-                                inner: DuperInner::String(DuperString(Cow::Borrowed(
-                                    "electronics",
-                                ))),
+                                inner: Cow::Borrowed("electronics"),
                             },
-                            DuperValue {
+                            DuperValue::String {
                                 identifier: None,
-                                inner: DuperInner::String(DuperString(Cow::Borrowed("audio"))),
+                                inner: Cow::Borrowed("audio"),
                             },
-                            DuperValue {
+                            DuperValue::String {
                                 identifier: None,
-                                inner: DuperInner::String(DuperString(Cow::Borrowed("wireless"))),
+                                inner: Cow::Borrowed("wireless"),
                             },
-                        ])),
+                        ],
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("release_date")),
-                    DuperValue {
+                    DuperValue::String {
                         identifier: Some(DuperIdentifier(Cow::Borrowed("Date"))),
-                        inner: DuperInner::String(DuperString(Cow::Borrowed("2023-11-15"))),
+                        inner: Cow::Borrowed("2023-11-15"),
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("warranty_period")),
-                    DuperValue {
-                        identifier: None,
-                        inner: DuperInner::Null,
-                    },
+                    DuperValue::Null { identifier: None },
                 ),
                 (
                     DuperKey(Cow::Borrowed("customer_ratings")),
-                    DuperValue {
+                    DuperValue::Object {
                         identifier: None,
-                        inner: DuperInner::Object(DuperObject(vec![
+                        inner: DuperObject::try_from(vec![
                             (
                                 DuperKey(Cow::Borrowed("latest_review")),
-                                DuperValue {
+                                DuperValue::String {
                                     identifier: None,
-                                    inner: DuperInner::String(DuperString(Cow::Borrowed(
-                                        r#"Absolutely ""astounding""!! 😎"#,
-                                    ))),
+                                    inner: Cow::Borrowed(r#"Absolutely ""astounding""!! 😎"#),
                                 },
                             ),
                             (
                                 DuperKey(Cow::Borrowed("average")),
-                                DuperValue {
+                                DuperValue::Float {
                                     identifier: None,
-                                    inner: DuperInner::Float(4.5),
+                                    inner: 4.5,
                                 },
                             ),
                             (
                                 DuperKey(Cow::Borrowed("count")),
-                                DuperValue {
+                                DuperValue::Integer {
                                     identifier: None,
-                                    inner: DuperInner::Integer(127),
+                                    inner: 127,
                                 },
                             ),
-                        ])),
+                        ])
+                        .unwrap(),
                     },
                 ),
                 (
                     DuperKey(Cow::Borrowed("created_at")),
-                    DuperValue {
+                    DuperValue::String {
                         identifier: Some(DuperIdentifier(Cow::Borrowed("DateTime"))),
-                        inner: DuperInner::String(DuperString(Cow::Borrowed(
-                            "2023-11-17T21:50:43+00:00",
-                        ))),
+                        inner: Cow::Borrowed("2023-11-17T21:50:43+00:00"),
                     },
                 ),
-            ])),
+            ])
+            .unwrap(),
         }
     }
 

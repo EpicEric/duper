@@ -1,8 +1,7 @@
 use std::borrow::Cow;
 
-use crate::{
-    DuperArray, DuperInner, DuperKey, DuperParser, DuperValue, serde::temporal::TemporalString,
-};
+use crate::{DuperKey, DuperParser, DuperValue, serde::temporal::TemporalString};
+use indexmap::IndexMap;
 use serde_core::{
     Deserialize,
     de::{self, DeserializeSeed, IntoDeserializer, Visitor},
@@ -155,66 +154,37 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         match self.value.take() {
-            Some(DuperValue {
-                inner: DuperInner::Object(object),
-                ..
-            }) => {
+            Some(DuperValue::Object { inner: object, .. }) => {
                 let map = MapDeserializer::new(object.into_inner());
                 visitor.visit_map(map)
             }
-            Some(DuperValue {
-                inner: DuperInner::Array(array),
-                ..
-            }) => {
-                let seq = SequenceDeserializer::new(array.into_inner());
+            Some(DuperValue::Array { inner: array, .. }) => {
+                let seq = SequenceDeserializer::new(array);
                 visitor.visit_seq(seq)
             }
-            Some(DuperValue {
-                inner: DuperInner::Tuple(tuple),
-                ..
-            }) if tuple.is_empty() => visitor.visit_unit(),
-            Some(DuperValue {
-                inner: DuperInner::Tuple(tuple),
-                ..
-            }) => {
-                let seq = TupleDeserializer::new(tuple.into_inner());
+            Some(DuperValue::Tuple { inner: tuple, .. }) if tuple.is_empty() => {
+                visitor.visit_unit()
+            }
+            Some(DuperValue::Tuple { inner: tuple, .. }) => {
+                let seq = TupleDeserializer::new(tuple);
                 visitor.visit_seq(seq)
             }
-            Some(DuperValue {
-                inner: DuperInner::String(string),
-                ..
-            }) => match string.into_inner() {
+            Some(DuperValue::String { inner: string, .. }) => match string {
                 Cow::Borrowed(s) => visitor.visit_borrowed_str(s),
                 Cow::Owned(s) => visitor.visit_string(s),
             },
-            Some(DuperValue {
-                inner: DuperInner::Bytes(bytes),
-                ..
-            }) => match bytes.into_inner() {
+            Some(DuperValue::Bytes { inner: bytes, .. }) => match bytes {
                 Cow::Borrowed(b) => visitor.visit_borrowed_bytes(b),
                 Cow::Owned(b) => visitor.visit_byte_buf(b),
             },
-            Some(DuperValue {
-                inner: DuperInner::Temporal(temporal),
-                ..
-            }) => IntoDeserializer::into_deserializer(TemporalString(temporal))
-                .deserialize_any(visitor),
-            Some(DuperValue {
-                inner: DuperInner::Integer(integer),
-                ..
-            }) => visitor.visit_i64(integer),
-            Some(DuperValue {
-                inner: DuperInner::Float(float),
-                ..
-            }) => visitor.visit_f64(float),
-            Some(DuperValue {
-                inner: DuperInner::Boolean(boolean),
-                ..
-            }) => visitor.visit_bool(boolean),
-            Some(DuperValue {
-                inner: DuperInner::Null,
-                ..
-            }) => visitor.visit_none(),
+            Some(DuperValue::Temporal(temporal)) => {
+                IntoDeserializer::into_deserializer(TemporalString::from(temporal))
+                    .deserialize_any(visitor)
+            }
+            Some(DuperValue::Integer { inner: integer, .. }) => visitor.visit_i64(integer),
+            Some(DuperValue::Float { inner: float, .. }) => visitor.visit_f64(float),
+            Some(DuperValue::Boolean { inner: boolean, .. }) => visitor.visit_bool(boolean),
+            Some(DuperValue::Null { .. }) => visitor.visit_none(),
             None => Err(de::Error::custom("already consumed deserializer value")),
         }
     }
@@ -226,11 +196,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         match &self.value {
-            Some(DuperValue {
-                inner: DuperInner::Null,
-                ..
-            })
-            | None => visitor.visit_none(),
+            Some(DuperValue::Null { .. }) | None => visitor.visit_none(),
             _ => visitor.visit_some(self),
         }
     }
@@ -251,23 +217,17 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         match self.value.take() {
-            Some(DuperValue {
-                inner: DuperInner::Array(array),
-                ..
-            }) if array.len() == len => {
-                let seq = TupleDeserializer::new(array.into_inner());
+            Some(DuperValue::Array { inner: array, .. }) if array.len() == len => {
+                let seq = TupleDeserializer::new(array);
                 visitor.visit_seq(seq)
             }
-            Some(DuperValue {
-                inner: DuperInner::Tuple(tuple),
-                ..
-            }) if tuple.len() == len => {
-                let seq = TupleDeserializer::new(tuple.into_inner());
+            Some(DuperValue::Tuple { inner: tuple, .. }) if tuple.len() == len => {
+                let seq = TupleDeserializer::new(tuple);
                 visitor.visit_seq(seq)
             }
             Some(value) => Err(de::Error::custom(format!(
                 "expected tuple of len {len}, found {:?}",
-                value.inner
+                value
             ))),
             None => Err(de::Error::custom("already consumed deserializer value")),
         }
@@ -295,16 +255,12 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         match self.value.take() {
-            Some(DuperValue {
-                inner: DuperInner::String(string),
-                ..
-            }) => visitor.visit_enum(string.as_ref().into_deserializer()),
-            Some(DuperValue {
-                inner: DuperInner::Object(object),
-                ..
-            }) if object.len() == 1 => {
+            Some(DuperValue::String { inner: string, .. }) => {
+                visitor.visit_enum(string.into_deserializer())
+            }
+            Some(DuperValue::Object { inner: object, .. }) if object.len() == 1 => {
                 let mut object = object.into_inner();
-                let pair = object.remove(0);
+                let pair = object.pop().unwrap();
                 visitor.visit_enum(EnumDeserializer {
                     variant: pair.0,
                     value: pair.1,
@@ -312,7 +268,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
             }
             Some(value) => Err(de::Error::custom(format!(
                 "expected string or single-keyed object for enum, found {:?}",
-                value.inner
+                value
             ))),
             None => Err(de::Error::custom("already consumed deserializer value")),
         }
@@ -343,23 +299,20 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         self.value = match self.value.take() {
-            Some(DuperValue {
-                inner: DuperInner::Bytes(bytes),
+            Some(DuperValue::Bytes {
+                inner: bytes,
                 identifier,
             }) => {
                 // Ugly hack to deal with poor Serde support for bytes
-                Some(DuperValue {
+                Some(DuperValue::Array {
                     identifier,
-                    inner: DuperInner::Array(DuperArray::from(
-                        bytes
-                            .into_inner()
-                            .iter()
-                            .map(|v| DuperValue {
-                                identifier: None,
-                                inner: DuperInner::Integer(i64::from(*v)),
-                            })
-                            .collect::<Vec<_>>(),
-                    )),
+                    inner: bytes
+                        .iter()
+                        .map(|v| DuperValue::Integer {
+                            identifier: None,
+                            inner: i64::from(*v),
+                        })
+                        .collect::<Vec<_>>(),
                 })
             }
             value => value,
@@ -437,14 +390,14 @@ impl<'de> de::SeqAccess<'de> for TupleDeserializer<'de> {
 }
 
 struct MapDeserializer<'de> {
-    iter: std::vec::IntoIter<(DuperKey<'de>, DuperValue<'de>)>,
+    iter: indexmap::map::IntoIter<DuperKey<'de>, DuperValue<'de>>,
     value: Option<DuperValue<'de>>,
 }
 
 impl<'de> MapDeserializer<'de> {
-    fn new(vec: Vec<(DuperKey<'de>, DuperValue<'de>)>) -> Self {
+    fn new(map: IndexMap<DuperKey<'de>, DuperValue<'de>>) -> Self {
         Self {
-            iter: vec.into_iter(),
+            iter: map.into_iter(),
             value: None,
         }
     }
@@ -509,9 +462,9 @@ impl<'de> de::VariantAccess<'de> for VariantDeserializer<'de> {
     type Error = de::value::Error;
 
     fn unit_variant(self) -> Result<(), Self::Error> {
-        match self.value.map(|value| value.inner) {
-            Some(DuperInner::Tuple(vec)) if vec.is_empty() => Ok(()),
-            Some(DuperInner::Null) => Ok(()),
+        match self.value {
+            Some(DuperValue::Tuple { inner: vec, .. }) if vec.is_empty() => Ok(()),
+            Some(DuperValue::Null { .. }) => Ok(()),
             Some(value) => Err(de::Error::custom(format!(
                 "expected null for unit variant, found {value:?}"
             ))),
@@ -533,13 +486,13 @@ impl<'de> de::VariantAccess<'de> for VariantDeserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        match self.value.map(|value| value.inner) {
-            Some(DuperInner::Array(vec)) => {
-                let seq = SequenceDeserializer::new(vec.into_inner());
+        match self.value {
+            Some(DuperValue::Array { inner: vec, .. }) => {
+                let seq = SequenceDeserializer::new(vec);
                 visitor.visit_seq(seq)
             }
-            Some(DuperInner::Tuple(vec)) => {
-                let seq = TupleDeserializer::new(vec.into_inner());
+            Some(DuperValue::Tuple { inner: vec, .. }) => {
+                let seq = TupleDeserializer::new(vec);
                 visitor.visit_seq(seq)
             }
             Some(_) => Err(de::Error::custom("expected array for tuple variant")),
@@ -555,8 +508,8 @@ impl<'de> de::VariantAccess<'de> for VariantDeserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        match self.value.map(|value| value.inner) {
-            Some(DuperInner::Object(obj)) => {
+        match self.value {
+            Some(DuperValue::Object { inner: obj, .. }) => {
                 let map = MapDeserializer::new(obj.into_inner());
                 visitor.visit_map(map)
             }

@@ -13,18 +13,8 @@ use serde_core::{
 };
 
 use crate::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTuple, DuperValue,
+    DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperTemporalIdentifier, DuperValue,
 };
-
-impl<'a> Serialize for DuperValue<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde_core::Serializer,
-    {
-        self.inner.serialize(serializer)
-    }
-}
 
 impl<'a> Serialize for DuperIdentifier<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -35,40 +25,77 @@ impl<'a> Serialize for DuperIdentifier<'a> {
     }
 }
 
-impl<'a> Serialize for DuperInner<'a> {
+impl<'a> Serialize for DuperTemporalIdentifier<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde_core::Serializer,
+    {
+        serializer.serialize_str(self.as_ref())
+    }
+}
+
+impl<'a> Serialize for DuperValue<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde_core::Serializer,
     {
         match &self {
-            DuperInner::Object(object) => {
-                let mut map = serializer.serialize_map(Some(object.len()))?;
-                for (key, value) in object.iter() {
-                    map.serialize_entry(key.as_ref(), value)?;
+            DuperValue::Object { inner, .. } => {
+                let mut map = serializer.serialize_map(Some(inner.len()))?;
+                for (key, value) in inner.iter() {
+                    map.serialize_entry(key, value)?;
                 }
                 map.end()
             }
-            DuperInner::Array(array) => {
-                let mut seq = serializer.serialize_seq(Some(array.len()))?;
-                for element in array.iter() {
+            DuperValue::Array { inner, .. } => {
+                let mut seq = serializer.serialize_seq(Some(inner.len()))?;
+                for element in inner.iter() {
                     seq.serialize_element(element)?;
                 }
                 seq.end()
             }
-            DuperInner::Tuple(tuple) => {
-                let mut tup = serializer.serialize_tuple(tuple.len())?;
-                for element in tuple.iter() {
+            DuperValue::Tuple { inner, .. } => {
+                let mut tup = serializer.serialize_tuple(inner.len())?;
+                for element in inner.iter() {
                     tup.serialize_element(element)?;
                 }
                 tup.end()
             }
-            DuperInner::String(string) => serializer.serialize_str(string.as_ref()),
-            DuperInner::Bytes(bytes) => serializer.serialize_bytes(bytes.as_ref()),
-            DuperInner::Temporal(temporal) => serializer.serialize_str(temporal.as_ref()),
-            DuperInner::Integer(integer) => serializer.serialize_i64(*integer),
-            DuperInner::Float(float) => serializer.serialize_f64(*float),
-            DuperInner::Boolean(boolean) => serializer.serialize_bool(*boolean),
-            DuperInner::Null => serializer.serialize_none(),
+            DuperValue::String { inner, .. } => serializer.serialize_str(inner.as_ref()),
+            DuperValue::Bytes { inner, .. } => serializer.serialize_bytes(inner.as_ref()),
+            DuperValue::Temporal(temporal) => match temporal {
+                DuperTemporal::Instant { inner } => {
+                    serializer.serialize_newtype_struct("Instant", inner.as_ref())
+                }
+                DuperTemporal::ZonedDateTime { inner } => {
+                    serializer.serialize_newtype_struct("ZonedDateTime", inner.as_ref())
+                }
+                DuperTemporal::PlainDate { inner } => {
+                    serializer.serialize_newtype_struct("PlainDate", inner.as_ref())
+                }
+                DuperTemporal::PlainTime { inner } => {
+                    serializer.serialize_newtype_struct("PlainTime", inner.as_ref())
+                }
+                DuperTemporal::PlainDateTime { inner } => {
+                    serializer.serialize_newtype_struct("PlainDateTime", inner.as_ref())
+                }
+                DuperTemporal::PlainYearMonth { inner } => {
+                    serializer.serialize_newtype_struct("PlainYearMonth", inner.as_ref())
+                }
+                DuperTemporal::PlainMonthDay { inner } => {
+                    serializer.serialize_newtype_struct("PlainMonthDay", inner.as_ref())
+                }
+                DuperTemporal::Duration { inner } => {
+                    serializer.serialize_newtype_struct("Duration", inner.as_ref())
+                }
+                DuperTemporal::Unspecified { inner, .. } => {
+                    serializer.serialize_str(inner.as_ref())
+                }
+            },
+            DuperValue::Integer { inner, .. } => serializer.serialize_i64(*inner),
+            DuperValue::Float { inner, .. } => serializer.serialize_f64(*inner),
+            DuperValue::Boolean { inner, .. } => serializer.serialize_bool(*inner),
+            DuperValue::Null { .. } => serializer.serialize_none(),
         }
     }
 }
@@ -100,9 +127,9 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             where
                 E: Error,
             {
-                Ok(DuperValue {
+                Ok(DuperValue::Boolean {
                     identifier: None,
-                    inner: DuperInner::Boolean(v),
+                    inner: v,
                 })
             }
 
@@ -110,9 +137,9 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             where
                 E: Error,
             {
-                Ok(DuperValue {
+                Ok(DuperValue::Integer {
                     identifier: None,
-                    inner: DuperInner::Integer(v),
+                    inner: v,
                 })
             }
 
@@ -121,24 +148,27 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
                 E: Error,
             {
                 if let Ok(v) = i64::try_from(v) {
-                    Ok(DuperValue {
+                    Ok(DuperValue::Integer {
                         identifier: None,
-                        inner: DuperInner::Integer(v),
+                        inner: v,
                     })
                 } else if let float = v as f64
                     && float as i128 == v
                 {
-                    Ok(DuperValue {
-                        identifier: None,
-                        inner: DuperInner::Float(float),
-                    })
-                } else {
-                    Ok(DuperValue {
+                    Ok(DuperValue::Float {
                         identifier: Some(
                             DuperIdentifier::try_from(Cow::Borrowed("I128"))
                                 .expect("valid identifier"),
                         ),
-                        inner: DuperInner::String(DuperString::from(v.to_string())),
+                        inner: float,
+                    })
+                } else {
+                    Ok(DuperValue::String {
+                        identifier: Some(
+                            DuperIdentifier::try_from(Cow::Borrowed("I128"))
+                                .expect("valid identifier"),
+                        ),
+                        inner: Cow::Owned(v.to_string()),
                     })
                 }
             }
@@ -169,24 +199,27 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
                 E: Error,
             {
                 if let Ok(v) = i64::try_from(v) {
-                    Ok(DuperValue {
+                    Ok(DuperValue::Integer {
                         identifier: None,
-                        inner: DuperInner::Integer(v),
+                        inner: v,
                     })
                 } else if let float = v as f64
                     && float as u64 == v
                 {
-                    Ok(DuperValue {
-                        identifier: None,
-                        inner: DuperInner::Float(float),
-                    })
-                } else {
-                    Ok(DuperValue {
+                    Ok(DuperValue::Float {
                         identifier: Some(
                             DuperIdentifier::try_from(Cow::Borrowed("U64"))
                                 .expect("valid identifier"),
                         ),
-                        inner: DuperInner::String(DuperString::from(v.to_string())),
+                        inner: float,
+                    })
+                } else {
+                    Ok(DuperValue::String {
+                        identifier: Some(
+                            DuperIdentifier::try_from(Cow::Borrowed("U64"))
+                                .expect("valid identifier"),
+                        ),
+                        inner: Cow::Owned(v.to_string()),
                     })
                 }
             }
@@ -196,24 +229,27 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
                 E: Error,
             {
                 if let Ok(v) = i64::try_from(v) {
-                    Ok(DuperValue {
+                    Ok(DuperValue::Integer {
                         identifier: None,
-                        inner: DuperInner::Integer(v),
+                        inner: v,
                     })
                 } else if let float = v as f64
                     && float as u128 == v
                 {
-                    Ok(DuperValue {
-                        identifier: None,
-                        inner: DuperInner::Float(float),
-                    })
-                } else {
-                    Ok(DuperValue {
+                    Ok(DuperValue::Float {
                         identifier: Some(
                             DuperIdentifier::try_from(Cow::Borrowed("U128"))
                                 .expect("valid identifier"),
                         ),
-                        inner: DuperInner::String(DuperString::from(v.to_string())),
+                        inner: float,
+                    })
+                } else {
+                    Ok(DuperValue::String {
+                        identifier: Some(
+                            DuperIdentifier::try_from(Cow::Borrowed("U128"))
+                                .expect("valid identifier"),
+                        ),
+                        inner: Cow::Owned(v.to_string()),
                     })
                 }
             }
@@ -222,9 +258,9 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             where
                 E: Error,
             {
-                Ok(DuperValue {
+                Ok(DuperValue::Float {
                     identifier: None,
-                    inner: DuperInner::Float(v),
+                    inner: v,
                 })
             }
 
@@ -239,9 +275,9 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             where
                 E: Error,
             {
-                Ok(DuperValue {
+                Ok(DuperValue::String {
                     identifier: None,
-                    inner: DuperInner::String(DuperString::from(Cow::Borrowed(v))),
+                    inner: Cow::Borrowed(v),
                 })
             }
 
@@ -249,9 +285,9 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             where
                 E: Error,
             {
-                Ok(DuperValue {
+                Ok(DuperValue::String {
                     identifier: None,
-                    inner: DuperInner::String(DuperString::from(v)),
+                    inner: Cow::Owned(v),
                 })
             }
 
@@ -266,9 +302,9 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             where
                 E: Error,
             {
-                Ok(DuperValue {
+                Ok(DuperValue::Bytes {
                     identifier: None,
-                    inner: DuperInner::Bytes(DuperBytes::from(Cow::Borrowed(v))),
+                    inner: Cow::Borrowed(v),
                 })
             }
 
@@ -276,9 +312,9 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             where
                 E: Error,
             {
-                Ok(DuperValue {
+                Ok(DuperValue::Bytes {
                     identifier: None,
-                    inner: DuperInner::Bytes(DuperBytes::from(v)),
+                    inner: Cow::Owned(v),
                 })
             }
 
@@ -286,10 +322,7 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             where
                 E: Error,
             {
-                Ok(DuperValue {
-                    identifier: None,
-                    inner: DuperInner::Null,
-                })
+                Ok(DuperValue::Null { identifier: None })
             }
 
             fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -303,9 +336,9 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             where
                 E: Error,
             {
-                Ok(DuperValue {
+                Ok(DuperValue::Tuple {
                     identifier: None,
-                    inner: DuperInner::Tuple(DuperTuple::from(vec![])),
+                    inner: vec![],
                 })
             }
 
@@ -327,9 +360,9 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
                 while let Some(element) = seq.next_element()? {
                     vec.push(element);
                 }
-                Ok(DuperValue {
+                Ok(DuperValue::Array {
                     identifier: None,
-                    inner: DuperInner::Array(DuperArray::from(vec)),
+                    inner: vec,
                 })
             }
 
@@ -344,9 +377,9 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
                 while let Some(element) = map.next_entry()? {
                     vec.push(element);
                 }
-                Ok(DuperValue {
+                Ok(DuperValue::Object {
                     identifier: None,
-                    inner: DuperInner::Object(DuperObject::try_from(vec).map_err(Error::custom)?),
+                    inner: DuperObject::try_from(vec).map_err(Error::custom)?,
                 })
             }
         }
@@ -437,12 +470,14 @@ impl<'de> Deserialize<'de> for DuperIdentifier<'de> {
 
 #[cfg(test)]
 mod serde_tests {
+    use std::borrow::Cow;
+
+    use indexmap::IndexMap;
     use insta::assert_snapshot;
     use serde::{Deserialize, Serialize};
 
     use crate::{
-        DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-        DuperTemporal, DuperTuple, DuperValue, PrettyPrinter,
+        DuperIdentifier, DuperKey, DuperObject, DuperValue, PrettyPrinter,
         serde::{de::Deserializer, ser::Serializer},
     };
 
@@ -460,24 +495,25 @@ mod serde_tests {
 
     #[test]
     fn serialize_object() {
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: None,
-            inner: DuperInner::Object(DuperObject(vec![])),
+            inner: DuperObject(IndexMap::new()),
         };
         let serialized = serialize_duper(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_duper(&serialized);
         assert_eq!(value, deserialized);
 
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: Some(DuperIdentifier::try_from("Outer").expect("valid identifier")),
-            inner: DuperInner::Object(DuperObject(vec![(
+            inner: DuperObject::try_from(vec![(
                 DuperKey::from("foo"),
-                DuperValue {
+                DuperValue::Object {
                     identifier: Some(DuperIdentifier::try_from("Inner").expect("valid identifier")),
-                    inner: DuperInner::Object(DuperObject(vec![])),
+                    inner: DuperObject(IndexMap::new()),
                 },
-            )])),
+            )])
+            .unwrap(),
         };
         let serialized = serialize_duper(&value);
         assert_snapshot!(serialized);
@@ -487,21 +523,21 @@ mod serde_tests {
 
     #[test]
     fn serialize_array() {
-        let value = DuperValue {
+        let value = DuperValue::Array {
             identifier: None,
-            inner: DuperInner::Array(DuperArray(vec![])),
+            inner: vec![],
         };
         let serialized = serialize_duper(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_duper(&serialized);
         assert_eq!(value, deserialized);
 
-        let value = DuperValue {
+        let value = DuperValue::Array {
             identifier: Some(DuperIdentifier::try_from("Outer").expect("valid identifier")),
-            inner: DuperInner::Array(DuperArray(vec![DuperValue {
+            inner: vec![DuperValue::Array {
                 identifier: Some(DuperIdentifier::try_from("Inner").expect("valid identifier")),
-                inner: DuperInner::Array(DuperArray(vec![])),
-            }])),
+                inner: vec![],
+            }],
         };
         let serialized = serialize_duper(&value);
         assert_snapshot!(serialized);
@@ -511,33 +547,33 @@ mod serde_tests {
 
     #[test]
     fn serialize_tuple() {
-        let value = DuperValue {
+        let value = DuperValue::Tuple {
             identifier: None,
-            inner: DuperInner::Tuple(DuperTuple(vec![])),
+            inner: vec![],
         };
         let serialized = serialize_duper(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_duper(&serialized);
         assert_eq!(value, deserialized);
 
-        let value = DuperValue {
+        let value = DuperValue::Tuple {
             identifier: Some(DuperIdentifier::try_from("Outer").expect("valid identifier")),
-            inner: DuperInner::Tuple(DuperTuple(vec![DuperValue {
+            inner: vec![DuperValue::Tuple {
                 identifier: Some(DuperIdentifier::try_from("Inner").expect("valid identifier")),
-                inner: DuperInner::Tuple(DuperTuple(vec![])),
-            }])),
+                inner: vec![],
+            }],
         };
         let serialized = serialize_duper(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_duper(&serialized);
         assert_eq!(
-            DuperValue {
+            // Unfortunately, Serde deserializes non-unit tuples into arrays
+            DuperValue::Array {
                 identifier: None,
-                // Unfortunately, Serde deserializes non-unit tuples into arrays
-                inner: DuperInner::Array(DuperArray(vec![DuperValue {
+                inner: vec![DuperValue::Tuple {
                     identifier: None,
-                    inner: DuperInner::Tuple(DuperTuple(vec![])),
-                }])),
+                    inner: vec![],
+                }],
             },
             deserialized,
         );
@@ -545,217 +581,189 @@ mod serde_tests {
 
     #[test]
     fn serialize_scalars() {
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: None,
-            inner: DuperInner::Object(DuperObject(vec![
+            inner: DuperObject::try_from(vec![
                 (
                     DuperKey::from("string"),
-                    DuperValue {
+                    DuperValue::String {
                         identifier: None,
-                        inner: DuperInner::String(DuperString::from("Hello world!")),
+                        inner: Cow::Borrowed("Hello world!"),
                     },
                 ),
                 (
                     DuperKey::from("bytes"),
-                    DuperValue {
+                    DuperValue::Bytes {
                         identifier: None,
-                        inner: DuperInner::Bytes(DuperBytes::from(&br"/\"[..])),
+                        inner: Cow::Borrowed(&br"/\"[..]),
                     },
                 ),
                 (
                     DuperKey::from("temporal"),
-                    DuperValue {
-                        identifier: Some(
-                            DuperIdentifier::try_from("PlainTime").expect("valid identifier"),
-                        ),
-                        inner: DuperInner::Temporal(
-                            DuperTemporal::try_plain_time_from(std::borrow::Cow::Borrowed(
-                                "16:20:00",
-                            ))
-                            .expect("valid PlainTime"),
-                        ),
-                    },
+                    DuperValue::try_plain_time_from(Cow::Borrowed("16:20:00"))
+                        .expect("valid PlainTime"),
                 ),
                 (
                     DuperKey::from("integer"),
-                    DuperValue {
+                    DuperValue::Integer {
                         identifier: None,
-                        inner: DuperInner::Integer(1337),
+                        inner: 1337,
                     },
                 ),
                 (
                     DuperKey::from("float"),
-                    DuperValue {
+                    DuperValue::Float {
                         identifier: None,
-                        inner: DuperInner::Float(8.25),
+                        inner: 8.25,
                     },
                 ),
                 (
                     DuperKey::from("boolean"),
-                    DuperValue {
+                    DuperValue::Boolean {
                         identifier: None,
-                        inner: DuperInner::Boolean(true),
+                        inner: true,
                     },
                 ),
                 (
                     DuperKey::from("null"),
-                    DuperValue {
-                        identifier: None,
-                        inner: DuperInner::Null,
-                    },
+                    DuperValue::Null { identifier: None },
                 ),
-            ])),
+            ])
+            .unwrap(),
         };
         let serialized = serialize_duper(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_duper(&serialized);
         assert_eq!(
             deserialized,
-            DuperValue {
+            DuperValue::Object {
                 identifier: None,
-                inner: DuperInner::Object(DuperObject(vec![
+                inner: DuperObject::try_from(vec![
                     (
                         DuperKey::from("string"),
-                        DuperValue {
+                        DuperValue::String {
                             identifier: None,
-                            inner: DuperInner::String(DuperString::from("Hello world!")),
+                            inner: Cow::Borrowed("Hello world!"),
                         },
                     ),
                     (
                         DuperKey::from("bytes"),
-                        DuperValue {
+                        DuperValue::Bytes {
                             identifier: None,
-                            inner: DuperInner::Bytes(DuperBytes::from(&br"/\"[..])),
+                            inner: Cow::Borrowed(&br"/\"[..]),
                         },
                     ),
                     (
                         DuperKey::from("temporal"),
-                        DuperValue {
-                            identifier: None,
-                            inner: DuperInner::String(DuperString::from("16:20:00",),),
-                        },
+                        DuperValue::try_unspecified_from(None, Cow::Borrowed("16:20:00")).unwrap(),
                     ),
                     (
                         DuperKey::from("integer"),
-                        DuperValue {
+                        DuperValue::Integer {
                             identifier: None,
-                            inner: DuperInner::Integer(1337),
+                            inner: 1337,
                         },
                     ),
                     (
                         DuperKey::from("float"),
-                        DuperValue {
+                        DuperValue::Float {
                             identifier: None,
-                            inner: DuperInner::Float(8.25),
+                            inner: 8.25,
                         },
                     ),
                     (
                         DuperKey::from("boolean"),
-                        DuperValue {
+                        DuperValue::Boolean {
                             identifier: None,
-                            inner: DuperInner::Boolean(true),
+                            inner: true,
                         },
                     ),
                     (
                         DuperKey::from("null"),
-                        DuperValue {
-                            identifier: None,
-                            inner: DuperInner::Null,
-                        },
+                        DuperValue::Null { identifier: None },
                     ),
-                ])),
+                ])
+                .unwrap(),
             }
         );
 
-        let value = DuperValue {
+        let value = DuperValue::Array {
             identifier: Some(DuperIdentifier::try_from("MyScalars").expect("valid identifier")),
-            inner: DuperInner::Array(DuperArray(vec![
-                DuperValue {
+            inner: vec![
+                DuperValue::String {
                     identifier: Some(
                         DuperIdentifier::try_from("MyString").expect("valid identifier"),
                     ),
-                    inner: DuperInner::String(DuperString::from("Hello world!")),
+                    inner: Cow::Borrowed("Hello world!"),
                 },
-                DuperValue {
+                DuperValue::Bytes {
                     identifier: Some(
                         DuperIdentifier::try_from("MyBytes").expect("valid identifier"),
                     ),
-                    inner: DuperInner::Bytes(DuperBytes::from(&br"/\"[..])),
+                    inner: Cow::Borrowed(&br"/\"[..]),
                 },
-                DuperValue {
-                    identifier: Some(
-                        DuperIdentifier::try_from("MyTemporal").expect("valid identifier"),
-                    ),
-                    inner: DuperInner::Temporal(
-                        DuperTemporal::try_unspecified_from(std::borrow::Cow::Borrowed(
-                            "2012-12-21",
-                        ))
-                        .expect("valid PlainTime"),
-                    ),
-                },
-                DuperValue {
+                DuperValue::try_unspecified_from(
+                    Some(DuperIdentifier(Cow::Borrowed("MyTemporal"))),
+                    Cow::Borrowed("2012-12-21"),
+                )
+                .unwrap(),
+                DuperValue::Integer {
                     identifier: Some(DuperIdentifier::try_from("MyInt").expect("valid identifier")),
-                    inner: DuperInner::Integer(1337),
+                    inner: 1337,
                 },
-                DuperValue {
+                DuperValue::Float {
                     identifier: Some(
                         DuperIdentifier::try_from("MyFloat").expect("valid identifier"),
                     ),
-                    inner: DuperInner::Float(8.25),
+                    inner: 8.25,
                 },
-                DuperValue {
+                DuperValue::Boolean {
                     identifier: Some(
                         DuperIdentifier::try_from("MyBool").expect("valid identifier"),
                     ),
-                    inner: DuperInner::Boolean(true),
+                    inner: true,
                 },
-                DuperValue {
+                DuperValue::Null {
                     identifier: Some(
                         DuperIdentifier::try_from("Mysterious").expect("valid identifier"),
                     ),
-                    inner: DuperInner::Null,
                 },
-            ])),
+            ],
         };
         let serialized = serialize_duper(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_duper(&serialized);
         assert_eq!(
             deserialized,
-            DuperValue {
+            DuperValue::Array {
                 identifier: Some(DuperIdentifier::try_from("MyScalars").expect("valid identifier")),
-                inner: DuperInner::Array(DuperArray(vec![
-                    DuperValue {
+                inner: vec![
+                    DuperValue::String {
                         identifier: None,
-                        inner: DuperInner::String(DuperString::from("Hello world!")),
+                        inner: Cow::Borrowed("Hello world!"),
                     },
-                    DuperValue {
+                    DuperValue::Bytes {
                         identifier: None,
-                        inner: DuperInner::Bytes(DuperBytes::from(&br"/\"[..])),
+                        inner: Cow::Borrowed(&br"/\"[..]),
                     },
-                    DuperValue {
+                    DuperValue::String {
                         identifier: None,
-                        inner: DuperInner::String(DuperString::from("2012-12-21"))
+                        inner: Cow::Borrowed("2012-12-21")
                     },
-                    DuperValue {
-                        identifier: Some(
-                            DuperIdentifier::try_from("MyInt").expect("valid identifier")
-                        ),
-                        inner: DuperInner::Integer(1337),
-                    },
-                    DuperValue {
+                    DuperValue::Integer {
                         identifier: None,
-                        inner: DuperInner::Float(8.25),
+                        inner: 1337,
                     },
-                    DuperValue {
+                    DuperValue::Float {
                         identifier: None,
-                        inner: DuperInner::Boolean(true),
+                        inner: 8.25,
                     },
-                    DuperValue {
+                    DuperValue::Boolean {
                         identifier: None,
-                        inner: DuperInner::Null,
+                        inner: true,
                     },
-                ])),
+                    DuperValue::Null { identifier: None },
+                ],
             }
         );
     }
