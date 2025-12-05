@@ -2,7 +2,11 @@ use std::{borrow::Cow, marker::PhantomData};
 
 use serde_core::{de::IntoDeserializer, ser::SerializeStruct};
 
-use crate::DuperTemporal;
+use crate::{
+    DuperTemporal, DuperTemporalDuration, DuperTemporalInstant, DuperTemporalPlainDate,
+    DuperTemporalPlainDateTime, DuperTemporalPlainMonthDay, DuperTemporalPlainTime,
+    DuperTemporalPlainYearMonth, DuperTemporalUnspecified, DuperTemporalZonedDateTime,
+};
 
 /// An internal string to identify a value as a [`TemporalString`].
 pub const STRUCT: &str = "$__duper_private_TemporalString";
@@ -30,7 +34,7 @@ pub const FIELD_VALUE: &str = "$__duper_private_value";
 ///
 /// ```
 /// use serde::{Deserialize, Serialize};
-/// use duper::{DuperTemporal, serde::temporal::TemporalString};
+/// use duper::{DuperTemporalPlainYearMonth, serde::temporal::TemporalString};
 ///
 /// #[derive(Serialize, Deserialize)]
 /// struct MyType<'a> {
@@ -38,36 +42,133 @@ pub const FIELD_VALUE: &str = "$__duper_private_value";
 /// }
 ///
 /// let item = MyType {
-///     inner: TemporalString(DuperTemporal::try_plain_year_month_from(
+///     inner: TemporalString::from(DuperTemporalPlainYearMonth::try_from(
 ///         std::borrow::Cow::Borrowed("2023-10-05T14:30:00+00:00")
 ///     ).unwrap()),
 /// };
 ///
 /// let output = duper::serde::ser::to_string(&item).unwrap();
 /// let deserialized: MyType<'_> = duper::serde::de::from_string(&output).unwrap();
-/// assert!(matches!(deserialized.inner.0, DuperTemporal::PlainYearMonth(_)));
+/// assert!(matches!(deserialized.inner, TemporalString::PlainYearMonth(_)));
 /// ```
-pub struct TemporalString<'a>(pub DuperTemporal<'a>);
+pub enum TemporalString<'a> {
+    Instant(DuperTemporalInstant<'a>),
+    ZonedDateTime(DuperTemporalZonedDateTime<'a>),
+    PlainDate(DuperTemporalPlainDate<'a>),
+    PlainTime(DuperTemporalPlainTime<'a>),
+    PlainDateTime(DuperTemporalPlainDateTime<'a>),
+    PlainYearMonth(DuperTemporalPlainYearMonth<'a>),
+    PlainMonthDay(DuperTemporalPlainMonthDay<'a>),
+    Duration(DuperTemporalDuration<'a>),
+    Unspecified(DuperTemporalUnspecified<'a>),
+}
+
+impl TemporalString<'_> {
+    ///
+    pub fn name(&self) -> &'static str {
+        match self {
+            TemporalString::Instant(_) => "Instant",
+            TemporalString::ZonedDateTime(_) => "ZonedDateTime",
+            TemporalString::PlainDate(_) => "PlainDate",
+            TemporalString::PlainTime(_) => "PlainTime",
+            TemporalString::PlainDateTime(_) => "PlainDateTime",
+            TemporalString::PlainYearMonth(_) => "PlainYearMonth",
+            TemporalString::PlainMonthDay(_) => "PlainMonthDay",
+            TemporalString::Duration(_) => "Duration",
+            TemporalString::Unspecified(_) => "Unspecified",
+        }
+    }
+}
+
+impl<'a> From<DuperTemporal<'a>> for TemporalString<'a> {
+    fn from(value: DuperTemporal<'a>) -> Self {
+        match value {
+            DuperTemporal::Instant { inner } => Self::Instant(inner),
+            DuperTemporal::ZonedDateTime { inner } => Self::ZonedDateTime(inner),
+            DuperTemporal::PlainDate { inner } => Self::PlainDate(inner),
+            DuperTemporal::PlainTime { inner } => Self::PlainTime(inner),
+            DuperTemporal::PlainDateTime { inner } => Self::PlainDateTime(inner),
+            DuperTemporal::PlainYearMonth { inner } => Self::PlainYearMonth(inner),
+            DuperTemporal::PlainMonthDay { inner } => Self::PlainMonthDay(inner),
+            DuperTemporal::Duration { inner } => Self::Duration(inner),
+            DuperTemporal::Unspecified { inner, .. } => Self::Unspecified(inner),
+        }
+    }
+}
+
+impl<'a> From<DuperTemporalInstant<'a>> for TemporalString<'a> {
+    fn from(value: DuperTemporalInstant<'a>) -> Self {
+        Self::Instant(value)
+    }
+}
+
+impl<'a> From<DuperTemporalZonedDateTime<'a>> for TemporalString<'a> {
+    fn from(value: DuperTemporalZonedDateTime<'a>) -> Self {
+        Self::ZonedDateTime(value)
+    }
+}
+
+impl<'a> From<DuperTemporalPlainDate<'a>> for TemporalString<'a> {
+    fn from(value: DuperTemporalPlainDate<'a>) -> Self {
+        Self::PlainDate(value)
+    }
+}
+
+impl<'a> From<DuperTemporalPlainTime<'a>> for TemporalString<'a> {
+    fn from(value: DuperTemporalPlainTime<'a>) -> Self {
+        Self::PlainTime(value)
+    }
+}
+
+impl<'a> From<DuperTemporalPlainDateTime<'a>> for TemporalString<'a> {
+    fn from(value: DuperTemporalPlainDateTime<'a>) -> Self {
+        Self::PlainDateTime(value)
+    }
+}
+
+impl<'a> From<DuperTemporalPlainYearMonth<'a>> for TemporalString<'a> {
+    fn from(value: DuperTemporalPlainYearMonth<'a>) -> Self {
+        Self::PlainYearMonth(value)
+    }
+}
+
+impl<'a> From<DuperTemporalPlainMonthDay<'a>> for TemporalString<'a> {
+    fn from(value: DuperTemporalPlainMonthDay<'a>) -> Self {
+        Self::PlainMonthDay(value)
+    }
+}
+
+impl<'a> From<DuperTemporalDuration<'a>> for TemporalString<'a> {
+    fn from(value: DuperTemporalDuration<'a>) -> Self {
+        Self::Duration(value)
+    }
+}
+
+impl<'a> From<DuperTemporalUnspecified<'a>> for TemporalString<'a> {
+    fn from(value: DuperTemporalUnspecified<'a>) -> Self {
+        Self::Unspecified(value)
+    }
+}
 
 impl<'a> serde_core::Serialize for TemporalString<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde_core::Serializer,
     {
-        let typ = match self.0 {
-            DuperTemporal::Instant(_) => "Instant",
-            DuperTemporal::ZonedDateTime(_) => "ZonedDateTime",
-            DuperTemporal::PlainDate(_) => "PlainDate",
-            DuperTemporal::PlainTime(_) => "PlainTime",
-            DuperTemporal::PlainDateTime(_) => "PlainDateTime",
-            DuperTemporal::PlainYearMonth(_) => "PlainYearMonth",
-            DuperTemporal::PlainMonthDay(_) => "PlainMonthDay",
-            DuperTemporal::Duration(_) => "Duration",
-            DuperTemporal::Unspecified(_) => "Unspecified",
+        let (typ, value) = match self {
+            TemporalString::Instant(inner) => ("Instant", inner.as_ref()),
+            TemporalString::ZonedDateTime(inner) => ("ZonedDateTime", inner.as_ref()),
+            TemporalString::PlainDate(inner) => ("PlainDate", inner.as_ref()),
+            TemporalString::PlainTime(inner) => ("PlainTime", inner.as_ref()),
+            TemporalString::PlainDateTime(inner) => ("PlainDateTime", inner.as_ref()),
+            TemporalString::PlainYearMonth(inner) => ("PlainYearMonth", inner.as_ref()),
+            TemporalString::PlainMonthDay(inner) => ("PlainMonthDay", inner.as_ref()),
+            TemporalString::Duration(inner) => ("Duration", inner.as_ref()),
+            TemporalString::Unspecified(inner) => ("Unspecified", inner.as_ref()),
         };
         let mut s = serializer.serialize_struct(STRUCT, 2)?;
         s.serialize_field(FIELD_TYPE, typ)?;
-        s.serialize_field(FIELD_VALUE, self.0.as_ref())?;
+        s.serialize_field(FIELD_VALUE, value)?;
         s.end()
     }
 }
@@ -112,40 +213,40 @@ impl<'a, 'de> serde_core::Deserialize<'de> for TemporalString<'a> {
                     value.ok_or_else(|| serde_core::de::Error::missing_field(FIELD_VALUE))?;
 
                 match typ.as_str() {
-                    "Instant" => Ok(TemporalString(
-                        DuperTemporal::try_instant_from(Cow::Owned(value))
+                    "Instant" => Ok(TemporalString::Instant(
+                        DuperTemporalInstant::try_from(Cow::Owned(value))
                             .map_err(serde_core::de::Error::custom)?,
                     )),
-                    "ZonedDateTime" => Ok(TemporalString(
-                        DuperTemporal::try_zoned_date_time_from(Cow::Owned(value))
+                    "ZonedDateTime" => Ok(TemporalString::ZonedDateTime(
+                        DuperTemporalZonedDateTime::try_from(Cow::Owned(value))
                             .map_err(serde_core::de::Error::custom)?,
                     )),
-                    "PlainDate" => Ok(TemporalString(
-                        DuperTemporal::try_plain_date_from(Cow::Owned(value))
+                    "PlainDate" => Ok(TemporalString::PlainDate(
+                        DuperTemporalPlainDate::try_from(Cow::Owned(value))
                             .map_err(serde_core::de::Error::custom)?,
                     )),
-                    "PlainTime" => Ok(TemporalString(
-                        DuperTemporal::try_plain_time_from(Cow::Owned(value))
+                    "PlainTime" => Ok(TemporalString::PlainTime(
+                        DuperTemporalPlainTime::try_from(Cow::Owned(value))
                             .map_err(serde_core::de::Error::custom)?,
                     )),
-                    "PlainDateTime" => Ok(TemporalString(
-                        DuperTemporal::try_plain_date_time_from(Cow::Owned(value))
+                    "PlainDateTime" => Ok(TemporalString::PlainDateTime(
+                        DuperTemporalPlainDateTime::try_from(Cow::Owned(value))
                             .map_err(serde_core::de::Error::custom)?,
                     )),
-                    "PlainYearMonth" => Ok(TemporalString(
-                        DuperTemporal::try_plain_year_month_from(Cow::Owned(value))
+                    "PlainYearMonth" => Ok(TemporalString::PlainYearMonth(
+                        DuperTemporalPlainYearMonth::try_from(Cow::Owned(value))
                             .map_err(serde_core::de::Error::custom)?,
                     )),
-                    "PlainMonthDay" => Ok(TemporalString(
-                        DuperTemporal::try_plain_month_day_from(Cow::Owned(value))
+                    "PlainMonthDay" => Ok(TemporalString::PlainMonthDay(
+                        DuperTemporalPlainMonthDay::try_from(Cow::Owned(value))
                             .map_err(serde_core::de::Error::custom)?,
                     )),
-                    "Duration" => Ok(TemporalString(
-                        DuperTemporal::try_duration_from(Cow::Owned(value))
+                    "Duration" => Ok(TemporalString::Duration(
+                        DuperTemporalDuration::try_from(Cow::Owned(value))
                             .map_err(serde_core::de::Error::custom)?,
                     )),
-                    "Unspecified" => Ok(TemporalString(
-                        DuperTemporal::try_unspecified_from(Cow::Owned(value))
+                    "Unspecified" => Ok(TemporalString::Unspecified(
+                        DuperTemporalUnspecified::try_from(Cow::Owned(value))
                             .map_err(serde_core::de::Error::custom)?,
                     )),
                     typ => Err(serde_core::de::Error::invalid_value(
@@ -203,7 +304,18 @@ where
     where
         V: serde_core::de::Visitor<'de>,
     {
-        match self.temporal.0.into_inner() {
+        let cow = match self.temporal {
+            TemporalString::Instant(inner) => inner.into_inner(),
+            TemporalString::ZonedDateTime(inner) => inner.into_inner(),
+            TemporalString::PlainDate(inner) => inner.into_inner(),
+            TemporalString::PlainTime(inner) => inner.into_inner(),
+            TemporalString::PlainDateTime(inner) => inner.into_inner(),
+            TemporalString::PlainYearMonth(inner) => inner.into_inner(),
+            TemporalString::PlainMonthDay(inner) => inner.into_inner(),
+            TemporalString::Duration(inner) => inner.into_inner(),
+            TemporalString::Unspecified(inner) => inner.into_inner(),
+        };
+        match cow {
             Cow::Borrowed(borrowed) => visitor.visit_str(borrowed),
             Cow::Owned(owned) => visitor.visit_string(owned),
         }
@@ -232,8 +344,18 @@ struct TemporalStringMapDeserializer<'a, E> {
 impl<'a, E> TemporalStringMapDeserializer<'a, E> {
     fn new(temporal: TemporalString<'a>) -> Self {
         Self {
-            typ: Some(temporal.0.name()),
-            value: Some(temporal.0.into_inner()),
+            typ: Some(temporal.name()),
+            value: Some(match temporal {
+                TemporalString::Instant(inner) => inner.into_inner(),
+                TemporalString::ZonedDateTime(inner) => inner.into_inner(),
+                TemporalString::PlainDate(inner) => inner.into_inner(),
+                TemporalString::PlainTime(inner) => inner.into_inner(),
+                TemporalString::PlainDateTime(inner) => inner.into_inner(),
+                TemporalString::PlainYearMonth(inner) => inner.into_inner(),
+                TemporalString::PlainMonthDay(inner) => inner.into_inner(),
+                TemporalString::Duration(inner) => inner.into_inner(),
+                TemporalString::Unspecified(inner) => inner.into_inner(),
+            }),
             _error: Default::default(),
         }
     }

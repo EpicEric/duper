@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use base64::{Engine, prelude::BASE64_STANDARD};
 
 use crate::{
-    ast::{DuperBytes, DuperKey, DuperString, DuperTemporal},
+    ast::DuperKey,
     escape::{escape_bytes, escape_str, is_invisible_unicode},
 };
 
@@ -17,34 +17,30 @@ pub fn format_key<'a>(key: &'a DuperKey<'a>) -> Cow<'a, str> {
             if c == '_' {
                 was_underscore_or_hyphen = true;
             } else if !c.is_ascii_alphabetic() {
-                return format_cow_str(&key.0);
+                return Cow::Owned(format_duper_string(&key.0.as_ref()));
             }
         } else if c == '_' || c == '-' {
             if was_underscore_or_hyphen {
-                return format_cow_str(&key.0);
+                return Cow::Owned(format_duper_string(&key.0.as_ref()));
             }
             was_underscore_or_hyphen = true;
         } else if c.is_ascii_alphanumeric() {
             was_underscore_or_hyphen = false;
         } else {
-            return format_cow_str(&key.0);
+            return Cow::Owned(format_duper_string(&key.0.as_ref()));
         }
     }
     if was_underscore_or_hyphen {
-        format_cow_str(&key.0)
+        Cow::Owned(format_duper_string(&key.0.as_ref()))
     } else {
         Cow::Borrowed(key.0.as_ref())
     }
 }
 
-pub fn format_duper_string<'a>(string: &'a DuperString<'a>) -> Cow<'a, str> {
-    format_cow_str(&string.0)
-}
-
-fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
+pub fn format_duper_string<'a>(string: &'a str) -> String {
     if string.is_empty() {
         // Empty string
-        return Cow::Borrowed(r#""""#);
+        return r#""""#.into();
     }
     // Check if it's benefic to turn into a raw string
     let mut chars_to_escape = 0usize;
@@ -93,18 +89,19 @@ fn format_cow_str<'a>(string: &Cow<'a, str>) -> Cow<'a, str> {
     if chars_to_escape > max_hashtags && !has_char_that_should_be_escaped {
         // Raw string
         let hashtags: String = (0..max_hashtags).map(|_| '#').collect();
-        Cow::Owned(format!(r#"r{hashtags}"{string}"{hashtags}"#))
+        format!(r#"r{hashtags}"{string}"{hashtags}"#)
     } else {
         // Regular string with escaping
-        let escaped_key = escape_str(string);
-        Cow::Owned(format!(r#""{escaped_key}""#))
+        let cow = Cow::Borrowed(string);
+        let escaped_key = escape_str(&cow);
+        format!(r#""{escaped_key}""#)
     }
 }
 
-pub fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> {
-    if bytes.0.is_empty() {
+pub fn format_duper_bytes(bytes: &[u8]) -> String {
+    if bytes.is_empty() {
         // Empty bytes
-        return Cow::Borrowed(r#"b"""#);
+        return r#"b"""#.into();
     }
     // Check if it's benefic to turn into raw bytes
     let mut bytes_to_escape = 0usize;
@@ -114,7 +111,7 @@ pub fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> {
     let mut curr_hashtags = 0usize;
     let mut max_hashtags = 0usize;
     let mut has_char_that_should_be_escaped = false;
-    for byte in bytes.0.iter() {
+    for byte in bytes.iter() {
         match byte {
             b'"' => {
                 was_hashtag = false;
@@ -165,25 +162,22 @@ pub fn format_duper_bytes<'a>(bytes: &'a DuperBytes<'a>) -> Cow<'a, str> {
     if bytes_to_escape > max_hashtags && !has_char_that_should_be_escaped {
         // Raw bytes
         let hashtags: String = (0..max_hashtags).map(|_| '#').collect();
-        let unesecaped_bytes: String = bytes.0.iter().copied().map(|b| b as char).collect();
-        Cow::Owned(format!(r#"br{hashtags}"{unesecaped_bytes}"{hashtags}"#))
+        let unesecaped_bytes: String = bytes.iter().copied().map(|b| b as char).collect();
+        format!(r#"br{hashtags}"{unesecaped_bytes}"{hashtags}"#)
     } else if 3 * (escaped_bytes_length + bytes.len()) > (bytes.len() << 2) + 5 {
         // Base64 bytes
         let base64_bytes = BASE64_STANDARD.encode(bytes.as_ref());
-        Cow::Owned(format!(r#"b64"{base64_bytes}""#))
+        format!(r#"b64"{base64_bytes}""#)
     } else {
         // Regular bytes with escaping
-        let escaped_bytes = escape_bytes(&bytes.0);
-        Cow::Owned(format!(r#"b"{escaped_bytes}""#))
+        let cow = Cow::Borrowed(bytes);
+        let escaped_bytes = escape_bytes(&cow);
+        format!(r#"b"{escaped_bytes}""#)
     }
 }
 
-pub fn format_temporal<'a>(temporal: &'a DuperTemporal<'a>) -> String {
-    let mut string = String::with_capacity(temporal.as_ref().len() + 2);
-    string.push('\'');
-    string.push_str(temporal.as_ref());
-    string.push('\'');
-    string
+pub fn format_temporal(temporal: impl AsRef<str>) -> String {
+    format!("'{}'", temporal.as_ref())
 }
 
 pub fn format_integer(integer: i64) -> String {

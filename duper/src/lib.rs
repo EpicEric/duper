@@ -45,9 +45,12 @@ pub mod validate;
 pub mod visitor;
 
 pub use ast::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperIdentifierTryFromError, DuperInner, DuperKey,
-    DuperObject, DuperObjectTryFromError, DuperString, DuperTemporal, DuperTemporalInner,
-    DuperTemporalTryFromError, DuperTuple, DuperValue,
+    DuperIdentifier, DuperIdentifierTryFromError, DuperKey, DuperObject, DuperObjectTryFromError,
+    DuperTemporal, DuperTemporalDuration, DuperTemporalIdentifier,
+    DuperTemporalIdentifierTryFromError, DuperTemporalInstant, DuperTemporalPlainDate,
+    DuperTemporalPlainDateTime, DuperTemporalPlainMonthDay, DuperTemporalPlainTime,
+    DuperTemporalPlainYearMonth, DuperTemporalTryFromError, DuperTemporalUnspecified,
+    DuperTemporalZonedDateTime, DuperValue,
 };
 pub use parser::DuperParser;
 #[cfg(feature = "ansi")]

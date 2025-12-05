@@ -1,5 +1,6 @@
 use std::{borrow::Cow, fmt::Display};
 
+use indexmap::IndexMap;
 use serde_core::{
     Deserializer, Serialize,
     de::{Deserialize, Error, MapAccess, SeqAccess, Visitor},
@@ -7,8 +8,8 @@ use serde_core::{
 };
 
 use crate::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTemporal, DuperTuple, DuperValue, serde::error::DuperSerdeError,
+    DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperValue,
+    serde::error::DuperSerdeError,
 };
 
 pub const TYPE_OBJECT: &str = "Object";
@@ -30,46 +31,98 @@ impl<'a> DuperValue<'a> {
         S: serde_core::Serializer,
     {
         let mut state = serializer.serialize_struct("DuperValue", 3)?;
-        state.serialize_field("identifier", &self.identifier)?;
-        match &self.inner {
-            DuperInner::Object(object) => {
-                state.serialize_field("inner", &SerDuperObject(object))?;
+        match self {
+            DuperValue::Object { identifier, inner } => {
+                state.serialize_field("identifier", &identifier)?;
+                state.serialize_field("inner", &SerDuperObject(inner))?;
                 state.serialize_field("type", TYPE_OBJECT)?;
             }
-            DuperInner::Array(array) => {
-                state.serialize_field("inner", &SerDuperArray(array))?;
+            DuperValue::Array { identifier, inner } => {
+                state.serialize_field("identifier", &identifier)?;
+                state.serialize_field("inner", &SerDuperArray(inner))?;
                 state.serialize_field("type", TYPE_ARRAY)?;
             }
-            DuperInner::Tuple(tuple) => {
-                state.serialize_field("inner", &SerDuperTuple(tuple))?;
+            DuperValue::Tuple { identifier, inner } => {
+                state.serialize_field("identifier", &identifier)?;
+                state.serialize_field("inner", &SerDuperTuple(inner))?;
                 state.serialize_field("type", TYPE_TUPLE)?;
             }
-            DuperInner::String(string) => {
-                state.serialize_field("inner", string.as_ref())?;
+            DuperValue::String { identifier, inner } => {
+                state.serialize_field("identifier", &identifier)?;
+                state.serialize_field("inner", inner)?;
                 state.serialize_field("type", TYPE_STRING)?;
             }
-            DuperInner::Bytes(bytes) => {
-                state.serialize_field("inner", &SerDuperBytes(bytes))?;
+            DuperValue::Bytes { identifier, inner } => {
+                state.serialize_field("identifier", &identifier)?;
+                state.serialize_field("inner", &SerDuperBytes(inner))?;
                 state.serialize_field("type", TYPE_BYTES)?;
             }
-            DuperInner::Temporal(temporal) => {
-                state.serialize_field("inner", temporal.as_ref())?;
-                state.serialize_field("type", TYPE_TEMPORAL)?;
-            }
-            DuperInner::Integer(integer) => {
-                state.serialize_field("inner", integer)?;
+            DuperValue::Temporal(temporal) => match temporal {
+                DuperTemporal::Instant { inner } => {
+                    state.serialize_field("identifier", "Instant")?;
+                    state.serialize_field("inner", inner.as_ref())?;
+                    state.serialize_field("type", TYPE_TEMPORAL)?;
+                }
+                DuperTemporal::ZonedDateTime { inner } => {
+                    state.serialize_field("identifier", "ZonedDateTime")?;
+                    state.serialize_field("inner", inner.as_ref())?;
+                    state.serialize_field("type", TYPE_TEMPORAL)?;
+                }
+                DuperTemporal::PlainDate { inner } => {
+                    state.serialize_field("identifier", "PlainDate")?;
+                    state.serialize_field("inner", inner.as_ref())?;
+                    state.serialize_field("type", TYPE_TEMPORAL)?;
+                }
+                DuperTemporal::PlainTime { inner } => {
+                    state.serialize_field("identifier", "PlainTime")?;
+                    state.serialize_field("inner", inner.as_ref())?;
+                    state.serialize_field("type", TYPE_TEMPORAL)?;
+                }
+                DuperTemporal::PlainDateTime { inner } => {
+                    state.serialize_field("identifier", "PlainDateTime")?;
+                    state.serialize_field("inner", inner.as_ref())?;
+                    state.serialize_field("type", TYPE_TEMPORAL)?;
+                }
+                DuperTemporal::PlainYearMonth { inner } => {
+                    state.serialize_field("identifier", "PlainYearMonth")?;
+                    state.serialize_field("inner", inner.as_ref())?;
+                    state.serialize_field("type", TYPE_TEMPORAL)?;
+                }
+                DuperTemporal::PlainMonthDay { inner } => {
+                    state.serialize_field("identifier", "PlainMonthDay")?;
+                    state.serialize_field("inner", inner.as_ref())?;
+                    state.serialize_field("type", TYPE_TEMPORAL)?;
+                }
+                DuperTemporal::Duration { inner } => {
+                    state.serialize_field("identifier", "Duration")?;
+                    state.serialize_field("inner", inner.as_ref())?;
+                    state.serialize_field("type", TYPE_TEMPORAL)?;
+                }
+                DuperTemporal::Unspecified { identifier, inner } => {
+                    state.serialize_field("identifier", &identifier)?;
+                    state.serialize_field("inner", inner.as_ref())?;
+                    state.serialize_field("type", TYPE_TEMPORAL)?;
+                }
+            },
+
+            DuperValue::Integer { identifier, inner } => {
+                state.serialize_field("identifier", &identifier)?;
+                state.serialize_field("inner", inner)?;
                 state.serialize_field("type", TYPE_INTEGER)?;
             }
-            DuperInner::Float(float) => {
-                state.serialize_field("inner", float)?;
+            DuperValue::Float { identifier, inner } => {
+                state.serialize_field("identifier", &identifier)?;
+                state.serialize_field("inner", inner)?;
                 state.serialize_field("type", TYPE_FLOAT)?;
             }
-            DuperInner::Boolean(bool) => {
-                state.serialize_field("inner", bool)?;
+            DuperValue::Boolean { identifier, inner } => {
+                state.serialize_field("identifier", &identifier)?;
+                state.serialize_field("inner", inner)?;
                 state.serialize_field("type", TYPE_BOOLEAN)?;
             }
-            DuperInner::Null => {
-                state.serialize_field("inner", &self.inner)?;
+            DuperValue::Null { identifier } => {
+                state.serialize_field("identifier", &identifier)?;
+                state.serialize_field("inner", &SerDuperNull)?;
                 state.serialize_field("type", TYPE_NULL)?;
             }
         }
@@ -115,7 +168,7 @@ impl<'b> Serialize for SerDuperObject<'b> {
     }
 }
 
-struct SerDuperArray<'b>(&'b DuperArray<'b>);
+struct SerDuperArray<'b>(&'b Vec<DuperValue<'b>>);
 
 impl<'b> Serialize for SerDuperArray<'b> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -130,7 +183,7 @@ impl<'b> Serialize for SerDuperArray<'b> {
     }
 }
 
-struct SerDuperTuple<'b>(&'b DuperTuple<'b>);
+struct SerDuperTuple<'b>(&'b Vec<DuperValue<'b>>);
 
 impl<'b> Serialize for SerDuperTuple<'b> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -145,7 +198,7 @@ impl<'b> Serialize for SerDuperTuple<'b> {
     }
 }
 
-struct SerDuperBytes<'b>(&'b DuperBytes<'b>);
+struct SerDuperBytes<'b>(&'b Cow<'b, [u8]>);
 
 impl<'b> Serialize for SerDuperBytes<'b> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -153,6 +206,17 @@ impl<'b> Serialize for SerDuperBytes<'b> {
         S: serde_core::Serializer,
     {
         serializer.serialize_bytes(self.0.as_ref())
+    }
+}
+
+struct SerDuperNull;
+
+impl Serialize for SerDuperNull {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde_core::Serializer,
+    {
+        serializer.serialize_none()
     }
 }
 
@@ -172,9 +236,9 @@ impl<'b> TryFrom<DeDuperArrayValue<'b>> for DuperValue<'b> {
     fn try_from(value: DeDuperArrayValue<'b>) -> Result<Self, Self::Error> {
         match value {
             DeDuperArrayValue::DuperValue(duper_value) => duper_value.try_into(),
-            DeDuperArrayValue::U8(byte) => Ok(DuperValue {
+            DeDuperArrayValue::U8(byte) => Ok(DuperValue::Integer {
                 identifier: None,
-                inner: DuperInner::Integer(byte.into()),
+                inner: byte.into(),
             }),
         }
     }
@@ -199,8 +263,8 @@ enum DeDuperInner<'b> {
     Object(DeDuperObject<'b>),
     Array(DeDuperArray<'b>),
     Tuple(DeDuperTuple<'b>),
-    String(DuperString<'b>),
-    Bytes(DuperBytes<'b>),
+    String(Cow<'b, str>),
+    Bytes(Cow<'b, [u8]>),
     Temporal(DeDuperTemporal<'b>),
     Integer(i64),
     Float(f64),
@@ -231,84 +295,74 @@ impl<'b> TryFrom<DeDuperValue<'b>> for DuperValue<'b> {
     fn try_from(value: DeDuperValue<'b>) -> Result<Self, Self::Error> {
         let DeDuperValue { identifier, inner } = value;
         match inner {
-            DeDuperInner::Object(object) => Ok(DuperValue {
+            DeDuperInner::Object(object) => Ok(DuperValue::Object {
                 identifier,
-                inner: DuperInner::Object(DuperObject::try_from(
+                inner: DuperObject(
                     object
                         .0
                         .into_iter()
                         .map(|(key, value)| DuperValue::try_from(value).map(|value| (key, value)))
-                        .collect::<Result<Vec<_>, _>>()?,
-                )?),
+                        .collect::<Result<IndexMap<_, _>, _>>()?,
+                ),
             }),
-            DeDuperInner::Array(array) => Ok(DuperValue {
+            DeDuperInner::Array(array) => Ok(DuperValue::Array {
                 identifier,
-                inner: DuperInner::Array(DuperArray::from(
-                    array
-                        .0
-                        .into_iter()
-                        .map(DuperValue::try_from)
-                        .collect::<Result<Vec<_>, _>>()?,
-                )),
+                inner: array
+                    .0
+                    .into_iter()
+                    .map(DuperValue::try_from)
+                    .collect::<Result<Vec<_>, _>>()?,
             }),
-            DeDuperInner::Tuple(tuple) => Ok(DuperValue {
+            DeDuperInner::Tuple(tuple) => Ok(DuperValue::Tuple {
                 identifier,
-                inner: DuperInner::Tuple(DuperTuple::from(
-                    tuple
-                        .0
-                        .into_iter()
-                        .map(DuperValue::try_from)
-                        .collect::<Result<Vec<_>, _>>()?,
-                )),
+                inner: tuple
+                    .0
+                    .into_iter()
+                    .map(DuperValue::try_from)
+                    .collect::<Result<Vec<_>, _>>()?,
             }),
-            DeDuperInner::String(string) => Ok(DuperValue {
+            DeDuperInner::String(string) => Ok(DuperValue::String {
                 identifier,
-                inner: DuperInner::String(string),
+                inner: string,
             }),
-            DeDuperInner::Bytes(bytes) => Ok(DuperValue {
+            DeDuperInner::Bytes(bytes) => Ok(DuperValue::Bytes {
                 identifier,
-                inner: DuperInner::Bytes(bytes),
+                inner: bytes,
             }),
-            DeDuperInner::Temporal(temporal) => Ok(DuperValue {
-                inner: DuperInner::Temporal(match temporal {
-                    DeDuperTemporal::Instant(inner) => DuperTemporal::try_instant_from(inner)?,
-                    DeDuperTemporal::ZonedDateTime(inner) => {
-                        DuperTemporal::try_zoned_date_time_from(inner)?
-                    }
-                    DeDuperTemporal::PlainDate(inner) => DuperTemporal::try_plain_date_from(inner)?,
-                    DeDuperTemporal::PlainTime(inner) => DuperTemporal::try_plain_time_from(inner)?,
-                    DeDuperTemporal::PlainDateTime(inner) => {
-                        DuperTemporal::try_plain_date_time_from(inner)?
-                    }
-                    DeDuperTemporal::PlainYearMonth(inner) => {
-                        DuperTemporal::try_plain_year_month_from(inner)?
-                    }
-                    DeDuperTemporal::PlainMonthDay(inner) => {
-                        DuperTemporal::try_plain_month_day_from(inner)?
-                    }
-                    DeDuperTemporal::Duration(inner) => DuperTemporal::try_duration_from(inner)?,
-                    DeDuperTemporal::Unspecified(inner) => {
-                        DuperTemporal::try_unspecified_from(inner)?
-                    }
-                }),
+            DeDuperInner::Temporal(temporal) => match temporal {
+                DeDuperTemporal::Instant(inner) => Ok(DuperValue::try_instant_from(inner)?),
+                DeDuperTemporal::ZonedDateTime(inner) => {
+                    Ok(DuperValue::try_zoned_date_time_from(inner)?)
+                }
+                DeDuperTemporal::PlainDate(inner) => Ok(DuperValue::try_plain_date_from(inner)?),
+                DeDuperTemporal::PlainTime(inner) => Ok(DuperValue::try_plain_time_from(inner)?),
+                DeDuperTemporal::PlainDateTime(inner) => {
+                    Ok(DuperValue::try_plain_date_time_from(inner)?)
+                }
+                DeDuperTemporal::PlainYearMonth(inner) => {
+                    Ok(DuperValue::try_plain_year_month_from(inner)?)
+                }
+                DeDuperTemporal::PlainMonthDay(inner) => {
+                    Ok(DuperValue::try_plain_month_day_from(inner)?)
+                }
+                DeDuperTemporal::Duration(inner) => Ok(DuperValue::try_duration_from(inner)?),
+                DeDuperTemporal::Unspecified(inner) => {
+                    Ok(DuperValue::try_unspecified_from(identifier, inner)?)
+                }
+            },
+            DeDuperInner::Integer(integer) => Ok(DuperValue::Integer {
                 identifier,
+                inner: integer,
             }),
-            DeDuperInner::Integer(integet) => Ok(DuperValue {
+            DeDuperInner::Float(float) => Ok(DuperValue::Float {
                 identifier,
-                inner: DuperInner::Integer(integet),
+                inner: float,
             }),
-            DeDuperInner::Float(float) => Ok(DuperValue {
+            DeDuperInner::Boolean(boolean) => Ok(DuperValue::Boolean {
                 identifier,
-                inner: DuperInner::Float(float),
+                inner: boolean,
             }),
-            DeDuperInner::Boolean(boolean) => Ok(DuperValue {
-                identifier,
-                inner: DuperInner::Boolean(boolean),
-            }),
-            DeDuperInner::Null => Ok(DuperValue {
-                identifier,
-                inner: DuperInner::Null,
-            }),
+            DeDuperInner::Null => Ok(DuperValue::Null { identifier }),
         }
     }
 }
@@ -581,7 +635,7 @@ impl<'de> Visitor<'de> for DeDuperInnerVisitor {
         {
             Ok(DeDuperInner::Float(float))
         } else {
-            Ok(DeDuperInner::String(DuperString::from(v.to_string())))
+            Ok(DeDuperInner::String(Cow::Owned(v.to_string())))
         }
     }
 
@@ -617,7 +671,7 @@ impl<'de> Visitor<'de> for DeDuperInnerVisitor {
         {
             Ok(DeDuperInner::Float(float))
         } else {
-            Ok(DeDuperInner::String(DuperString::from(v.to_string())))
+            Ok(DeDuperInner::String(Cow::Owned(v.to_string())))
         }
     }
 
@@ -632,7 +686,7 @@ impl<'de> Visitor<'de> for DeDuperInnerVisitor {
         {
             Ok(DeDuperInner::Float(float))
         } else {
-            Ok(DeDuperInner::String(DuperString::from(v.to_string())))
+            Ok(DeDuperInner::String(Cow::Owned(v.to_string())))
         }
     }
 
@@ -654,14 +708,14 @@ impl<'de> Visitor<'de> for DeDuperInnerVisitor {
     where
         E: Error,
     {
-        Ok(DeDuperInner::String(DuperString::from(Cow::Borrowed(v))))
+        Ok(DeDuperInner::String(Cow::Borrowed(v)))
     }
 
     fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(DeDuperInner::String(DuperString::from(v)))
+        Ok(DeDuperInner::String(Cow::Owned(v)))
     }
 
     fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
@@ -675,14 +729,14 @@ impl<'de> Visitor<'de> for DeDuperInnerVisitor {
     where
         E: Error,
     {
-        Ok(DeDuperInner::Bytes(DuperBytes::from(Cow::Borrowed(v))))
+        Ok(DeDuperInner::Bytes(Cow::Borrowed(v)))
     }
 
     fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(DeDuperInner::Bytes(DuperBytes::from(v)))
+        Ok(DeDuperInner::Bytes(Cow::Owned(v)))
     }
 
     fn visit_none<E>(self) -> Result<Self::Value, E>
@@ -980,32 +1034,30 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
             // Temporal from string
             (DeDuperInner::String(string), DeDuperType::Temporal) => match &identifier {
                 Some(ident) if ident.as_ref() == "Instant" => {
-                    DeDuperInner::Temporal(DeDuperTemporal::Instant(string.into_inner()))
+                    DeDuperInner::Temporal(DeDuperTemporal::Instant(string))
                 }
                 Some(ident) if ident.as_ref() == "ZonedDateTime" => {
-                    DeDuperInner::Temporal(DeDuperTemporal::ZonedDateTime(string.into_inner()))
+                    DeDuperInner::Temporal(DeDuperTemporal::ZonedDateTime(string))
                 }
                 Some(ident) if ident.as_ref() == "PlainDate" => {
-                    DeDuperInner::Temporal(DeDuperTemporal::PlainDate(string.into_inner()))
+                    DeDuperInner::Temporal(DeDuperTemporal::PlainDate(string))
                 }
                 Some(ident) if ident.as_ref() == "PlainTime" => {
-                    DeDuperInner::Temporal(DeDuperTemporal::PlainTime(string.into_inner()))
+                    DeDuperInner::Temporal(DeDuperTemporal::PlainTime(string))
                 }
                 Some(ident) if ident.as_ref() == "PlainDateTime" => {
-                    DeDuperInner::Temporal(DeDuperTemporal::PlainDateTime(string.into_inner()))
+                    DeDuperInner::Temporal(DeDuperTemporal::PlainDateTime(string))
                 }
                 Some(ident) if ident.as_ref() == "PlainYearMonth" => {
-                    DeDuperInner::Temporal(DeDuperTemporal::PlainYearMonth(string.into_inner()))
+                    DeDuperInner::Temporal(DeDuperTemporal::PlainYearMonth(string))
                 }
                 Some(ident) if ident.as_ref() == "PlainMonthDay" => {
-                    DeDuperInner::Temporal(DeDuperTemporal::PlainMonthDay(string.into_inner()))
+                    DeDuperInner::Temporal(DeDuperTemporal::PlainMonthDay(string))
                 }
                 Some(ident) if ident.as_ref() == "Duration" => {
-                    DeDuperInner::Temporal(DeDuperTemporal::Duration(string.into_inner()))
+                    DeDuperInner::Temporal(DeDuperTemporal::Duration(string))
                 }
-                Some(_) | None => {
-                    DeDuperInner::Temporal(DeDuperTemporal::Unspecified(string.into_inner()))
-                }
+                Some(_) | None => DeDuperInner::Temporal(DeDuperTemporal::Unspecified(string)),
             },
             // Bytes from array of numbers
             (DeDuperInner::Array(array), DeDuperType::Bytes) => {
@@ -1019,12 +1071,11 @@ impl<'de> Visitor<'de> for DeDuperValueVisitor {
                         ));
                     }
                 }
-                DeDuperInner::Bytes(DuperBytes(Cow::Owned(bytes)))
+                DeDuperInner::Bytes(Cow::Owned(bytes))
             }
             // Array from bytes
             (DeDuperInner::Bytes(bytes), DeDuperType::Array) => DeDuperInner::Array(DeDuperArray(
                 bytes
-                    .0
                     .iter()
                     .map(|byte| {
                         DeDuperArrayValue::DuperValue(DeDuperValue {
@@ -1067,11 +1118,11 @@ impl<'de> Deserialize<'de> for DeDuperValue<'de> {
 mod serde_meta_tests {
     use std::borrow::Cow;
 
+    use indexmap::IndexMap;
     use insta::assert_snapshot;
 
     use crate::{
-        DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-        DuperTemporal, DuperTemporalInner, DuperTuple, DuperValue, PrettyPrinter,
+        DuperIdentifier, DuperKey, DuperObject, DuperValue, PrettyPrinter,
         serde::{de::Deserializer, ser::Serializer},
     };
 
@@ -1089,212 +1140,239 @@ mod serde_meta_tests {
 
     #[test]
     fn serialize_object() {
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: None,
-            inner: DuperInner::Object(DuperObject(vec![])),
+            inner: DuperObject(IndexMap::new()),
         };
         let serialized = serialize_meta(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_meta(&serialized);
         assert_eq!(value, deserialized);
-        assert_eq!(deserialized.identifier, None);
+        assert!(matches!(
+            deserialized,
+            DuperValue::Object {
+                identifier: None,
+                ..
+            }
+        ));
 
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: Some(DuperIdentifier::try_from("Outer").expect("valid identifier")),
-            inner: DuperInner::Object(DuperObject(vec![(
+            inner: DuperObject::try_from(vec![(
                 DuperKey::from("foo"),
-                DuperValue {
+                DuperValue::Object {
                     identifier: Some(DuperIdentifier::try_from("Inner").expect("valid identifier")),
-                    inner: DuperInner::Object(DuperObject(vec![])),
+                    inner: DuperObject(IndexMap::new()),
                 },
-            )])),
+            )])
+            .unwrap(),
         };
         let serialized = serialize_meta(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_meta(&serialized);
         assert_eq!(value, deserialized);
-        assert_eq!(
-            deserialized.identifier,
-            Some(DuperIdentifier(Cow::Borrowed("Outer")))
-        );
+        assert!(matches!(
+            deserialized,
+            DuperValue::Object {
+                identifier: Some(identifier),
+                ..
+            } if identifier.as_ref() == "Outer"
+        ));
     }
 
     #[test]
     fn serialize_array() {
-        let value = DuperValue {
+        let value = DuperValue::Array {
             identifier: None,
-            inner: DuperInner::Array(DuperArray(vec![])),
+            inner: vec![],
         };
         let serialized = serialize_meta(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_meta(&serialized);
         assert_eq!(value, deserialized);
-        assert_eq!(deserialized.identifier, None);
+        assert!(matches!(
+            deserialized,
+            DuperValue::Array {
+                identifier: None,
+                ..
+            }
+        ));
 
-        let value = DuperValue {
+        let value = DuperValue::Array {
             identifier: Some(DuperIdentifier::try_from("Outer").expect("valid identifier")),
-            inner: DuperInner::Array(DuperArray(vec![DuperValue {
+            inner: vec![DuperValue::Array {
                 identifier: Some(DuperIdentifier::try_from("Inner").expect("valid identifier")),
-                inner: DuperInner::Array(DuperArray(vec![])),
-            }])),
+                inner: vec![],
+            }],
         };
         let serialized = serialize_meta(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_meta(&serialized);
         assert_eq!(value, deserialized);
-        assert_eq!(
-            deserialized.identifier,
-            Some(DuperIdentifier(Cow::Borrowed("Outer")))
-        );
+        assert!(matches!(
+            deserialized,
+            DuperValue::Array {
+                identifier: Some(identifier),
+                ..
+            } if identifier.as_ref() == "Outer"
+        ));
     }
 
     #[test]
     fn serialize_tuple() {
-        let value = DuperValue {
+        let value = DuperValue::Tuple {
             identifier: None,
-            inner: DuperInner::Tuple(DuperTuple(vec![])),
+            inner: vec![],
         };
         let serialized = serialize_meta(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_meta(&serialized);
         assert_eq!(value, deserialized);
-        assert_eq!(deserialized.identifier, None);
+        assert!(matches!(
+            deserialized,
+            DuperValue::Tuple {
+                identifier: None,
+                ..
+            }
+        ));
 
-        let value = DuperValue {
+        let value = DuperValue::Tuple {
             identifier: Some(DuperIdentifier::try_from("Outer").expect("valid identifier")),
-            inner: DuperInner::Tuple(DuperTuple(vec![DuperValue {
+            inner: vec![DuperValue::Tuple {
                 identifier: Some(DuperIdentifier::try_from("Inner").expect("valid identifier")),
-                inner: DuperInner::Tuple(DuperTuple(vec![])),
-            }])),
+                inner: vec![],
+            }],
         };
         let serialized = serialize_meta(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_meta(&serialized);
         assert_eq!(value, deserialized);
-        assert_eq!(
-            deserialized.identifier,
-            Some(DuperIdentifier(Cow::Borrowed("Outer")))
-        );
+        assert!(matches!(
+            deserialized,
+            DuperValue::Tuple {
+                identifier: Some(identifier),
+                ..
+            } if identifier.as_ref() == "Outer"
+        ));
     }
 
     #[test]
     fn serialize_scalars() {
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: None,
-            inner: DuperInner::Object(DuperObject(vec![
+            inner: DuperObject::try_from(vec![
                 (
                     DuperKey::from("string"),
-                    DuperValue {
+                    DuperValue::String {
                         identifier: None,
-                        inner: DuperInner::String(DuperString::from("Hello world!")),
+                        inner: Cow::Borrowed("Hello world!"),
                     },
                 ),
                 (
                     DuperKey::from("bytes"),
-                    DuperValue {
+                    DuperValue::Bytes {
                         identifier: None,
-                        inner: DuperInner::Bytes(DuperBytes::from(&br"/\"[..])),
+                        inner: Cow::Borrowed(&br"/\"[..]),
                     },
                 ),
                 (
                     DuperKey::from("temporal"),
-                    DuperValue {
-                        identifier: Some(DuperIdentifier(Cow::Borrowed("Instant"))),
-                        inner: DuperInner::Temporal(DuperTemporal::Instant(DuperTemporalInner(
-                            Cow::Borrowed("2022-02-28T03:06:00.092121729Z"),
-                        ))),
-                    },
+                    DuperValue::try_instant_from(Cow::Borrowed("2022-02-28T03:06:00.092121729Z"))
+                        .unwrap(),
                 ),
                 (
                     DuperKey::from("integer"),
-                    DuperValue {
+                    DuperValue::Integer {
                         identifier: None,
-                        inner: DuperInner::Integer(1337),
+                        inner: 1337,
                     },
                 ),
                 (
                     DuperKey::from("float"),
-                    DuperValue {
+                    DuperValue::Float {
                         identifier: None,
-                        inner: DuperInner::Float(8.25),
+                        inner: 8.25,
                     },
                 ),
                 (
                     DuperKey::from("boolean"),
-                    DuperValue {
+                    DuperValue::Boolean {
                         identifier: None,
-                        inner: DuperInner::Boolean(true),
+                        inner: true,
                     },
                 ),
                 (
                     DuperKey::from("null"),
-                    DuperValue {
-                        identifier: None,
-                        inner: DuperInner::Null,
-                    },
+                    DuperValue::Null { identifier: None },
                 ),
-            ])),
+            ])
+            .unwrap(),
         };
         let serialized = serialize_meta(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_meta(&serialized);
         assert_eq!(value, deserialized);
-        assert_eq!(deserialized.identifier, None);
+        assert!(matches!(
+            deserialized,
+            DuperValue::Object {
+                identifier: None,
+                ..
+            }
+        ));
 
-        let value = DuperValue {
+        let value = DuperValue::Array {
             identifier: Some(DuperIdentifier::try_from("MyScalars").expect("valid identifier")),
-            inner: DuperInner::Array(DuperArray(vec![
-                DuperValue {
+            inner: vec![
+                DuperValue::String {
                     identifier: Some(
                         DuperIdentifier::try_from("MyString").expect("valid identifier"),
                     ),
-                    inner: DuperInner::String(DuperString::from("Hello world!")),
+                    inner: Cow::Borrowed("Hello world!"),
                 },
-                DuperValue {
+                DuperValue::Bytes {
                     identifier: Some(
                         DuperIdentifier::try_from("MyBytes").expect("valid identifier"),
                     ),
-                    inner: DuperInner::Bytes(DuperBytes::from(&br"/\"[..])),
+                    inner: Cow::Borrowed(&br"/\"[..]),
                 },
-                DuperValue {
-                    identifier: Some(
-                        DuperIdentifier::try_from("MyTemporal").expect("valid identifier"),
-                    ),
-                    inner: DuperInner::Temporal(DuperTemporal::Unspecified(DuperTemporalInner(
-                        Cow::Borrowed("2022-02-28T03:06:00.092121729Z"),
-                    ))),
-                },
-                DuperValue {
+                DuperValue::try_unspecified_from(
+                    Some(DuperIdentifier::try_from("MyTemporal").expect("valid identifier")),
+                    Cow::Borrowed("2022-02-28T03:06:00.092121729Z"),
+                )
+                .unwrap(),
+                DuperValue::Integer {
                     identifier: Some(DuperIdentifier::try_from("MyInt").expect("valid identifier")),
-                    inner: DuperInner::Integer(1337),
+                    inner: 1337,
                 },
-                DuperValue {
+                DuperValue::Float {
                     identifier: Some(
                         DuperIdentifier::try_from("MyFloat").expect("valid identifier"),
                     ),
-                    inner: DuperInner::Float(8.25),
+                    inner: 8.25,
                 },
-                DuperValue {
+                DuperValue::Boolean {
                     identifier: Some(
                         DuperIdentifier::try_from("MyBool").expect("valid identifier"),
                     ),
-                    inner: DuperInner::Boolean(true),
+                    inner: true,
                 },
-                DuperValue {
+                DuperValue::Null {
                     identifier: Some(
                         DuperIdentifier::try_from("Mysterious").expect("valid identifier"),
                     ),
-                    inner: DuperInner::Null,
                 },
-            ])),
+            ],
         };
         let serialized = serialize_meta(&value);
         assert_snapshot!(serialized);
         let deserialized = deserialize_meta(&serialized);
         assert_eq!(value, deserialized);
-        assert_eq!(
-            deserialized.identifier,
-            Some(DuperIdentifier(Cow::Borrowed("MyScalars")))
-        );
+        assert!(matches!(
+            deserialized,
+            DuperValue::Array {
+                identifier: Some(identifier),
+                ..
+            } if identifier.as_ref() == "MyScalars"
+        ));
     }
 }

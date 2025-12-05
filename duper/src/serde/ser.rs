@@ -1,9 +1,8 @@
 use std::{borrow::Cow, marker::PhantomData};
 
 use crate::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTemporal, DuperTuple, DuperValue, PrettyPrinter as DuperPrettyPrinter,
-    Serializer as DuperSerializer,
+    DuperIdentifier, DuperKey, DuperObject, DuperValue,
+    PrettyPrinter as DuperPrettyPrinter, Serializer as DuperSerializer,
 };
 use serde_core::{Serialize, ser};
 
@@ -107,178 +106,175 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
     type SerializeStructVariant = SerializeStructVariant<'ser, 'a>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Boolean {
             identifier: None,
-            inner: DuperInner::Boolean(v),
+            inner: v,
         })
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Integer {
             identifier: None,
-            inner: DuperInner::Integer(v.into()),
+            inner: v.into(),
         })
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Integer {
             identifier: None,
-            inner: DuperInner::Integer(v.into()),
+            inner: v.into(),
         })
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Integer {
             identifier: None,
-            inner: DuperInner::Integer(v.into()),
+            inner: v.into(),
         })
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Integer {
             identifier: None,
-            inner: DuperInner::Integer(v),
+            inner: v,
         })
     }
 
     fn serialize_i128(self, v: i128) -> Result<Self::Ok, Self::Error> {
         if let Ok(integer) = v.try_into() {
-            Ok(DuperValue {
+            Ok(DuperValue::Integer {
                 identifier: None,
-                inner: DuperInner::Integer(integer),
+                inner: integer,
             })
         } else if let float = v as f64
             && float as i128 == v
         {
-            Ok(DuperValue {
+            Ok(DuperValue::Float {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("I128")).expect("valid identifier"),
                 ),
-                inner: DuperInner::Float(float),
+                inner: float,
             })
         } else {
-            Ok(DuperValue {
+            Ok(DuperValue::String {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("I128")).expect("valid identifier"),
                 ),
-                inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
+                inner: Cow::Owned(v.to_string()),
             })
         }
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Integer {
             identifier: None,
-            inner: DuperInner::Integer(v.into()),
+            inner: v.into(),
         })
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Integer {
             identifier: None,
-            inner: DuperInner::Integer(v.into()),
+            inner: v.into(),
         })
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Integer {
             identifier: None,
-            inner: DuperInner::Integer(v.into()),
+            inner: v.into(),
         })
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
         if let Ok(integer) = v.try_into() {
-            Ok(DuperValue {
+            Ok(DuperValue::Integer {
                 identifier: None,
-                inner: DuperInner::Integer(integer),
+                inner: integer,
             })
         } else if let float = v as f64
             && float.round() as u64 == v
         {
-            Ok(DuperValue {
+            Ok(DuperValue::Float {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("U64")).expect("valid identifier"),
                 ),
-                inner: DuperInner::Float(float),
+                inner: float,
             })
         } else {
-            Ok(DuperValue {
+            Ok(DuperValue::String {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("U64")).expect("valid identifier"),
                 ),
-                inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
+                inner: Cow::Owned(v.to_string()),
             })
         }
     }
 
     fn serialize_u128(self, v: u128) -> Result<Self::Ok, Self::Error> {
         if let Ok(integer) = v.try_into() {
-            Ok(DuperValue {
+            Ok(DuperValue::Integer {
                 identifier: None,
-                inner: DuperInner::Integer(integer),
+                inner: integer,
             })
         } else if let float = v as f64
             && float as u128 == v
         {
-            Ok(DuperValue {
+            Ok(DuperValue::Float {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("U128")).expect("valid identifier"),
                 ),
-                inner: DuperInner::Float(float),
+                inner: float,
             })
         } else {
-            Ok(DuperValue {
+            Ok(DuperValue::String {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("U128")).expect("valid identifier"),
                 ),
-                inner: DuperInner::String(DuperString::from(Cow::Owned(v.to_string()))),
+                inner: Cow::Owned(v.to_string()),
             })
         }
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Float {
             identifier: None,
-            inner: DuperInner::Float(v.into()),
+            inner: v.into(),
         })
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Float {
             identifier: None,
-            inner: DuperInner::Float(v),
+            inner: v.into(),
         })
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::String {
             identifier: Some(
                 DuperIdentifier::try_from(Cow::Borrowed("Char")).expect("valid identifier"),
             ),
-            inner: DuperInner::String(DuperString::from(Cow::Owned(v.into()))),
+            inner: Cow::Owned(v.into()),
         })
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::String {
             identifier: None,
-            inner: DuperInner::String(DuperString::from(Cow::Owned(v.into()))),
+            inner: Cow::Owned(v.into()),
         })
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Bytes {
             identifier: None,
-            inner: DuperInner::Bytes(DuperBytes::from(Cow::Owned(v.into()))),
+            inner: Cow::Owned(v.into()),
         })
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
-            identifier: None,
-            inner: DuperInner::Null,
-        })
+        Ok(DuperValue::Null { identifier: None })
     }
 
     fn serialize_some<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
@@ -289,17 +285,17 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Tuple {
             identifier: None,
-            inner: DuperInner::Tuple(DuperTuple::from(Vec::new())),
+            inner: vec![],
         })
     }
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Tuple {
             identifier: (!name.is_empty())
                 .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(name))?),
-            inner: DuperInner::Tuple(DuperTuple::from(Vec::new())),
+            inner: vec![],
         })
     }
 
@@ -309,10 +305,10 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
         _variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::String {
             identifier: (!name.is_empty())
                 .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(name))?),
-            inner: DuperInner::String(DuperString::from(Cow::Borrowed(variant))),
+            inner: Cow::Borrowed(variant),
         })
     }
 
@@ -324,13 +320,9 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
     where
         T: ?Sized + Serialize,
     {
-        let value = value.serialize(self)?;
-        Ok(DuperValue {
-            identifier: (!name.is_empty())
-                .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(name))?)
-                .or(value.identifier),
-            inner: value.inner,
-        })
+        Ok(value.serialize(self)?.with_identifier(
+            (!name.is_empty()).then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(name))?),
+        )?)
     }
 
     fn serialize_newtype_variant<T>(
@@ -344,13 +336,11 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
         T: ?Sized + Serialize,
     {
         let value = value.serialize(self)?;
-        Ok(DuperValue {
+        Ok(DuperValue::Object {
             identifier: (!name.is_empty())
                 .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(name))?),
-            inner: DuperInner::Object(
-                DuperObject::try_from(vec![(DuperKey::from(Cow::Borrowed(variant)), value)])
-                    .expect("single item object"),
-            ),
+            inner: DuperObject::try_from(vec![(DuperKey::from(Cow::Borrowed(variant)), value)])
+                .expect("single item object"),
         })
     }
 
@@ -451,9 +441,9 @@ impl<'ser, 'a> ser::SerializeSeq for SerializeSeq<'ser, 'a> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Array {
             identifier: None,
-            inner: DuperInner::Array(DuperArray::from(self.elements)),
+            inner: self.elements,
         })
     }
 }
@@ -477,9 +467,9 @@ impl<'ser, 'a> ser::SerializeTuple for SerializeTuple<'ser, 'a> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Tuple {
             identifier: None,
-            inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
+            inner: self.elements,
         })
     }
 }
@@ -505,10 +495,10 @@ impl<'ser, 'a> ser::SerializeTupleStruct for SerializeTupleStruct<'ser, 'a> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Tuple {
             identifier: (!self.name.is_empty())
                 .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
-            inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
+            inner: self.elements,
         })
     }
 }
@@ -535,19 +525,17 @@ impl<'ser, 'b> ser::SerializeTupleVariant for SerializeTupleVariant<'ser, 'b> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Object {
             identifier: (!self.name.is_empty())
                 .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
-            inner: DuperInner::Object(
-                DuperObject::try_from(vec![(
-                    DuperKey::from(Cow::Borrowed(self.variant)),
-                    DuperValue {
-                        identifier: None,
-                        inner: DuperInner::Tuple(DuperTuple::from(self.elements)),
-                    },
-                )])
-                .expect("single item object"),
-            ),
+            inner: DuperObject::try_from(vec![(
+                DuperKey::from(Cow::Borrowed(self.variant)),
+                DuperValue::Tuple {
+                    identifier: None,
+                    inner: self.elements,
+                },
+            )])
+            .expect("single item object"),
         })
     }
 }
@@ -569,12 +557,12 @@ impl<'ser, 'a> ser::SerializeMap for SerializeMap<'ser, 'a> {
     {
         let key_value = key.serialize(&mut *self.serializer)?;
         match key_value {
-            DuperValue {
+            DuperValue::String {
                 identifier,
-                inner: DuperInner::String(s),
+                inner: s,
             } => {
                 self.identifier = self.identifier.take().or(identifier);
-                self.next_key = Some(DuperKey::from(s.into_inner()));
+                self.next_key = Some(DuperKey::from(s));
                 Ok(())
             }
             _ => Err(DuperSerdeError::serialization("map key must be a string")),
@@ -597,9 +585,9 @@ impl<'ser, 'a> ser::SerializeMap for SerializeMap<'ser, 'a> {
     }
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Object {
             identifier: self.identifier.take(),
-            inner: DuperInner::Object(DuperObject::try_from(self.entries)?),
+            inner: DuperObject::try_from(self.entries)?,
         })
     }
 }
@@ -655,132 +643,20 @@ impl<'ser, 'a> ser::SerializeStruct for SerializeStruct<'ser, 'a> {
                 ))
             })?;
 
-            match (typ.inner, value.inner) {
-                (DuperInner::String(typ), DuperInner::String(value)) => match typ.as_ref() {
-                    "Instant" => Ok(DuperValue {
-                        identifier: Some(
-                            DuperIdentifier::try_from("Instant").expect("valid identifier"),
-                        ),
-                        inner: DuperInner::Temporal(
-                            DuperTemporal::try_instant_from(value.into_inner()).map_err(|err| {
-                                DuperSerdeError::invalid_value(format!(
-                                    "failed to parse Instant for TemporalString: {err}"
-                                ))
-                            })?,
-                        ),
-                    }),
-                    "ZonedDateTime" => Ok(DuperValue {
-                        identifier: Some(
-                            DuperIdentifier::try_from("ZonedDateTime").expect("valid identifier"),
-                        ),
-                        inner: DuperInner::Temporal(
-                            DuperTemporal::try_zoned_date_time_from(value.into_inner()).map_err(
-                                |err| {
-                                    DuperSerdeError::invalid_value(format!(
-                                        "failed to parse ZonedDateTime for TemporalString: {err}"
-                                    ))
-                                },
-                            )?,
-                        ),
-                    }),
-                    "PlainDate" => Ok(DuperValue {
-                        identifier: Some(
-                            DuperIdentifier::try_from("PlainDate").expect("valid identifier"),
-                        ),
-                        inner: DuperInner::Temporal(
-                            DuperTemporal::try_plain_date_from(value.into_inner()).map_err(
-                                |err| {
-                                    DuperSerdeError::invalid_value(format!(
-                                        "failed to parse PlainDate for TemporalString: {err}"
-                                    ))
-                                },
-                            )?,
-                        ),
-                    }),
-                    "PlainTime" => Ok(DuperValue {
-                        identifier: Some(
-                            DuperIdentifier::try_from("PlainTime").expect("valid identifier"),
-                        ),
-                        inner: DuperInner::Temporal(
-                            DuperTemporal::try_plain_time_from(value.into_inner()).map_err(
-                                |err| {
-                                    DuperSerdeError::invalid_value(format!(
-                                        "failed to parse PlainTime for TemporalString: {err}"
-                                    ))
-                                },
-                            )?,
-                        ),
-                    }),
-                    "PlainDateTime" => Ok(DuperValue {
-                        identifier: Some(
-                            DuperIdentifier::try_from("PlainDateTime").expect("valid identifier"),
-                        ),
-                        inner: DuperInner::Temporal(
-                            DuperTemporal::try_plain_date_time_from(value.into_inner()).map_err(
-                                |err| {
-                                    DuperSerdeError::invalid_value(format!(
-                                        "failed to parse PlainDateTime for TemporalString: {err}"
-                                    ))
-                                },
-                            )?,
-                        ),
-                    }),
-                    "PlainYearMonth" => Ok(DuperValue {
-                        identifier: Some(
-                            DuperIdentifier::try_from("PlainYearMonth").expect("valid identifier"),
-                        ),
-                        inner: DuperInner::Temporal(
-                            DuperTemporal::try_plain_year_month_from(value.into_inner()).map_err(
-                                |err| {
-                                    DuperSerdeError::invalid_value(format!(
-                                        "failed to parse PlainYearMonth for TemporalString: {err}"
-                                    ))
-                                },
-                            )?,
-                        ),
-                    }),
-                    "PlainMonthDay" => Ok(DuperValue {
-                        identifier: Some(
-                            DuperIdentifier::try_from("PlainMonthDay").expect("valid identifier"),
-                        ),
-                        inner: DuperInner::Temporal(
-                            DuperTemporal::try_plain_month_day_from(value.into_inner()).map_err(
-                                |err| {
-                                    DuperSerdeError::invalid_value(format!(
-                                        "failed to parse PlainMonthDay for TemporalString: {err}"
-                                    ))
-                                },
-                            )?,
-                        ),
-                    }),
-                    "Duration" => Ok(DuperValue {
-                        identifier: Some(
-                            DuperIdentifier::try_from("Duration").expect("valid identifier"),
-                        ),
-                        inner: DuperInner::Temporal(
-                            DuperTemporal::try_duration_from(value.into_inner()).map_err(
-                                |err| {
-                                    DuperSerdeError::invalid_value(format!(
-                                        "failed to parse Duration for TemporalString: {err}"
-                                    ))
-                                },
-                            )?,
-                        ),
-                    }),
-                    "Unspecified" => Ok(DuperValue {
-                        identifier: Some(
-                            DuperIdentifier::try_from("Unspecified").expect("valid identifier"),
-                        ),
-                        inner: DuperInner::Temporal(
-                            DuperTemporal::try_unspecified_from(value.into_inner()).map_err(
-                                |err| {
-                                    DuperSerdeError::invalid_value(format!(
-                                        "failed to parse Unspecified for TemporalString: {err}"
-                                    ))
-                                },
-                            )?,
-                        ),
-                    }),
+            match (typ, value) {
+                (
+                    DuperValue::String { inner: typ, .. },
+                    DuperValue::String { inner: value, .. },
+                ) => match typ.as_ref() {
+                    "Instant" => Ok(DuperValue::try_instant_from(value)?),
+                    "ZonedDateTime" => Ok(DuperValue::try_zoned_date_time_from(value)?),
+                    "PlainDate" => Ok(DuperValue::try_plain_date_from(value)?),
+                    "PlainTime" => Ok(DuperValue::try_plain_time_from(value)?),
+                    "PlainDateTime" => Ok(DuperValue::try_plain_date_time_from(value)?),
+                    "PlainYearMonth" => Ok(DuperValue::try_plain_year_month_from(value)?),
+                    "PlainMonthDay" => Ok(DuperValue::try_plain_month_day_from(value)?),
+                    "Duration" => Ok(DuperValue::try_duration_from(value)?),
+                    "Unspecified" => Ok(DuperValue::try_unspecified_from(None, value)?),
                     _ => Err(DuperSerdeError::invalid_value(format!(
                         "invalid type {typ:?} for TemporalString",
                     ))),
@@ -790,10 +666,10 @@ impl<'ser, 'a> ser::SerializeStruct for SerializeStruct<'ser, 'a> {
                 )),
             }
         } else {
-            Ok(DuperValue {
+            Ok(DuperValue::Object {
                 identifier: (!self.name.is_empty())
                     .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
-                inner: DuperInner::Object(DuperObject::try_from(self.fields)?),
+                inner: DuperObject::try_from(self.fields)?,
             })
         }
     }
@@ -822,19 +698,17 @@ impl<'ser, 'a> ser::SerializeStructVariant for SerializeStructVariant<'ser, 'a> 
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue {
+        Ok(DuperValue::Object {
             identifier: (!self.name.is_empty())
                 .then_some(DuperIdentifier::try_from_lossy(Cow::Borrowed(self.name))?),
-            inner: DuperInner::Object(
-                DuperObject::try_from(vec![(
-                    DuperKey::from(Cow::Borrowed(self.variant)),
-                    DuperValue {
-                        identifier: None,
-                        inner: DuperInner::Object(DuperObject::try_from(self.fields)?),
-                    },
-                )])
-                .expect("single item object"),
-            ),
+            inner: DuperObject::try_from(vec![(
+                DuperKey::from(Cow::Borrowed(self.variant)),
+                DuperValue::Object {
+                    identifier: None,
+                    inner: DuperObject::try_from(self.fields)?,
+                },
+            )])
+            .expect("single item object"),
         })
     }
 }

@@ -1,15 +1,10 @@
 //! Utilities for pretty-printing Duper values.
 
 use crate::{
-    ast::{
-        DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTemporal,
-        DuperTuple, DuperValue,
-    },
-    format::{
+    ast::{DuperIdentifier, DuperObject, DuperValue, DuperTemporal}, format::{
         format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
         format_key, format_null, format_temporal,
-    },
-    visitor::DuperVisitor,
+    }, visitor::DuperVisitor
 };
 
 /// A Duper visitor which pretty-prints the provided [`DuperValue`] with
@@ -121,7 +116,7 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
     fn visit_array<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        array: &DuperArray<'a>,
+        array: &[DuperValue<'a>],
     ) -> Self::Value {
         if !self.strip_identifiers
             && let Some(identifier) = identifier
@@ -160,7 +155,7 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
     fn visit_tuple<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        tuple: &DuperTuple<'a>,
+        tuple: &[DuperValue<'a>],
     ) -> Self::Value {
         if !self.strip_identifiers
             && let Some(identifier) = identifier
@@ -213,7 +208,7 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
     fn visit_string<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        value: &DuperString<'a>,
+        value: &'a str,
     ) -> Self::Value {
         if !self.strip_identifiers
             && let Some(identifier) = identifier
@@ -240,7 +235,7 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
     fn visit_bytes<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        bytes: &DuperBytes<'a>,
+        bytes: &'a [u8],
     ) -> Self::Value {
         if !self.strip_identifiers
             && let Some(identifier) = identifier
@@ -265,9 +260,9 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
 
     fn visit_temporal<'a>(
         &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
         temporal: &DuperTemporal<'a>,
     ) -> Self::Value {
+        let identifier = temporal.identifier();
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
@@ -335,18 +330,17 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
 mod pretty_printer_tests {
     use std::borrow::Cow;
 
+    use indexmap::IndexMap;
     use insta::assert_snapshot;
 
-    use crate::{
-        DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-        DuperTuple, DuperValue, PrettyPrinter, parser::DuperParser,
-    };
+    use super::PrettyPrinter;
+    use crate::{DuperIdentifier, DuperKey, DuperObject, DuperValue, parser::DuperParser};
 
     #[test]
     fn empty_object() {
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: None,
-            inner: DuperInner::Object(DuperObject(vec![])),
+            inner: DuperObject(IndexMap::new()),
         };
         let pp = PrettyPrinter::new(false, "  ")
             .unwrap()
@@ -357,9 +351,22 @@ mod pretty_printer_tests {
 
     #[test]
     fn empty_array() {
-        let value = DuperValue {
+        let value = DuperValue::Array {
             identifier: None,
-            inner: DuperInner::Array(DuperArray(vec![])),
+            inner: vec![],
+        };
+        let pp = PrettyPrinter::new(false, "  ")
+            .unwrap()
+            .pretty_print(&value);
+        assert_snapshot!(pp);
+        let _ = DuperParser::parse_duper_trunk(&pp).unwrap();
+    }
+
+    #[test]
+    fn empty_tuple() {
+        let value = DuperValue::Tuple {
+            identifier: None,
+            inner: vec![],
         };
         let pp = PrettyPrinter::new(false, "  ")
             .unwrap()
@@ -370,15 +377,16 @@ mod pretty_printer_tests {
 
     #[test]
     fn single_element_object() {
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: None,
-            inner: DuperInner::Object(DuperObject(vec![(
+            inner: DuperObject::try_from(vec![(
                 DuperKey::from(Cow::Borrowed("chess")),
-                DuperValue {
+                DuperValue::String {
                     identifier: None,
-                    inner: DuperInner::String(DuperString::from(Cow::Borrowed("✅"))),
+                    inner: Cow::Borrowed("✅"),
                 },
-            )])),
+            )])
+            .unwrap(),
         };
         let pp = PrettyPrinter::new(false, "  ")
             .unwrap()
@@ -389,12 +397,12 @@ mod pretty_printer_tests {
 
     #[test]
     fn single_element_array() {
-        let value = DuperValue {
+        let value = DuperValue::Array {
             identifier: None,
-            inner: DuperInner::Array(DuperArray(vec![DuperValue {
+            inner: vec![DuperValue::Integer {
                 identifier: None,
-                inner: DuperInner::Integer(42),
-            }])),
+                inner: 42,
+            }],
         };
         let pp = PrettyPrinter::new(false, "  ")
             .unwrap()
@@ -405,45 +413,44 @@ mod pretty_printer_tests {
 
     #[test]
     fn basic_object() {
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: None,
-            inner: DuperInner::Object(DuperObject(vec![
+            inner: DuperObject::try_from(vec![
                 (
                     DuperKey::from(Cow::Borrowed("zero")),
-                    DuperValue {
+                    DuperValue::Tuple {
                         identifier: None,
-                        inner: DuperInner::Tuple(DuperTuple::from(vec![])),
+                        inner: vec![],
                     },
                 ),
                 (
                     DuperKey::from(Cow::Borrowed("one")),
-                    DuperValue {
+                    DuperValue::Tuple {
                         identifier: None,
-                        inner: DuperInner::Tuple(DuperTuple::from(vec![DuperValue {
+                        inner: vec![DuperValue::String {
                             identifier: None,
-                            inner: DuperInner::String(DuperString::from(Cow::Borrowed("Sandhole"))),
-                        }])),
+                            inner: Cow::Borrowed("Sandhole"),
+                        }],
                     },
                 ),
                 (
                     DuperKey::from(Cow::Borrowed("two")),
-                    DuperValue {
+                    DuperValue::Tuple {
                         identifier: None,
-                        inner: DuperInner::Tuple(DuperTuple::from(vec![
-                            DuperValue {
+                        inner: vec![
+                            DuperValue::String {
                                 identifier: None,
-                                inner: DuperInner::String(DuperString::from(Cow::Borrowed("rust"))),
+                                inner: Cow::Borrowed("rust"),
                             },
-                            DuperValue {
+                            DuperValue::String {
                                 identifier: None,
-                                inner: DuperInner::String(DuperString::from(Cow::Borrowed(
-                                    "chumsky",
-                                ))),
+                                inner: Cow::Borrowed("chumsky"),
                             },
-                        ])),
+                        ],
                     },
                 ),
-            ])),
+            ])
+            .unwrap(),
         };
         let pp = PrettyPrinter::new(false, "  ")
             .unwrap()
@@ -454,22 +461,19 @@ mod pretty_printer_tests {
 
     #[test]
     fn basic_array() {
-        let value = DuperValue {
+        let value = DuperValue::Array {
             identifier: None,
-            inner: DuperInner::Array(DuperArray(vec![
-                DuperValue {
+            inner: vec![
+                DuperValue::Bytes {
                     identifier: None,
-                    inner: DuperInner::Bytes(DuperBytes::from(Cow::Borrowed(b"foobar".as_ref()))),
+                    inner: Cow::Borrowed(b"foobar".as_ref()),
                 },
-                DuperValue {
+                DuperValue::Null { identifier: None },
+                DuperValue::Boolean {
                     identifier: None,
-                    inner: DuperInner::Null,
+                    inner: false,
                 },
-                DuperValue {
-                    identifier: None,
-                    inner: DuperInner::Boolean(false),
-                },
-            ])),
+            ],
         };
         let pp = PrettyPrinter::new(false, "  ")
             .unwrap()
@@ -480,45 +484,44 @@ mod pretty_printer_tests {
 
     #[test]
     fn complex_object() {
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: Some(
                 DuperIdentifier::try_from(Cow::Borrowed("Start")).expect("valid identifier"),
             ),
-            inner: DuperInner::Object(DuperObject(vec![(
+            inner: DuperObject::try_from(vec![(
                 DuperKey::from(Cow::Borrowed("first object")),
-                DuperValue {
+                DuperValue::Object {
                     identifier: None,
-                    inner: DuperInner::Object(DuperObject(vec![(
+                    inner: DuperObject::try_from(vec![(
                         DuperKey::from(Cow::Borrowed("second_object")),
-                        DuperValue {
+                        DuperValue::Object {
                             identifier: None,
-                            inner: DuperInner::Object(DuperObject(vec![
+                            inner: DuperObject::try_from(vec![
                                 (
                                     DuperKey::from(Cow::Borrowed("third object")),
-                                    DuperValue {
+                                    DuperValue::String {
                                         identifier: Some(
                                             DuperIdentifier::try_from(Cow::Borrowed("Msg"))
                                                 .expect("valid identifier"),
                                         ),
-                                        inner: DuperInner::String(DuperString::from(
+                                        inner: 
                                             Cow::Borrowed(
                                                 "This is a very long string that will push itself into the next line.",
                                             ),
-                                        )),
+                                        
                                     },
                                 ),
                                 (
                                     DuperKey::from(Cow::Borrowed("addendum")),
-                                    DuperValue {
+                                    DuperValue::Null {
                                         identifier: None,
-                                        inner: DuperInner::Null,
                                     },
                                 ),
-                            ])),
+                            ]).unwrap(),
                         },
-                    )])),
+                    )]).unwrap(),
                 },
-            )])),
+            )]).unwrap(),
         };
         let pp = PrettyPrinter::new(false, "  ")
             .unwrap()
@@ -529,28 +532,28 @@ mod pretty_printer_tests {
 
     #[test]
     fn complex_array() {
-        let value = DuperValue {
+        let value = DuperValue::Array {
             identifier: None,
-            inner: DuperInner::Array(DuperArray(vec![
-                DuperValue {
+            inner: vec![
+                DuperValue::Array {
                     identifier: None,
-                    inner: DuperInner::Array(DuperArray(vec![DuperValue {
+                    inner: vec![DuperValue::Array {
                         identifier: None,
-                        inner: DuperInner::Array(DuperArray(vec![DuperValue {
+                        inner: vec![DuperValue::String {
                             identifier: None,
-                            inner: DuperInner::String(DuperString::from(Cow::Borrowed(
+                            inner: Cow::Borrowed(
                                 "So many arrays!",
-                            ))),
-                        }])),
-                    }])),
+                            ),
+                        }],
+                    }],
                 },
-                DuperValue {
+                DuperValue::String {
                     identifier: None,
-                    inner: DuperInner::String(DuperString::from(Cow::Borrowed(
+                    inner: Cow::Borrowed(
                         r#""Hello world!""#,
-                    ))),
+                    ),
                 },
-            ])),
+            ],
         };
         let pp = PrettyPrinter::new(false, "  ")
             .unwrap()
@@ -561,70 +564,70 @@ mod pretty_printer_tests {
 
     #[test]
     fn strip_identifiers() {
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: Some(
                 DuperIdentifier::try_from(Cow::Borrowed("Start")).expect("valid identifier"),
             ),
-            inner: DuperInner::Object(DuperObject(vec![
+            inner: DuperObject::try_from(vec![
                 (
                     DuperKey::from(Cow::Borrowed("nested_object")),
-                    DuperValue {
+                    DuperValue::Object {
                         identifier: Some(
                             DuperIdentifier::try_from(Cow::Borrowed("Nested"))
                                 .expect("valid identifier"),
                         ),
-                        inner: DuperInner::Object(DuperObject(vec![
+                        inner: DuperObject::try_from(vec![
                             (
                                 DuperKey::from(Cow::Borrowed("integer_field")),
-                                DuperValue {
+                                DuperValue::Integer {
                                     identifier: Some(
                                         DuperIdentifier::try_from(Cow::Borrowed("Int"))
                                             .expect("valid identifier"),
                                     ),
-                                    inner: DuperInner::Integer(42),
+                                    inner: 42,
                                 },
                             ),
                             (
                                 DuperKey::from(Cow::Borrowed("string_field")),
-                                DuperValue {
+                                DuperValue::String {
                                     identifier: Some(
                                         DuperIdentifier::try_from(Cow::Borrowed("Str"))
                                             .expect("valid identifier"),
                                     ),
-                                    inner: DuperInner::String(DuperString::from(Cow::Borrowed(
+                                    inner: Cow::Borrowed(
                                         "test",
-                                    ))),
+                                    ),
                                 },
                             ),
-                        ])),
+                        ]).unwrap(),
                     },
                 ),
                 (
                     DuperKey::from(Cow::Borrowed("array_field")),
-                    DuperValue {
+                    DuperValue::Array {
                         identifier: Some(
                             DuperIdentifier::try_from(Cow::Borrowed("Arr"))
                                 .expect("valid identifier"),
                         ),
-                        inner: DuperInner::Array(DuperArray(vec![
-                            DuperValue {
+                        inner: vec![
+                            DuperValue::Float {
                                 identifier: Some(
                                     DuperIdentifier::try_from(Cow::Borrowed("Float"))
                                         .expect("valid identifier"),
                                 ),
-                                inner: DuperInner::Float(4.2),
+                                inner: 4.2,
                             },
-                            DuperValue {
+                            DuperValue::Boolean {
                                 identifier: Some(
                                     DuperIdentifier::try_from(Cow::Borrowed("Bool"))
                                         .expect("valid identifier"),
                                 ),
-                                inner: DuperInner::Boolean(true),
+                                inner: true,
                             },
-                        ])),
+                        ],
                     },
                 ),
-            ])),
+            ]).unwrap(),
         };
         let pp = PrettyPrinter::new(true, "  ").unwrap().pretty_print(&value);
         assert_snapshot!(pp);
@@ -633,59 +636,56 @@ mod pretty_printer_tests {
 
     #[test]
     fn tab_indentation() {
-        let value = DuperValue {
+        let value = DuperValue::Object {
             identifier: None,
-            inner: DuperInner::Object(DuperObject(vec![
+            inner: DuperObject::try_from(vec![
                 (
                     DuperKey::from(Cow::Borrowed("first_level")),
-                    DuperValue {
+                    DuperValue::Object {
                         identifier: None,
-                        inner: DuperInner::Object(DuperObject(vec![
+                        inner: DuperObject::try_from(vec![
                             (
                                 DuperKey::from(Cow::Borrowed("second_level")),
-                                DuperValue {
+                                DuperValue::Array {
                                     identifier: None,
-                                    inner: DuperInner::Array(DuperArray(vec![
-                                        DuperValue {
+                                    inner: vec![
+                                        DuperValue::String {
                                             identifier: None,
-                                            inner: DuperInner::String(DuperString::from(
-                                                Cow::Borrowed("deep"),
-                                            )),
+                                            inner: Cow::Borrowed("deep"),
                                         },
-                                        DuperValue {
+                                        DuperValue::Integer {
                                             identifier: None,
-                                            inner: DuperInner::Integer(123),
+                                            inner: 123,
                                         },
-                                    ])),
+                                    ],
                                 },
                             ),
                             (
                                 DuperKey::from(Cow::Borrowed("another_second_level")),
-                                DuperValue {
+                                DuperValue::Tuple {
                                     identifier: None,
-                                    inner: DuperInner::Tuple(DuperTuple::from(vec![
-                                        DuperValue {
+                                    inner: vec![
+                                        DuperValue::Boolean {
                                             identifier: None,
-                                            inner: DuperInner::Boolean(false),
+                                            inner: false,
                                         },
-                                        DuperValue {
+                                        DuperValue::Null {
                                             identifier: None,
-                                            inner: DuperInner::Null,
                                         },
-                                    ])),
+                                    ],
                                 },
                             ),
-                        ])),
+                        ]).unwrap(),
                     },
                 ),
                 (
                     DuperKey::from(Cow::Borrowed("simple_field")),
-                    DuperValue {
+                    DuperValue::String {
                         identifier: None,
-                        inner: DuperInner::String(DuperString::from(Cow::Borrowed("value"))),
+                        inner: Cow::Borrowed("value"),
                     },
                 ),
-            ])),
+            ]).unwrap(),
         };
         let pp = PrettyPrinter::new(false, "\t")
             .unwrap()
