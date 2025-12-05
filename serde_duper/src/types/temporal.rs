@@ -8,8 +8,8 @@ pub mod DuperInstant {
     where
         S: Serializer,
     {
-        ::duper::serde::temporal::TemporalString(
-            ::duper::DuperTemporal::try_instant_from(::std::borrow::Cow::Owned(
+        ::duper::serde::temporal::TemporalString::Instant(
+            ::duper::DuperTemporalInstant::try_from(::std::borrow::Cow::Owned(
                 value
                     .to_ixdtf_string(None, Default::default())
                     .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -24,8 +24,8 @@ pub mod DuperInstant {
         D: Deserializer<'de>,
         WrappedType: Deserialize<'de>,
     {
-        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-            ::duper::DuperTemporal::Instant(inner) => <WrappedType>::deserialize(
+        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+            ::duper::serde::temporal::TemporalString::Instant(inner) => <WrappedType>::deserialize(
                 serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
             ),
             typ => Err(serde_core::de::Error::invalid_value(
@@ -44,8 +44,8 @@ pub mod DuperOptionInstant {
         S: Serializer,
     {
         match value {
-            Some(value) => ::duper::serde::temporal::TemporalString(
-                ::duper::DuperTemporal::try_instant_from(::std::borrow::Cow::Owned(
+            Some(value) => ::duper::serde::temporal::TemporalString::Instant(
+                ::duper::DuperTemporalInstant::try_from(::std::borrow::Cow::Owned(
                     value
                         .to_ixdtf_string(None, Default::default())
                         .map_err(|err| {
@@ -83,11 +83,13 @@ pub mod DuperOptionInstant {
             where
                 D: Deserializer<'de>,
             {
-                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-                    ::duper::DuperTemporal::Instant(inner) => Some(<WrappedType>::deserialize(
-                        serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
-                    ))
-                    .transpose(),
+                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+                    ::duper::serde::temporal::TemporalString::Instant(inner) => {
+                        Some(<WrappedType>::deserialize(
+                            serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
+                        ))
+                        .transpose()
+                    }
                     typ => Err(serde_core::de::Error::invalid_value(
                         serde_core::de::Unexpected::Str(typ.name()),
                         &"Instant",
@@ -115,8 +117,8 @@ pub mod DuperZonedDateTime {
     where
         S: Serializer,
     {
-        ::duper::serde::temporal::TemporalString(
-            ::duper::DuperTemporal::try_zoned_date_time_from(::std::borrow::Cow::Owned(
+        ::duper::serde::temporal::TemporalString::ZonedDateTime(
+            ::duper::DuperTemporalZonedDateTime::try_from(::std::borrow::Cow::Owned(
                 value.to_string(),
             ))
             .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -129,10 +131,12 @@ pub mod DuperZonedDateTime {
         D: Deserializer<'de>,
         WrappedType: Deserialize<'de>,
     {
-        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-            ::duper::DuperTemporal::ZonedDateTime(inner) => <WrappedType>::deserialize(
-                serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
-            ),
+        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+            ::duper::serde::temporal::TemporalString::ZonedDateTime(inner) => {
+                <WrappedType>::deserialize(serde_core::de::IntoDeserializer::into_deserializer(
+                    inner.as_ref(),
+                ))
+            }
             typ => Err(serde_core::de::Error::invalid_value(
                 serde_core::de::Unexpected::Str(typ.name()),
                 &"PlainTime",
@@ -149,8 +153,8 @@ pub mod DuperOptionZonedDateTime {
         S: Serializer,
     {
         match value {
-            Some(value) => ::duper::serde::temporal::TemporalString(
-                ::duper::DuperTemporal::try_zoned_date_time_from(::std::borrow::Cow::Owned(
+            Some(value) => ::duper::serde::temporal::TemporalString::ZonedDateTime(
+                ::duper::DuperTemporalZonedDateTime::try_from(::std::borrow::Cow::Owned(
                     value.to_string(),
                 ))
                 .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -184,8 +188,8 @@ pub mod DuperOptionZonedDateTime {
             where
                 D: Deserializer<'de>,
             {
-                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-                    ::duper::DuperTemporal::ZonedDateTime(inner) => {
+                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+                    ::duper::serde::temporal::TemporalString::ZonedDateTime(inner) => {
                         Some(<WrappedType>::deserialize(
                             serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
                         ))
@@ -218,11 +222,9 @@ pub mod DuperPlainDate {
     where
         S: Serializer,
     {
-        ::duper::serde::temporal::TemporalString(
-            ::duper::DuperTemporal::try_plain_date_from(::std::borrow::Cow::Owned(
-                value.to_string(),
-            ))
-            .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
+        ::duper::serde::temporal::TemporalString::PlainDate(
+            ::duper::DuperTemporalPlainDate::try_from(::std::borrow::Cow::Owned(value.to_string()))
+                .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
         )
         .serialize(serializer)
     }
@@ -232,10 +234,12 @@ pub mod DuperPlainDate {
         D: Deserializer<'de>,
         WrappedType: Deserialize<'de>,
     {
-        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-            ::duper::DuperTemporal::PlainDate(inner) => <WrappedType>::deserialize(
-                serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
-            ),
+        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+            ::duper::serde::temporal::TemporalString::PlainDate(inner) => {
+                <WrappedType>::deserialize(serde_core::de::IntoDeserializer::into_deserializer(
+                    inner.as_ref(),
+                ))
+            }
             typ => Err(serde_core::de::Error::invalid_value(
                 serde_core::de::Unexpected::Str(typ.name()),
                 &"PlainTime",
@@ -252,8 +256,8 @@ pub mod DuperOptionPlainDate {
         S: Serializer,
     {
         match value {
-            Some(value) => ::duper::serde::temporal::TemporalString(
-                ::duper::DuperTemporal::try_plain_date_from(::std::borrow::Cow::Owned(
+            Some(value) => ::duper::serde::temporal::TemporalString::PlainDate(
+                ::duper::DuperTemporalPlainDate::try_from(::std::borrow::Cow::Owned(
                     value.to_string(),
                 ))
                 .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -287,11 +291,13 @@ pub mod DuperOptionPlainDate {
             where
                 D: Deserializer<'de>,
             {
-                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-                    ::duper::DuperTemporal::PlainDate(inner) => Some(<WrappedType>::deserialize(
-                        serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
-                    ))
-                    .transpose(),
+                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+                    ::duper::serde::temporal::TemporalString::PlainDate(inner) => {
+                        Some(<WrappedType>::deserialize(
+                            serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
+                        ))
+                        .transpose()
+                    }
                     typ => Err(serde_core::de::Error::invalid_value(
                         serde_core::de::Unexpected::Str(typ.name()),
                         &"PlainDate",
@@ -319,8 +325,8 @@ pub mod DuperPlainTime {
     where
         S: Serializer,
     {
-        ::duper::serde::temporal::TemporalString(
-            ::duper::DuperTemporal::try_plain_time_from(::std::borrow::Cow::Owned(
+        ::duper::serde::temporal::TemporalString::PlainTime(
+            ::duper::DuperTemporalPlainTime::try_from(::std::borrow::Cow::Owned(
                 value
                     .to_ixdtf_string(Default::default())
                     .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -335,10 +341,12 @@ pub mod DuperPlainTime {
         D: Deserializer<'de>,
         WrappedType: Deserialize<'de>,
     {
-        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-            ::duper::DuperTemporal::PlainTime(inner) => <WrappedType>::deserialize(
-                serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
-            ),
+        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+            ::duper::serde::temporal::TemporalString::PlainTime(inner) => {
+                <WrappedType>::deserialize(serde_core::de::IntoDeserializer::into_deserializer(
+                    inner.as_ref(),
+                ))
+            }
             typ => Err(serde_core::de::Error::invalid_value(
                 serde_core::de::Unexpected::Str(typ.name()),
                 &"PlainTime",
@@ -355,8 +363,8 @@ pub mod DuperOptionPlainTime {
         S: Serializer,
     {
         match value {
-            Some(value) => ::duper::serde::temporal::TemporalString(
-                ::duper::DuperTemporal::try_plain_time_from(::std::borrow::Cow::Owned(
+            Some(value) => ::duper::serde::temporal::TemporalString::PlainTime(
+                ::duper::DuperTemporalPlainTime::try_from(::std::borrow::Cow::Owned(
                     value.to_ixdtf_string(Default::default()).map_err(|err| {
                         <S::Error as serde_core::ser::Error>::custom(err.to_string())
                     })?,
@@ -392,11 +400,13 @@ pub mod DuperOptionPlainTime {
             where
                 D: Deserializer<'de>,
             {
-                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-                    ::duper::DuperTemporal::PlainTime(inner) => Some(<WrappedType>::deserialize(
-                        serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
-                    ))
-                    .transpose(),
+                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+                    ::duper::serde::temporal::TemporalString::PlainTime(inner) => {
+                        Some(<WrappedType>::deserialize(
+                            serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
+                        ))
+                        .transpose()
+                    }
                     typ => Err(serde_core::de::Error::invalid_value(
                         serde_core::de::Unexpected::Str(typ.name()),
                         &"PlainTime",
@@ -424,8 +434,8 @@ pub mod DuperPlainDateTime {
     where
         S: Serializer,
     {
-        ::duper::serde::temporal::TemporalString(
-            ::duper::DuperTemporal::try_plain_date_time_from(::std::borrow::Cow::Owned(
+        ::duper::serde::temporal::TemporalString::PlainDateTime(
+            ::duper::DuperTemporalPlainDateTime::try_from(::std::borrow::Cow::Owned(
                 value.to_string(),
             ))
             .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -438,10 +448,12 @@ pub mod DuperPlainDateTime {
         D: Deserializer<'de>,
         WrappedType: Deserialize<'de>,
     {
-        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-            ::duper::DuperTemporal::PlainDateTime(inner) => <WrappedType>::deserialize(
-                serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
-            ),
+        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+            ::duper::serde::temporal::TemporalString::PlainDateTime(inner) => {
+                <WrappedType>::deserialize(serde_core::de::IntoDeserializer::into_deserializer(
+                    inner.as_ref(),
+                ))
+            }
             typ => Err(serde_core::de::Error::invalid_value(
                 serde_core::de::Unexpected::Str(typ.name()),
                 &"PlainDateTime",
@@ -458,8 +470,8 @@ pub mod DuperOptionPlainDateTime {
         S: Serializer,
     {
         match value {
-            Some(value) => ::duper::serde::temporal::TemporalString(
-                ::duper::DuperTemporal::try_plain_date_time_from(::std::borrow::Cow::Owned(
+            Some(value) => ::duper::serde::temporal::TemporalString::PlainDateTime(
+                ::duper::DuperTemporalPlainDateTime::try_from(::std::borrow::Cow::Owned(
                     value.to_string(),
                 ))
                 .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -493,8 +505,8 @@ pub mod DuperOptionPlainDateTime {
             where
                 D: Deserializer<'de>,
             {
-                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-                    ::duper::DuperTemporal::PlainDateTime(inner) => {
+                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+                    ::duper::serde::temporal::TemporalString::PlainDateTime(inner) => {
                         Some(<WrappedType>::deserialize(
                             serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
                         ))
@@ -527,8 +539,8 @@ pub mod DuperPlainYearMonth {
     where
         S: Serializer,
     {
-        ::duper::serde::temporal::TemporalString(
-            ::duper::DuperTemporal::try_plain_year_month_from(::std::borrow::Cow::Owned(
+        ::duper::serde::temporal::TemporalString::PlainYearMonth(
+            ::duper::DuperTemporalPlainYearMonth::try_from(::std::borrow::Cow::Owned(
                 value.to_string(),
             ))
             .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -541,10 +553,12 @@ pub mod DuperPlainYearMonth {
         D: Deserializer<'de>,
         WrappedType: Deserialize<'de>,
     {
-        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-            ::duper::DuperTemporal::PlainYearMonth(inner) => <WrappedType>::deserialize(
-                serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
-            ),
+        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+            ::duper::serde::temporal::TemporalString::PlainYearMonth(inner) => {
+                <WrappedType>::deserialize(serde_core::de::IntoDeserializer::into_deserializer(
+                    inner.as_ref(),
+                ))
+            }
             typ => Err(serde_core::de::Error::invalid_value(
                 serde_core::de::Unexpected::Str(typ.name()),
                 &"PlainYearMonth",
@@ -561,8 +575,8 @@ pub mod DuperOptionPlainYearMonth {
         S: Serializer,
     {
         match value {
-            Some(value) => ::duper::serde::temporal::TemporalString(
-                ::duper::DuperTemporal::try_plain_year_month_from(::std::borrow::Cow::Owned(
+            Some(value) => ::duper::serde::temporal::TemporalString::PlainYearMonth(
+                ::duper::DuperTemporalPlainYearMonth::try_from(::std::borrow::Cow::Owned(
                     value.to_string(),
                 ))
                 .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -596,8 +610,8 @@ pub mod DuperOptionPlainYearMonth {
             where
                 D: Deserializer<'de>,
             {
-                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-                    ::duper::DuperTemporal::PlainYearMonth(inner) => {
+                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+                    ::duper::serde::temporal::TemporalString::PlainYearMonth(inner) => {
                         Some(<WrappedType>::deserialize(
                             serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
                         ))
@@ -630,8 +644,8 @@ pub mod DuperPlainMonthDay {
     where
         S: Serializer,
     {
-        ::duper::serde::temporal::TemporalString(
-            ::duper::DuperTemporal::try_plain_month_day_from(::std::borrow::Cow::Owned(
+        ::duper::serde::temporal::TemporalString::PlainMonthDay(
+            ::duper::DuperTemporalPlainMonthDay::try_from(::std::borrow::Cow::Owned(
                 value.to_string(),
             ))
             .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -644,10 +658,12 @@ pub mod DuperPlainMonthDay {
         D: Deserializer<'de>,
         WrappedType: Deserialize<'de>,
     {
-        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-            ::duper::DuperTemporal::PlainMonthDay(inner) => <WrappedType>::deserialize(
-                serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
-            ),
+        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+            ::duper::serde::temporal::TemporalString::PlainMonthDay(inner) => {
+                <WrappedType>::deserialize(serde_core::de::IntoDeserializer::into_deserializer(
+                    inner.as_ref(),
+                ))
+            }
             typ => Err(serde_core::de::Error::invalid_value(
                 serde_core::de::Unexpected::Str(typ.name()),
                 &"PlainMonthDay",
@@ -664,8 +680,8 @@ pub mod DuperOptionPlainMonthDay {
         S: Serializer,
     {
         match value {
-            Some(value) => ::duper::serde::temporal::TemporalString(
-                ::duper::DuperTemporal::try_plain_month_day_from(::std::borrow::Cow::Owned(
+            Some(value) => ::duper::serde::temporal::TemporalString::PlainMonthDay(
+                ::duper::DuperTemporalPlainMonthDay::try_from(::std::borrow::Cow::Owned(
                     value.to_string(),
                 ))
                 .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -699,8 +715,8 @@ pub mod DuperOptionPlainMonthDay {
             where
                 D: Deserializer<'de>,
             {
-                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-                    ::duper::DuperTemporal::PlainMonthDay(inner) => {
+                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+                    ::duper::serde::temporal::TemporalString::PlainMonthDay(inner) => {
                         Some(<WrappedType>::deserialize(
                             serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
                         ))
@@ -733,8 +749,8 @@ pub mod DuperDuration {
     where
         S: Serializer,
     {
-        ::duper::serde::temporal::TemporalString(
-            ::duper::DuperTemporal::try_duration_from(::std::borrow::Cow::Owned(value.to_string()))
+        ::duper::serde::temporal::TemporalString::Duration(
+            ::duper::DuperTemporalDuration::try_from(::std::borrow::Cow::Owned(value.to_string()))
                 .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
         )
         .serialize(serializer)
@@ -745,10 +761,12 @@ pub mod DuperDuration {
         D: Deserializer<'de>,
         WrappedType: Deserialize<'de>,
     {
-        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-            ::duper::DuperTemporal::Duration(inner) => <WrappedType>::deserialize(
-                serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
-            ),
+        match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+            ::duper::serde::temporal::TemporalString::Duration(inner) => {
+                <WrappedType>::deserialize(serde_core::de::IntoDeserializer::into_deserializer(
+                    inner.as_ref(),
+                ))
+            }
             typ => Err(serde_core::de::Error::invalid_value(
                 serde_core::de::Unexpected::Str(typ.name()),
                 &"Duration",
@@ -765,8 +783,8 @@ pub mod DuperOptionDuration {
         S: Serializer,
     {
         match value {
-            Some(value) => ::duper::serde::temporal::TemporalString(
-                ::duper::DuperTemporal::try_duration_from(::std::borrow::Cow::Owned(
+            Some(value) => ::duper::serde::temporal::TemporalString::Duration(
+                ::duper::DuperTemporalDuration::try_from(::std::borrow::Cow::Owned(
                     value.to_string(),
                 ))
                 .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
@@ -800,11 +818,13 @@ pub mod DuperOptionDuration {
             where
                 D: Deserializer<'de>,
             {
-                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)?.0 {
-                    ::duper::DuperTemporal::Duration(inner) => Some(<WrappedType>::deserialize(
-                        serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
-                    ))
-                    .transpose(),
+                match ::duper::serde::temporal::TemporalString::deserialize(deserializer)? {
+                    ::duper::serde::temporal::TemporalString::Duration(inner) => {
+                        Some(<WrappedType>::deserialize(
+                            serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
+                        ))
+                        .transpose()
+                    }
                     typ => Err(serde_core::de::Error::invalid_value(
                         serde_core::de::Unexpected::Str(typ.name()),
                         &"Duration",

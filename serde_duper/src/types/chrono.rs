@@ -5,14 +5,14 @@ pub mod DuperNaiveDateTime {
 
     use super::*;
     use ::chrono::NaiveDateTime as WrappedType;
-    use duper::{DuperTemporal, serde::temporal::TemporalString};
+    use duper::{DuperTemporalPlainDateTime, serde::temporal::TemporalString};
 
     pub fn serialize<S>(value: &WrappedType, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        TemporalString(
-            DuperTemporal::try_plain_date_time_from(Cow::Owned(format!("{value:?}")))
+        TemporalString::PlainDateTime(
+            DuperTemporalPlainDateTime::try_from(Cow::Owned(format!("{value:?}")))
                 .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
         )
         .serialize(serializer)
@@ -23,8 +23,8 @@ pub mod DuperNaiveDateTime {
         D: Deserializer<'de>,
         WrappedType: Deserialize<'de>,
     {
-        match TemporalString::deserialize(deserializer)?.0 {
-            DuperTemporal::PlainDateTime(inner) => <WrappedType>::deserialize(
+        match TemporalString::deserialize(deserializer)? {
+            TemporalString::PlainDateTime(inner) => <WrappedType>::deserialize(
                 serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
             ),
             typ => Err(serde_core::de::Error::invalid_value(
@@ -39,7 +39,7 @@ pub mod DuperOptionNaiveDateTime {
 
     use super::*;
     use ::chrono::NaiveDateTime as WrappedType;
-    use duper::{DuperTemporal, serde::temporal::TemporalString};
+    use duper::{DuperTemporalPlainDateTime, serde::temporal::TemporalString};
 
     pub fn serialize<S>(value: &Option<WrappedType>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -47,8 +47,8 @@ pub mod DuperOptionNaiveDateTime {
         Option<WrappedType>: Serialize,
     {
         match value {
-            Some(value) => TemporalString(
-                DuperTemporal::try_plain_date_time_from(Cow::Owned(format!("{value:?}")))
+            Some(value) => TemporalString::PlainDateTime(
+                DuperTemporalPlainDateTime::try_from(Cow::Owned(format!("{value:?}")))
                     .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
             )
             .serialize(serializer),
@@ -78,8 +78,8 @@ pub mod DuperOptionNaiveDateTime {
             where
                 D: Deserializer<'de>,
             {
-                match TemporalString::deserialize(deserializer)?.0 {
-                    DuperTemporal::PlainDateTime(inner) => Some(<WrappedType>::deserialize(
+                match TemporalString::deserialize(deserializer)? {
+                    TemporalString::PlainDateTime(inner) => Some(<WrappedType>::deserialize(
                         serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
                     ))
                     .transpose(),
@@ -107,14 +107,14 @@ pub mod DuperNaiveDate {
 
     use super::*;
     use ::chrono::NaiveDate as WrappedType;
-    use duper::{DuperTemporal, serde::temporal::TemporalString};
+    use duper::{DuperTemporalPlainDate, serde::temporal::TemporalString};
 
     pub fn serialize<S>(value: &WrappedType, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        TemporalString(
-            DuperTemporal::try_plain_date_from(Cow::Owned(format!("{value:?}")))
+        TemporalString::PlainDate(
+            DuperTemporalPlainDate::try_from(Cow::Owned(format!("{value:?}")))
                 .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
         )
         .serialize(serializer)
@@ -125,8 +125,8 @@ pub mod DuperNaiveDate {
         D: Deserializer<'de>,
         WrappedType: Deserialize<'de>,
     {
-        match TemporalString::deserialize(deserializer)?.0 {
-            DuperTemporal::PlainDate(inner) => <WrappedType>::deserialize(
+        match TemporalString::deserialize(deserializer)? {
+            TemporalString::PlainDate(inner) => <WrappedType>::deserialize(
                 serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
             ),
             typ => Err(serde_core::de::Error::invalid_value(
@@ -141,7 +141,7 @@ pub mod DuperOptionNaiveDate {
 
     use super::*;
     use ::chrono::NaiveDate as WrappedType;
-    use duper::{DuperTemporal, serde::temporal::TemporalString};
+    use duper::{DuperTemporalPlainDate, serde::temporal::TemporalString};
 
     pub fn serialize<S>(value: &Option<WrappedType>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -149,8 +149,8 @@ pub mod DuperOptionNaiveDate {
         Option<WrappedType>: Serialize,
     {
         match value {
-            Some(value) => TemporalString(
-                DuperTemporal::try_plain_date_from(Cow::Owned(format!("{value:?}")))
+            Some(value) => TemporalString::PlainDate(
+                DuperTemporalPlainDate::try_from(Cow::Owned(format!("{value:?}")))
                     .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
             )
             .serialize(serializer),
@@ -181,8 +181,8 @@ pub mod DuperOptionNaiveDate {
             where
                 D: Deserializer<'de>,
             {
-                match TemporalString::deserialize(deserializer)?.0 {
-                    DuperTemporal::PlainDate(inner) => Some(<WrappedType>::deserialize(
+                match TemporalString::deserialize(deserializer)? {
+                    TemporalString::PlainDate(inner) => Some(<WrappedType>::deserialize(
                         serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
                     ))
                     .transpose(),
@@ -210,14 +210,14 @@ pub mod DuperNaiveTime {
 
     use super::*;
     use ::chrono::NaiveTime as WrappedType;
-    use duper::{DuperTemporal, serde::temporal::TemporalString};
+    use duper::{DuperTemporalPlainTime, serde::temporal::TemporalString};
 
     pub fn serialize<S>(value: &WrappedType, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        TemporalString(
-            DuperTemporal::try_plain_time_from(Cow::Owned(format!("{value:?}")))
+        TemporalString::PlainTime(
+            DuperTemporalPlainTime::try_from(Cow::Owned(format!("{value:?}")))
                 .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
         )
         .serialize(serializer)
@@ -228,8 +228,8 @@ pub mod DuperNaiveTime {
         D: Deserializer<'de>,
         WrappedType: Deserialize<'de>,
     {
-        match TemporalString::deserialize(deserializer)?.0 {
-            DuperTemporal::PlainTime(inner) => <WrappedType>::deserialize(
+        match TemporalString::deserialize(deserializer)? {
+            TemporalString::PlainTime(inner) => <WrappedType>::deserialize(
                 serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
             ),
             typ => Err(serde_core::de::Error::invalid_value(
@@ -244,7 +244,7 @@ pub mod DuperOptionNaiveTime {
 
     use super::*;
     use ::chrono::NaiveTime as WrappedType;
-    use duper::{DuperTemporal, serde::temporal::TemporalString};
+    use duper::{DuperTemporalPlainTime, serde::temporal::TemporalString};
 
     pub fn serialize<S>(value: &Option<WrappedType>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -252,8 +252,8 @@ pub mod DuperOptionNaiveTime {
         Option<WrappedType>: Serialize,
     {
         match value {
-            Some(value) => TemporalString(
-                DuperTemporal::try_plain_time_from(Cow::Owned(format!("{value:?}")))
+            Some(value) => TemporalString::PlainTime(
+                DuperTemporalPlainTime::try_from(Cow::Owned(format!("{value:?}")))
                     .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
             )
             .serialize(serializer),
@@ -284,8 +284,8 @@ pub mod DuperOptionNaiveTime {
             where
                 D: Deserializer<'de>,
             {
-                match TemporalString::deserialize(deserializer)?.0 {
-                    DuperTemporal::PlainTime(inner) => Some(<WrappedType>::deserialize(
+                match TemporalString::deserialize(deserializer)? {
+                    TemporalString::PlainTime(inner) => Some(<WrappedType>::deserialize(
                         serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
                     ))
                     .transpose(),
@@ -320,15 +320,15 @@ pub mod DuperDateTime {
 
     use super::*;
     use ::chrono::{DateTime as WrappedType, TimeZone};
-    use duper::{DuperTemporal, serde::temporal::TemporalString};
+    use duper::{DuperTemporalInstant, serde::temporal::TemporalString};
 
     pub fn serialize<S, T>(value: &WrappedType<T>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
         T: TimeZone,
     {
-        TemporalString(
-            DuperTemporal::try_instant_from(Cow::Owned(value.to_rfc3339()))
+        TemporalString::Instant(
+            DuperTemporalInstant::try_from(Cow::Owned(value.to_rfc3339()))
                 .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
         )
         .serialize(serializer)
@@ -340,8 +340,8 @@ pub mod DuperDateTime {
         T: TimeZone,
         WrappedType<T>: Deserialize<'de>,
     {
-        match TemporalString::deserialize(deserializer)?.0 {
-            DuperTemporal::Instant(inner) => <WrappedType<T>>::deserialize(
+        match TemporalString::deserialize(deserializer)? {
+            TemporalString::Instant(inner) => <WrappedType<T>>::deserialize(
                 serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
             ),
             typ => Err(serde_core::de::Error::invalid_value(
@@ -356,7 +356,7 @@ pub mod DuperOptionDateTime {
 
     use super::*;
     use ::chrono::{DateTime as WrappedType, TimeZone};
-    use duper::{DuperTemporal, serde::temporal::TemporalString};
+    use duper::{DuperTemporalInstant, serde::temporal::TemporalString};
 
     pub fn serialize<S, T>(value: &Option<WrappedType<T>>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -365,8 +365,8 @@ pub mod DuperOptionDateTime {
         Option<WrappedType<T>>: Serialize,
     {
         match value {
-            Some(value) => TemporalString(
-                DuperTemporal::try_instant_from(Cow::Owned(value.to_rfc3339()))
+            Some(value) => TemporalString::Instant(
+                DuperTemporalInstant::try_from(Cow::Owned(value.to_rfc3339()))
                     .map_err(|err| <S::Error as serde_core::ser::Error>::custom(err.to_string()))?,
             )
             .serialize(serializer),
@@ -399,8 +399,8 @@ pub mod DuperOptionDateTime {
             where
                 D: Deserializer<'de>,
             {
-                match TemporalString::deserialize(deserializer)?.0 {
-                    DuperTemporal::Instant(inner) => Some(<WrappedType<T>>::deserialize(
+                match TemporalString::deserialize(deserializer)? {
+                    TemporalString::Instant(inner) => Some(<WrappedType<T>>::deserialize(
                         serde_core::de::IntoDeserializer::into_deserializer(inner.as_ref()),
                     ))
                     .transpose(),

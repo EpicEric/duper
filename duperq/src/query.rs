@@ -1,6 +1,6 @@
 use chumsky::prelude::*;
 use duper::{
-    Ansi, DuperInner, DuperValue, PrettyPrinter, Serializer,
+    Ansi, DuperValue, PrettyPrinter, Serializer,
     escape::unescape_str,
     parser::{identified_value, integer, object_key, quoted_string},
 };
@@ -143,7 +143,7 @@ fn accessor<'a>()
     recursive(|accessor| {
         let access = choice((
             just('.').ignore_then(object_key().map(|key: duper::DuperKey<'a>| {
-                Box::new(FieldAccessor(key.as_ref().into())) as Box<dyn DuperAccessor>
+                Box::new(FieldAccessor(key.static_clone())) as Box<dyn DuperAccessor>
             })),
             just('.').map(|_| Box::new(SelfAccessor) as Box<dyn DuperAccessor>),
             integer()
@@ -362,8 +362,8 @@ fn leaf_filter<'a>(
                 }),
             re_op
                 .ignore_then(identified_value().padded())
-                .try_map(|value, span| match value.inner {
-                    DuperInner::String(string) => regex::Regex::new(string.as_ref())
+                .try_map(|value, span| match value {
+                    DuperValue::String { inner: string, .. } => regex::Regex::new(string.as_ref())
                         .map(|regex| Box::new(RegexIdentifierFilter(regex)) as Box<dyn DuperFilter>)
                         .map_err(|error| Rich::custom(span, error)),
                     _ => Err(Rich::custom(
@@ -426,10 +426,12 @@ fn leaf_filter<'a>(
                 }),
             re_op
                 .ignore_then(identified_value().padded())
-                .try_map(|value, span| match value.inner {
-                    DuperInner::String(string) => regex::bytes::Regex::new(string.as_ref())
-                        .map(|regex| Box::new(RegexFilter(regex)) as Box<dyn DuperFilter>)
-                        .map_err(|error| Rich::custom(span, error)),
+                .try_map(|value, span| match value {
+                    DuperValue::String { inner: string, .. } => {
+                        regex::bytes::Regex::new(string.as_ref())
+                            .map(|regex| Box::new(RegexFilter(regex)) as Box<dyn DuperFilter>)
+                            .map_err(|error| Rich::custom(span, error))
+                    }
                     _ => Err(Rich::custom(
                         span,
                         "can only use regex operator =~ with string",

@@ -67,7 +67,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
     fn visit_array<'a>(
         &mut self,
         identifier: Option<&duper::DuperIdentifier<'a>>,
-        array: &duper::DuperArray<'a>,
+        array: &[duper::DuperValue<'a>],
     ) -> Self::Value {
         let vec: PyResult<Vec<_>> = array
             .iter()
@@ -84,7 +84,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
     fn visit_tuple<'a>(
         &mut self,
         identifier: Option<&duper::DuperIdentifier<'a>>,
-        tuple: &duper::DuperTuple<'a>,
+        tuple: &[duper::DuperValue<'a>],
     ) -> Self::Value {
         let vec: PyResult<Vec<_>> = tuple
             .iter()
@@ -101,10 +101,10 @@ impl<'py> DuperVisitor for Visitor<'py> {
     fn visit_string<'a>(
         &mut self,
         identifier: Option<&duper::DuperIdentifier<'a>>,
-        string: &duper::DuperString<'a>,
+        string: &'a str,
     ) -> Self::Value {
         Ok(VisitorValue {
-            value: PyString::new(self.py, &string.clone().into_inner()).into_any(),
+            value: PyString::new(self.py, &string).into_any(),
             duper: identifier
                 .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
@@ -114,25 +114,22 @@ impl<'py> DuperVisitor for Visitor<'py> {
     fn visit_bytes<'a>(
         &mut self,
         identifier: Option<&duper::DuperIdentifier<'a>>,
-        bytes: &duper::DuperBytes<'a>,
+        bytes: &'a [u8],
     ) -> Self::Value {
         Ok(VisitorValue {
-            value: PyBytes::new(self.py, &bytes.clone().into_inner()).into_any(),
+            value: PyBytes::new(self.py, &bytes).into_any(),
             duper: identifier
                 .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
         })
     }
 
-    fn visit_temporal<'a>(
-        &mut self,
-        identifier: Option<&duper::DuperIdentifier<'a>>,
-        temporal: &DuperTemporal<'a>,
-    ) -> Self::Value {
+    fn visit_temporal<'a>(&mut self, temporal: &DuperTemporal<'a>) -> Self::Value {
         Ok(VisitorValue {
             value: TemporalString::from_temporal(temporal)?.into_bound_py_any(self.py)?,
-            duper: identifier
-                .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
+            duper: temporal
+                .identifier()
+                .map(|identifier| Duper::from_identifier(&identifier)?.into_pyobject(self.py))
                 .transpose()?,
         })
     }

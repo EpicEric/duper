@@ -94,7 +94,7 @@ pub struct DuperKey<'a>(pub(crate) Cow<'a, str>);
 #[derive(Debug, Clone)]
 pub struct DuperObject<'a>(pub(crate) IndexMap<DuperKey<'a>, DuperValue<'a>>);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DuperTemporal<'a> {
     /// A Temporal Instant: `Instant('...')`
     Instant {
@@ -457,6 +457,10 @@ impl<'a> DuperKey<'a> {
     pub fn into_inner(self) -> Cow<'a, str> {
         self.0
     }
+
+    pub fn static_clone(&self) -> DuperKey<'static> {
+        DuperKey(Cow::Owned(self.0.clone().into_owned()))
+    }
 }
 
 impl<'a> AsRef<str> for DuperKey<'a> {
@@ -584,6 +588,21 @@ impl<'a> DuperValue<'a> {
                     .as_ref()
                     .map(|identifier| identifier.static_clone()),
             },
+        }
+    }
+
+    pub fn identifier(&self) -> Option<DuperIdentifier<'a>> {
+        match self {
+            DuperValue::Temporal(inner) => inner.identifier(),
+            DuperValue::Object { identifier, .. }
+            | DuperValue::Array { identifier, .. }
+            | DuperValue::Tuple { identifier, .. }
+            | DuperValue::String { identifier, .. }
+            | DuperValue::Bytes { identifier, .. }
+            | DuperValue::Integer { identifier, .. }
+            | DuperValue::Float { identifier, .. }
+            | DuperValue::Boolean { identifier, .. }
+            | DuperValue::Null { identifier } => identifier.as_ref().cloned(),
         }
     }
 
@@ -758,6 +777,10 @@ impl<'a> DuperObject<'a> {
     /// object.
     pub fn iter(&self) -> impl Iterator<Item = (&DuperKey<'a>, &DuperValue<'a>)> {
         self.0.iter()
+    }
+
+    pub fn get<'b>(&'b self, key: &'b DuperKey<'_>) -> Option<&'b DuperValue<'a>> {
+        self.0.get(key)
     }
 
     /// Create a valid object from the provided [`Vec`], dropping any duplicate keys

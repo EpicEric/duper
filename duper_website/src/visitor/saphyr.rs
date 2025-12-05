@@ -1,8 +1,5 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
-use duper::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTemporal, DuperTuple,
-    visitor::DuperVisitor,
-};
+use duper::{DuperIdentifier, DuperObject, DuperTemporal, DuperValue, visitor::DuperVisitor};
 use saphyr::{ScalarOwned, ScalarStyle, Tag, YamlOwned};
 
 // A visitor that serializes Duper into a Saphyr YAML value.
@@ -33,7 +30,7 @@ impl DuperVisitor for SaphyrVisitor {
     fn visit_array<'a>(
         &mut self,
         _identifier: Option<&DuperIdentifier<'a>>,
-        array: &DuperArray<'a>,
+        array: &[DuperValue<'a>],
     ) -> Self::Value {
         let sequence: Result<_, _> = array.iter().map(|value| value.accept(self)).collect();
         Ok(YamlOwned::Sequence(sequence?))
@@ -42,7 +39,7 @@ impl DuperVisitor for SaphyrVisitor {
     fn visit_tuple<'a>(
         &mut self,
         _identifier: Option<&DuperIdentifier<'a>>,
-        tuple: &DuperTuple<'a>,
+        tuple: &[DuperValue<'a>],
     ) -> Self::Value {
         let sequence: Result<_, _> = tuple.iter().map(|value| value.accept(self)).collect();
         Ok(YamlOwned::Sequence(sequence?))
@@ -51,20 +48,18 @@ impl DuperVisitor for SaphyrVisitor {
     fn visit_string<'a>(
         &mut self,
         _identifier: Option<&DuperIdentifier<'a>>,
-        string: &DuperString<'a>,
+        string: &'a str,
     ) -> Self::Value {
-        Ok(YamlOwned::Value(ScalarOwned::String(
-            string.as_ref().to_string(),
-        )))
+        Ok(YamlOwned::Value(ScalarOwned::String(string.to_string())))
     }
 
     fn visit_bytes<'a>(
         &mut self,
         _identifier: Option<&DuperIdentifier<'a>>,
-        bytes: &DuperBytes<'a>,
+        bytes: &'a [u8],
     ) -> Self::Value {
         Ok(YamlOwned::Representation(
-            BASE64_STANDARD.encode(bytes.as_ref()),
+            BASE64_STANDARD.encode(bytes),
             ScalarStyle::DoubleQuoted,
             Some(Tag {
                 handle: String::new(),
@@ -73,11 +68,7 @@ impl DuperVisitor for SaphyrVisitor {
         ))
     }
 
-    fn visit_temporal<'a>(
-        &mut self,
-        _identifier: Option<&DuperIdentifier<'a>>,
-        temporal: &DuperTemporal<'a>,
-    ) -> Self::Value {
+    fn visit_temporal<'a>(&mut self, temporal: &DuperTemporal<'a>) -> Self::Value {
         Ok(YamlOwned::Representation(
             temporal.as_ref().to_string(),
             ScalarStyle::Plain,

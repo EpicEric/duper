@@ -1,9 +1,6 @@
 use std::borrow::Cow;
 
-use duper::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTuple, DuperValue,
-};
+use duper::{DuperIdentifier, DuperKey, DuperObject, DuperValue};
 use pyo3::{BoundObject, exceptions::PyValueError, prelude::*, types::*};
 
 use well_known_type::WellKnownType;
@@ -17,44 +14,42 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
     }
     // Handle basic types
     else if obj.is_instance_of::<PyDict>() {
-        Ok(DuperValue {
+        Ok(DuperValue::Object {
             identifier: None,
-            inner: DuperInner::Object(
-                DuperObject::try_from(serialize_pydict(obj.cast()?)?)
-                    .expect("no duplicate keys in dict"),
-            ),
+            inner: DuperObject::try_from(serialize_pydict(obj.cast()?)?)
+                .expect("no duplicate keys in dict"),
         })
     } else if obj.is_instance_of::<PyList>() {
-        Ok(DuperValue {
+        Ok(DuperValue::Array {
             identifier: None,
-            inner: DuperInner::Array(DuperArray::from(serialize_pyiter(obj.try_iter()?)?)),
+            inner: serialize_pyiter(obj.try_iter()?)?,
         })
     } else if obj.is_instance_of::<PySet>() {
-        Ok(DuperValue {
+        Ok(DuperValue::Array {
             identifier: Some(
                 DuperIdentifier::try_from(Cow::Borrowed("Set")).expect("valid identifier"),
             ),
-            inner: DuperInner::Array(DuperArray::from(serialize_pyiter(obj.try_iter()?)?)),
+            inner: serialize_pyiter(obj.try_iter()?)?,
         })
     } else if obj.is_instance_of::<PyTuple>() {
-        Ok(DuperValue {
+        Ok(DuperValue::Tuple {
             identifier: None,
-            inner: DuperInner::Tuple(DuperTuple::from(serialize_pyiter(obj.try_iter()?)?)),
+            inner: serialize_pyiter(obj.try_iter()?)?,
         })
     } else if obj.is_instance_of::<PyBytes>() {
-        Ok(DuperValue {
+        Ok(DuperValue::Bytes {
             identifier: None,
-            inner: DuperInner::Bytes(DuperBytes::from(Cow::Owned(obj.extract()?))),
+            inner: Cow::Owned(obj.extract()?),
         })
     } else if obj.is_instance_of::<PyString>() {
-        Ok(DuperValue {
+        Ok(DuperValue::String {
             identifier: None,
-            inner: DuperInner::String(DuperString::from(Cow::Owned(obj.extract()?))),
+            inner: Cow::Owned(obj.extract()?),
         })
     } else if obj.is_instance_of::<PyBool>() {
-        Ok(DuperValue {
+        Ok(DuperValue::Boolean {
             identifier: None,
-            inner: DuperInner::Boolean(obj.extract()?),
+            inner: obj.extract()?,
         })
     } else if obj.is_instance_of::<PyInt>() {
         let identifier = {
@@ -69,35 +64,32 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
             }
         };
         if let Ok(integer) = obj.extract() {
-            Ok(DuperValue {
+            Ok(DuperValue::Integer {
                 identifier,
-                inner: DuperInner::Integer(integer),
+                inner: integer,
             })
         } else {
-            Ok(DuperValue {
+            Ok(DuperValue::String {
                 identifier: identifier.or(Some(
                     DuperIdentifier::try_from(Cow::Borrowed("Int")).expect("valid identifier"),
                 )),
-                inner: DuperInner::String(DuperString::from(Cow::Owned(obj.str()?.extract()?))),
+                inner: Cow::Owned(obj.str()?.extract()?),
             })
         }
     } else if obj.is_instance_of::<PyFloat>() {
-        Ok(DuperValue {
+        Ok(DuperValue::Float {
             identifier: None,
-            inner: DuperInner::Float(obj.extract()?),
+            inner: obj.extract()?,
         })
     } else if obj.is_none() {
-        Ok(DuperValue {
-            identifier: None,
-            inner: DuperInner::Null,
-        })
+        Ok(DuperValue::Null { identifier: None })
     }
     // Handle sequences
     else if let Ok(pyiter) = obj.try_iter() {
         let identifier = serialize_pyclass_identifier(&obj)?;
-        Ok(DuperValue {
+        Ok(DuperValue::Array {
             identifier,
-            inner: DuperInner::Array(DuperArray::from(serialize_pyiter(pyiter.into_bound())?)),
+            inner: serialize_pyiter(pyiter.into_bound())?,
         })
     }
     // Handle unknown types
@@ -107,18 +99,16 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
             .and_then(|bytes| bytes.extract())
     {
         let identifier = serialize_pyclass_identifier(&obj)?;
-        Ok(DuperValue {
+        Ok(DuperValue::Bytes {
             identifier,
-            inner: DuperInner::Bytes(DuperBytes::from(Cow::Owned(bytes))),
+            inner: Cow::Owned(bytes),
         })
     } else if obj.hasattr("__slots__")?
         && let Ok(object) = serialize_pyslots(&obj)
     {
-        Ok(DuperValue {
+        Ok(DuperValue::Object {
             identifier: None,
-            inner: DuperInner::Object(
-                DuperObject::try_from(object).expect("no duplicate keys in slots"),
-            ),
+            inner: DuperObject::try_from(object).expect("no duplicate keys in slots"),
         })
     } else {
         Err(PyErr::new::<PyValueError, String>(format!(

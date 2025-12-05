@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, fmt::Display, str::FromStr};
 
-use duper::{DuperInner, DuperValue};
+use duper::{DuperTemporal, DuperValue};
 use temporal_rs::{
     Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth,
     TemporalError, ZonedDateTime,
@@ -158,54 +158,55 @@ impl EqValue {
         value: DuperValue<'_>,
         epsilon: Option<f64>,
     ) -> Result<Self, TryFromDuperValueError> {
-        match value.inner {
-            DuperInner::Object(_) => Err(TryFromDuperValueError::InvalidType("Object")),
-            DuperInner::Array(_) => Err(TryFromDuperValueError::InvalidType("Array")),
-            DuperInner::Tuple(tuple) => {
+        match value {
+            DuperValue::Object { .. } => Err(TryFromDuperValueError::InvalidType("Object")),
+            DuperValue::Array { .. } => Err(TryFromDuperValueError::InvalidType("Array")),
+            DuperValue::Tuple { inner: tuple, .. } => {
                 let vec: Result<Vec<_>, _> = tuple
-                    .into_inner()
                     .into_iter()
                     .map(|value| EqValue::try_from_duper(value, epsilon).map(EqFilter))
                     .collect();
                 Ok(EqValue::Tuple(vec?))
             }
-            DuperInner::String(string) => Ok(EqValue::String(string.into_inner().into_owned())),
-            DuperInner::Bytes(bytes) => Ok(EqValue::Bytes(bytes.into_inner().into_owned())),
-            DuperInner::Temporal(temporal) => match value.identifier {
-                Some(identifier) if identifier.as_ref() == "Instant" => Ok(
-                    EqValue::TemporalInstant(Instant::from_str(temporal.as_ref())?),
-                ),
-                Some(identifier) if identifier.as_ref() == "ZonedDateTime" => {
+            DuperValue::String { inner: string, .. } => Ok(EqValue::String(string.into_owned())),
+            DuperValue::Bytes { inner: bytes, .. } => Ok(EqValue::Bytes(bytes.into_owned())),
+            DuperValue::Temporal(temporal) => match temporal {
+                DuperTemporal::Instant { inner: temporal } => Ok(EqValue::TemporalInstant(
+                    Instant::from_str(temporal.as_ref())?,
+                )),
+                DuperTemporal::ZonedDateTime { inner: temporal } => {
                     Ok(EqValue::TemporalZonedDateTime(ZonedDateTime::from_utf8(
                         temporal.as_ref().as_bytes(),
                         Disambiguation::Compatible,
                         OffsetDisambiguation::Prefer,
                     )?))
                 }
-                Some(identifier) if identifier.as_ref() == "PlainDate" => Ok(
-                    EqValue::TemporalPlainDate(PlainDate::from_str(temporal.as_ref())?),
-                ),
-                Some(identifier) if identifier.as_ref() == "PlainTime" => Ok(
-                    EqValue::TemporalPlainTime(PlainTime::from_str(temporal.as_ref())?),
-                ),
-                Some(identifier) if identifier.as_ref() == "PlainDateTime" => Ok(
+                DuperTemporal::PlainDate { inner: temporal } => Ok(EqValue::TemporalPlainDate(
+                    PlainDate::from_str(temporal.as_ref())?,
+                )),
+                DuperTemporal::PlainTime { inner: temporal } => Ok(EqValue::TemporalPlainTime(
+                    PlainTime::from_str(temporal.as_ref())?,
+                )),
+                DuperTemporal::PlainDateTime { inner: temporal } => Ok(
                     EqValue::TemporalPlainDateTime(PlainDateTime::from_str(temporal.as_ref())?),
                 ),
-                Some(identifier) if identifier.as_ref() == "PlainYearMonth" => Ok(
+                DuperTemporal::PlainYearMonth { inner: temporal } => Ok(
                     EqValue::TemporalPlainYearMonth(PlainYearMonth::from_str(temporal.as_ref())?),
                 ),
-                Some(identifier) if identifier.as_ref() == "PlainMonthDay" => Ok(
+                DuperTemporal::PlainMonthDay { inner: temporal } => Ok(
                     EqValue::TemporalPlainMonthDay(PlainMonthDay::from_str(temporal.as_ref())?),
                 ),
-                Some(identifier) if identifier.as_ref() == "Duration" => Ok(
-                    EqValue::TemporalDuration(Duration::from_str(temporal.as_ref())?),
-                ),
-                Some(_) | None => Err(TryFromDuperValueError::UnspecifiedTemporal),
+                DuperTemporal::Duration { inner: temporal } => Ok(EqValue::TemporalDuration(
+                    Duration::from_str(temporal.as_ref())?,
+                )),
+                DuperTemporal::Unspecified { .. } => {
+                    Err(TryFromDuperValueError::UnspecifiedTemporal)
+                }
             },
-            DuperInner::Integer(integer) => Ok(EqValue::Integer(integer)),
-            DuperInner::Float(float) => Ok(EqValue::Float(float, epsilon)),
-            DuperInner::Boolean(boolean) => Ok(EqValue::Boolean(boolean)),
-            DuperInner::Null => Ok(EqValue::Null),
+            DuperValue::Integer { inner: integer, .. } => Ok(EqValue::Integer(integer)),
+            DuperValue::Float { inner: float, .. } => Ok(EqValue::Float(float, epsilon)),
+            DuperValue::Boolean { inner: boolean, .. } => Ok(EqValue::Boolean(boolean)),
+            DuperValue::Null { .. } => Ok(EqValue::Null),
         }
     }
 }
@@ -214,20 +215,24 @@ pub(crate) struct EqFilter(pub(crate) EqValue);
 
 impl DuperFilter for EqFilter {
     fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
-        match (&self.0, &value.inner) {
+        match (&self.0, value) {
             (EqValue::Identifier(this), _) => match this {
                 Some(this) => value
-                    .identifier
+                    .identifier()
                     .as_ref()
                     .is_some_and(|that| this == that.as_ref()),
-                None => value.identifier.is_none(),
+                None => value.identifier().is_none(),
             },
-            (EqValue::Len(this), DuperInner::Object(that)) => *this == that.len(),
-            (EqValue::Len(this), DuperInner::Array(that)) => *this == that.len(),
-            (EqValue::Len(this), DuperInner::Tuple(that)) => *this == that.len(),
-            (EqValue::Len(this), DuperInner::String(that)) => *this == that.as_ref().len(),
-            (EqValue::Len(this), DuperInner::Bytes(that)) => *this == that.as_ref().len(),
-            (EqValue::Tuple(this), DuperInner::Tuple(that)) => {
+            (EqValue::Len(this), DuperValue::Object { inner: that, .. }) => *this == that.len(),
+            (EqValue::Len(this), DuperValue::Array { inner: that, .. }) => *this == that.len(),
+            (EqValue::Len(this), DuperValue::Tuple { inner: that, .. }) => *this == that.len(),
+            (EqValue::Len(this), DuperValue::String { inner: that, .. }) => {
+                *this == that.as_ref().len()
+            }
+            (EqValue::Len(this), DuperValue::Bytes { inner: that, .. }) => {
+                *this == that.as_ref().len()
+            }
+            (EqValue::Tuple(this), DuperValue::Tuple { inner: that, .. }) => {
                 if this.len() == that.len() {
                     this.iter()
                         .zip(that.iter())
@@ -236,12 +241,14 @@ impl DuperFilter for EqFilter {
                     false
                 }
             }
-            (EqValue::String(this), DuperInner::String(that)) => this == that.as_ref(),
-            (EqValue::Bytes(this), DuperInner::Bytes(that)) => this == that.as_ref(),
-            (EqValue::TemporalInstant(this), DuperInner::Temporal(that)) => {
+            (EqValue::String(this), DuperValue::String { inner: that, .. }) => {
+                this == that.as_ref()
+            }
+            (EqValue::Bytes(this), DuperValue::Bytes { inner: that, .. }) => this == that.as_ref(),
+            (EqValue::TemporalInstant(this), DuperValue::Temporal(that)) => {
                 Instant::from_str(that.as_ref()).is_ok_and(|that| *this == that)
             }
-            (EqValue::TemporalZonedDateTime(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalZonedDateTime(this), DuperValue::Temporal(that)) => {
                 ZonedDateTime::from_utf8(
                     that.as_ref().as_bytes(),
                     Disambiguation::Compatible,
@@ -249,34 +256,36 @@ impl DuperFilter for EqFilter {
                 )
                 .is_ok_and(|that| this.compare_instant(&that).is_eq())
             }
-            (EqValue::TemporalPlainDate(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalPlainDate(this), DuperValue::Temporal(that)) => {
                 PlainDate::from_str(that.as_ref()).is_ok_and(|that| *this == that)
             }
-            (EqValue::TemporalPlainTime(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalPlainTime(this), DuperValue::Temporal(that)) => {
                 PlainTime::from_str(that.as_ref()).is_ok_and(|that| *this == that)
             }
-            (EqValue::TemporalPlainDateTime(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalPlainDateTime(this), DuperValue::Temporal(that)) => {
                 PlainDateTime::from_str(that.as_ref()).is_ok_and(|that| *this == that)
             }
-            (EqValue::TemporalPlainYearMonth(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalPlainYearMonth(this), DuperValue::Temporal(that)) => {
                 PlainYearMonth::from_str(that.as_ref()).is_ok_and(|that| *this == that)
             }
-            (EqValue::TemporalPlainMonthDay(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalPlainMonthDay(this), DuperValue::Temporal(that)) => {
                 PlainMonthDay::from_str(that.as_ref()).is_ok_and(|that| *this == that)
             }
-            (EqValue::TemporalDuration(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalDuration(this), DuperValue::Temporal(that)) => {
                 Duration::from_str(that.as_ref()).is_ok_and(|that| *this == that)
             }
-            (EqValue::Integer(this), DuperInner::Integer(that)) => this == that,
-            (EqValue::Float(this, epsilon), DuperInner::Float(that)) => {
+            (EqValue::Integer(this), DuperValue::Integer { inner: that, .. }) => this == that,
+            (EqValue::Float(this, epsilon), DuperValue::Float { inner: that, .. }) => {
                 (this - that).abs() <= epsilon.unwrap_or(0.0).abs()
             }
-            (EqValue::Integer(this), DuperInner::Float(that)) => *this == *that as i64,
-            (EqValue::Float(this, epsilon), DuperInner::Integer(that)) => {
+            (EqValue::Integer(this), DuperValue::Float { inner: that, .. }) => {
+                *this == *that as i64
+            }
+            (EqValue::Float(this, epsilon), DuperValue::Integer { inner: that, .. }) => {
                 (this - *that as f64).abs() <= epsilon.unwrap_or(0.0).abs()
             }
-            (EqValue::Boolean(this), DuperInner::Boolean(that)) => this == that,
-            (EqValue::Null, DuperInner::Null) => true,
+            (EqValue::Boolean(this), DuperValue::Boolean { inner: that, .. }) => this == that,
+            (EqValue::Null, DuperValue::Null { .. }) => true,
             _ => false,
         }
     }
@@ -286,19 +295,23 @@ pub(crate) struct NeFilter(pub(crate) EqValue);
 
 impl DuperFilter for NeFilter {
     fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
-        match (&self.0, &value.inner) {
+        match (&self.0, value) {
             (EqValue::Identifier(this), _) => match this {
                 Some(this) => value
-                    .identifier
+                    .identifier()
                     .as_ref()
                     .is_none_or(|that| this != that.as_ref()),
-                None => value.identifier.is_some(),
+                None => value.identifier().is_some(),
             },
-            (EqValue::Len(this), DuperInner::Object(that)) => *this != that.len(),
-            (EqValue::Len(this), DuperInner::Array(that)) => *this != that.len(),
-            (EqValue::Len(this), DuperInner::String(that)) => *this != that.as_ref().len(),
-            (EqValue::Len(this), DuperInner::Bytes(that)) => *this != that.as_ref().len(),
-            (EqValue::Tuple(this), DuperInner::Tuple(that)) => {
+            (EqValue::Len(this), DuperValue::Object { inner: that, .. }) => *this != that.len(),
+            (EqValue::Len(this), DuperValue::Array { inner: that, .. }) => *this != that.len(),
+            (EqValue::Len(this), DuperValue::String { inner: that, .. }) => {
+                *this != that.as_ref().len()
+            }
+            (EqValue::Len(this), DuperValue::Bytes { inner: that, .. }) => {
+                *this != that.as_ref().len()
+            }
+            (EqValue::Tuple(this), DuperValue::Tuple { inner: that, .. }) => {
                 if this.len() == that.len() {
                     this.iter()
                         .zip(that.iter())
@@ -307,14 +320,16 @@ impl DuperFilter for NeFilter {
                     true
                 }
             }
-            (EqValue::String(this), DuperInner::String(that)) => this != that.as_ref(),
-            (EqValue::Bytes(this), DuperInner::Bytes(that)) => this != that.as_ref(),
-            (EqValue::TemporalInstant(this), DuperInner::Temporal(that)) => {
+            (EqValue::String(this), DuperValue::String { inner: that, .. }) => {
+                this != that.as_ref()
+            }
+            (EqValue::Bytes(this), DuperValue::Bytes { inner: that, .. }) => this != that.as_ref(),
+            (EqValue::TemporalInstant(this), DuperValue::Temporal(that)) => {
                 Instant::from_str(that.as_ref())
                     .ok()
                     .is_none_or(|that| *this != that)
             }
-            (EqValue::TemporalZonedDateTime(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalZonedDateTime(this), DuperValue::Temporal(that)) => {
                 ZonedDateTime::from_utf8(
                     that.as_ref().as_bytes(),
                     Disambiguation::Compatible,
@@ -323,46 +338,48 @@ impl DuperFilter for NeFilter {
                 .ok()
                 .is_none_or(|that| this.compare_instant(&that).is_ne())
             }
-            (EqValue::TemporalPlainDate(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalPlainDate(this), DuperValue::Temporal(that)) => {
                 PlainDate::from_str(that.as_ref())
                     .ok()
                     .is_none_or(|that| *this != that)
             }
-            (EqValue::TemporalPlainTime(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalPlainTime(this), DuperValue::Temporal(that)) => {
                 PlainTime::from_str(that.as_ref())
                     .ok()
                     .is_none_or(|that| *this != that)
             }
-            (EqValue::TemporalPlainDateTime(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalPlainDateTime(this), DuperValue::Temporal(that)) => {
                 PlainDateTime::from_str(that.as_ref())
                     .ok()
                     .is_none_or(|that| *this != that)
             }
-            (EqValue::TemporalPlainYearMonth(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalPlainYearMonth(this), DuperValue::Temporal(that)) => {
                 PlainYearMonth::from_str(that.as_ref())
                     .ok()
                     .is_none_or(|that| *this != that)
             }
-            (EqValue::TemporalPlainMonthDay(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalPlainMonthDay(this), DuperValue::Temporal(that)) => {
                 PlainMonthDay::from_str(that.as_ref())
                     .ok()
                     .is_none_or(|that| *this != that)
             }
-            (EqValue::TemporalDuration(this), DuperInner::Temporal(that)) => {
+            (EqValue::TemporalDuration(this), DuperValue::Temporal(that)) => {
                 Duration::from_str(that.as_ref())
                     .ok()
                     .is_none_or(|that| *this != that)
             }
-            (EqValue::Integer(this), DuperInner::Integer(that)) => this != that,
-            (EqValue::Float(this, epsilon), DuperInner::Float(that)) => {
+            (EqValue::Integer(this), DuperValue::Integer { inner: that, .. }) => this != that,
+            (EqValue::Float(this, epsilon), DuperValue::Float { inner: that, .. }) => {
                 (this - that).abs() > epsilon.unwrap_or(0.0).abs()
             }
-            (EqValue::Integer(this), DuperInner::Float(that)) => *this != *that as i64,
-            (EqValue::Float(this, epsilon), DuperInner::Integer(that)) => {
+            (EqValue::Integer(this), DuperValue::Float { inner: that, .. }) => {
+                *this != *that as i64
+            }
+            (EqValue::Float(this, epsilon), DuperValue::Integer { inner: that, .. }) => {
                 (this - *that as f64).abs() > epsilon.unwrap_or(0.0).abs()
             }
-            (EqValue::Boolean(this), DuperInner::Boolean(that)) => this != that,
-            (EqValue::Null, DuperInner::Null) => false,
+            (EqValue::Boolean(this), DuperValue::Boolean { inner: that, .. }) => this != that,
+            (EqValue::Null, DuperValue::Null { .. }) => false,
             _ => true,
         }
     }
@@ -385,47 +402,49 @@ impl TryFrom<DuperValue<'_>> for CmpValue {
     type Error = TryFromDuperValueError;
 
     fn try_from(value: DuperValue<'_>) -> Result<Self, Self::Error> {
-        match value.inner {
-            DuperInner::Object(_) => Err(TryFromDuperValueError::InvalidType("Object")),
-            DuperInner::Array(_) => Err(TryFromDuperValueError::InvalidType("Array")),
-            DuperInner::Tuple(_) => Err(TryFromDuperValueError::InvalidType("Tuple")),
-            DuperInner::String(_) => Err(TryFromDuperValueError::InvalidType("String")),
-            DuperInner::Bytes(_) => Err(TryFromDuperValueError::InvalidType("Bytes")),
-            DuperInner::Temporal(temporal) => match value.identifier {
-                Some(identifier) if identifier.as_ref() == "Instant" => Ok(
-                    CmpValue::TemporalInstant(Instant::from_str(temporal.as_ref())?),
-                ),
-                Some(identifier) if identifier.as_ref() == "ZonedDateTime" => {
+        match value {
+            DuperValue::Object { .. } => Err(TryFromDuperValueError::InvalidType("Object")),
+            DuperValue::Array { .. } => Err(TryFromDuperValueError::InvalidType("Array")),
+            DuperValue::Tuple { .. } => Err(TryFromDuperValueError::InvalidType("Tuple")),
+            DuperValue::String { .. } => Err(TryFromDuperValueError::InvalidType("String")),
+            DuperValue::Bytes { .. } => Err(TryFromDuperValueError::InvalidType("Bytes")),
+            DuperValue::Temporal(temporal) => match temporal {
+                DuperTemporal::Instant { inner: temporal } => Ok(CmpValue::TemporalInstant(
+                    Instant::from_str(temporal.as_ref())?,
+                )),
+                DuperTemporal::ZonedDateTime { inner: temporal } => {
                     Ok(CmpValue::TemporalZonedDateTime(ZonedDateTime::from_utf8(
                         temporal.as_ref().as_bytes(),
                         Disambiguation::Compatible,
                         OffsetDisambiguation::Prefer,
                     )?))
                 }
-                Some(identifier) if identifier.as_ref() == "PlainDate" => Ok(
-                    CmpValue::TemporalPlainDate(PlainDate::from_str(temporal.as_ref())?),
-                ),
-                Some(identifier) if identifier.as_ref() == "PlainTime" => Ok(
-                    CmpValue::TemporalPlainTime(PlainTime::from_str(temporal.as_ref())?),
-                ),
-                Some(identifier) if identifier.as_ref() == "PlainDateTime" => Ok(
+                DuperTemporal::PlainDate { inner: temporal } => Ok(CmpValue::TemporalPlainDate(
+                    PlainDate::from_str(temporal.as_ref())?,
+                )),
+                DuperTemporal::PlainTime { inner: temporal } => Ok(CmpValue::TemporalPlainTime(
+                    PlainTime::from_str(temporal.as_ref())?,
+                )),
+                DuperTemporal::PlainDateTime { inner: temporal } => Ok(
                     CmpValue::TemporalPlainDateTime(PlainDateTime::from_str(temporal.as_ref())?),
                 ),
-                Some(identifier) if identifier.as_ref() == "PlainYearMonth" => Ok(
+                DuperTemporal::PlainYearMonth { inner: temporal } => Ok(
                     CmpValue::TemporalPlainYearMonth(PlainYearMonth::from_str(temporal.as_ref())?),
                 ),
-                Some(identifier) if identifier.as_ref() == "PlainMonthDay" => {
+                DuperTemporal::PlainMonthDay { .. } => {
                     Err(TryFromDuperValueError::InvalidType("PlainMonthDay"))
                 }
-                Some(identifier) if identifier.as_ref() == "Duration" => Ok(
-                    CmpValue::TemporalDuration(Duration::from_str(temporal.as_ref())?),
-                ),
-                Some(_) | None => Err(TryFromDuperValueError::UnspecifiedTemporal),
+                DuperTemporal::Duration { inner: temporal } => Ok(CmpValue::TemporalDuration(
+                    Duration::from_str(temporal.as_ref())?,
+                )),
+                DuperTemporal::Unspecified { .. } => {
+                    Err(TryFromDuperValueError::UnspecifiedTemporal)
+                }
             },
-            DuperInner::Integer(integer) => Ok(CmpValue::Integer(integer)),
-            DuperInner::Float(float) => Ok(CmpValue::Float(float)),
-            DuperInner::Boolean(_) => Err(TryFromDuperValueError::InvalidType("Boolean")),
-            DuperInner::Null => Err(TryFromDuperValueError::InvalidType("Null")),
+            DuperValue::Integer { inner: integer, .. } => Ok(CmpValue::Integer(integer)),
+            DuperValue::Float { inner: float, .. } => Ok(CmpValue::Float(float)),
+            DuperValue::Boolean { .. } => Err(TryFromDuperValueError::InvalidType("Boolean")),
+            DuperValue::Null { .. } => Err(TryFromDuperValueError::InvalidType("Null")),
         }
     }
 }
@@ -439,24 +458,24 @@ macro_rules! cmp_filter {
 
         impl DuperFilter for $filter {
             fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
-                match (&self.0, &value.inner) {
-                    (CmpValue::Len(this), DuperInner::Object(that)) => {
+                match (&self.0, value) {
+                    (CmpValue::Len(this), DuperValue::Object { inner: that, .. }) => {
                         matches!(that.len().cmp(this), $ord)
                     }
-                    (CmpValue::Len(this), DuperInner::Array(that)) => {
+                    (CmpValue::Len(this), DuperValue::Array { inner: that, .. }) => {
                         matches!(that.len().cmp(this), $ord)
                     }
-                    (CmpValue::Len(this), DuperInner::String(that)) => {
+                    (CmpValue::Len(this), DuperValue::String { inner: that, .. }) => {
                         matches!(that.as_ref().len().cmp(this), $ord)
                     }
-                    (CmpValue::Len(this), DuperInner::Bytes(that)) => {
+                    (CmpValue::Len(this), DuperValue::Bytes { inner: that, .. }) => {
                         matches!(that.as_ref().len().cmp(this), $ord)
                     }
-                    (CmpValue::TemporalInstant(this), DuperInner::Temporal(that)) => {
+                    (CmpValue::TemporalInstant(this), DuperValue::Temporal(that)) => {
                         Instant::from_str(that.as_ref())
                             .is_ok_and(|that| matches!(that.cmp(this), $ord))
                     }
-                    (CmpValue::TemporalZonedDateTime(this), DuperInner::Temporal(that)) => {
+                    (CmpValue::TemporalZonedDateTime(this), DuperValue::Temporal(that)) => {
                         ZonedDateTime::from_utf8(
                             that.as_ref().as_bytes(),
                             Disambiguation::Compatible,
@@ -464,36 +483,36 @@ macro_rules! cmp_filter {
                         )
                         .is_ok_and(|that| matches!(that.compare_instant(this), $ord))
                     }
-                    (CmpValue::TemporalPlainDate(this), DuperInner::Temporal(that)) => {
+                    (CmpValue::TemporalPlainDate(this), DuperValue::Temporal(that)) => {
                         PlainDate::from_str(that.as_ref())
                             .is_ok_and(|that| matches!(that.compare_iso(this), $ord))
                     }
-                    (CmpValue::TemporalPlainTime(this), DuperInner::Temporal(that)) => {
+                    (CmpValue::TemporalPlainTime(this), DuperValue::Temporal(that)) => {
                         PlainTime::from_str(that.as_ref())
                             .is_ok_and(|that| matches!(that.cmp(this), $ord))
                     }
-                    (CmpValue::TemporalPlainDateTime(this), DuperInner::Temporal(that)) => {
+                    (CmpValue::TemporalPlainDateTime(this), DuperValue::Temporal(that)) => {
                         PlainDateTime::from_str(that.as_ref())
                             .is_ok_and(|that| matches!(that.compare_iso(this), $ord))
                     }
-                    (CmpValue::TemporalPlainYearMonth(this), DuperInner::Temporal(that)) => {
+                    (CmpValue::TemporalPlainYearMonth(this), DuperValue::Temporal(that)) => {
                         PlainYearMonth::from_str(that.as_ref())
                             .is_ok_and(|that| matches!(that.compare_iso(this), $ord))
                     }
-                    (CmpValue::TemporalDuration(this), DuperInner::Temporal(that)) => {
+                    (CmpValue::TemporalDuration(this), DuperValue::Temporal(that)) => {
                         Duration::from_str(that.as_ref())
                             .is_ok_and(|that| matches!(that.partial_cmp(this), Some($ord)))
                     }
-                    (CmpValue::Integer(this), DuperInner::Integer(that)) => {
+                    (CmpValue::Integer(this), DuperValue::Integer { inner: that, .. }) => {
                         matches!(that.cmp(this), $ord)
                     }
-                    (CmpValue::Float(this), DuperInner::Float(that)) => {
+                    (CmpValue::Float(this), DuperValue::Float { inner: that, .. }) => {
                         matches!(that.partial_cmp(this), Some($ord))
                     }
-                    (CmpValue::Integer(this), DuperInner::Float(that)) => {
+                    (CmpValue::Integer(this), DuperValue::Float { inner: that, .. }) => {
                         matches!((*that as i64).cmp(this), $ord)
                     }
-                    (CmpValue::Float(this), DuperInner::Integer(that)) => {
+                    (CmpValue::Float(this), DuperValue::Integer { inner: that, .. }) => {
                         matches!((*that as f64).partial_cmp(this), Some($ord))
                     }
                     _ => false,
@@ -513,16 +532,16 @@ pub(crate) struct IsFilter(pub(crate) DuperType);
 
 impl DuperFilter for IsFilter {
     fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
-        match (&self.0, &value.inner) {
-            (DuperType::Object, DuperInner::Object(_)) => true,
-            (DuperType::Array, DuperInner::Array(_)) => true,
-            (DuperType::Tuple, DuperInner::Tuple(_)) => true,
-            (DuperType::String, DuperInner::String(_)) => true,
-            (DuperType::Bytes, DuperInner::Bytes(_)) => true,
-            (DuperType::TemporalInstant, DuperInner::Temporal(that)) => {
+        match (&self.0, value) {
+            (DuperType::Object, DuperValue::Object { .. }) => true,
+            (DuperType::Array, DuperValue::Array { .. }) => true,
+            (DuperType::Tuple, DuperValue::Tuple { .. }) => true,
+            (DuperType::String, DuperValue::String { .. }) => true,
+            (DuperType::Bytes, DuperValue::Bytes { .. }) => true,
+            (DuperType::TemporalInstant, DuperValue::Temporal(that)) => {
                 Instant::from_str(that.as_ref()).is_ok()
             }
-            (DuperType::TemporalZonedDateTime, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalZonedDateTime, DuperValue::Temporal(that)) => {
                 ZonedDateTime::from_utf8(
                     that.as_ref().as_bytes(),
                     Disambiguation::Compatible,
@@ -530,30 +549,30 @@ impl DuperFilter for IsFilter {
                 )
                 .is_ok()
             }
-            (DuperType::TemporalPlainDate, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalPlainDate, DuperValue::Temporal(that)) => {
                 PlainDate::from_str(that.as_ref()).is_ok()
             }
-            (DuperType::TemporalPlainTime, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalPlainTime, DuperValue::Temporal(that)) => {
                 PlainTime::from_str(that.as_ref()).is_ok()
             }
-            (DuperType::TemporalPlainDateTime, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalPlainDateTime, DuperValue::Temporal(that)) => {
                 PlainDateTime::from_str(that.as_ref()).is_ok()
             }
-            (DuperType::TemporalPlainYearMonth, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalPlainYearMonth, DuperValue::Temporal(that)) => {
                 PlainYearMonth::from_str(that.as_ref()).is_ok()
             }
-            (DuperType::TemporalPlainMonthDay, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalPlainMonthDay, DuperValue::Temporal(that)) => {
                 PlainMonthDay::from_str(that.as_ref()).is_ok()
             }
-            (DuperType::TemporalDuration, DuperInner::Temporal(that)) => {
+            (DuperType::TemporalDuration, DuperValue::Temporal(that)) => {
                 Duration::from_str(that.as_ref()).is_ok()
             }
-            (DuperType::TemporalUnspecified, DuperInner::Temporal(_)) => true,
-            (DuperType::Integer, DuperInner::Integer(_)) => true,
-            (DuperType::Float, DuperInner::Float(_)) => true,
-            (DuperType::Number, DuperInner::Integer(_) | DuperInner::Float(_)) => true,
-            (DuperType::Boolean, DuperInner::Boolean(_)) => true,
-            (DuperType::Null, DuperInner::Null) => true,
+            (DuperType::TemporalUnspecified, DuperValue::Temporal { .. }) => true,
+            (DuperType::Integer, DuperValue::Integer { .. }) => true,
+            (DuperType::Float, DuperValue::Float { .. }) => true,
+            (DuperType::Number, DuperValue::Integer { .. } | DuperValue::Float { .. }) => true,
+            (DuperType::Boolean, DuperValue::Boolean { .. }) => true,
+            (DuperType::Null, DuperValue::Null { .. }) => true,
             _ => false,
         }
     }
@@ -563,10 +582,12 @@ pub(crate) struct RegexFilter(pub(crate) regex::bytes::Regex);
 
 impl DuperFilter for RegexFilter {
     fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
-        match &value.inner {
-            DuperInner::String(string) => self.0.find(string.as_ref().as_bytes()).is_some(),
-            DuperInner::Bytes(bytes) => self.0.find(bytes.as_ref()).is_some(),
-            DuperInner::Temporal(temporal) => self.0.find(temporal.as_ref().as_bytes()).is_some(),
+        match value {
+            DuperValue::String { inner: string, .. } => {
+                self.0.find(string.as_ref().as_bytes()).is_some()
+            }
+            DuperValue::Bytes { inner: bytes, .. } => self.0.find(bytes.as_ref()).is_some(),
+            DuperValue::Temporal(temporal) => self.0.find(temporal.as_ref().as_bytes()).is_some(),
             _ => false,
         }
     }
@@ -577,7 +598,7 @@ pub(crate) struct RegexIdentifierFilter(pub(crate) regex::Regex);
 impl DuperFilter for RegexIdentifierFilter {
     fn filter<'v>(&self, value: &DuperValue<'v>) -> bool {
         value
-            .identifier
+            .identifier()
             .as_ref()
             .is_some_and(|identifier| self.0.find(identifier.as_ref()).is_some())
     }
@@ -587,17 +608,17 @@ pub(crate) struct IsTruthyFilter;
 
 impl DuperFilter for IsTruthyFilter {
     fn filter<'v>(&self, value: &DuperValue<'_>) -> bool {
-        match &value.inner {
-            DuperInner::Object(object) => !object.is_empty(),
-            DuperInner::Array(array) => !array.is_empty(),
-            DuperInner::Tuple(tuple) => !tuple.is_empty(),
-            DuperInner::String(string) => !string.is_empty(),
-            DuperInner::Bytes(bytes) => !bytes.is_empty(),
-            DuperInner::Temporal(_) => true,
-            DuperInner::Integer(integer) => *integer != 0,
-            DuperInner::Float(float) => *float != 0.0,
-            DuperInner::Boolean(boolean) => *boolean,
-            DuperInner::Null => false,
+        match value {
+            DuperValue::Object { inner: object, .. } => !object.is_empty(),
+            DuperValue::Array { inner: array, .. } => !array.is_empty(),
+            DuperValue::Tuple { inner: tuple, .. } => !tuple.is_empty(),
+            DuperValue::String { inner: string, .. } => !string.is_empty(),
+            DuperValue::Bytes { inner: bytes, .. } => !bytes.is_empty(),
+            DuperValue::Temporal { .. } => true,
+            DuperValue::Integer { inner: integer, .. } => *integer != 0,
+            DuperValue::Float { inner: float, .. } => *float != 0.0,
+            DuperValue::Boolean { inner: boolean, .. } => *boolean,
+            DuperValue::Null { .. } => false,
         }
     }
 }

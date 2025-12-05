@@ -1,6 +1,6 @@
 use std::{iter, ops::Bound};
 
-use duper::{DuperInner, DuperValue};
+use duper::{DuperKey, DuperValue};
 
 use crate::filter::DuperFilter;
 
@@ -42,34 +42,23 @@ impl DuperAccessor for SelfAccessor {
     }
 }
 
-pub(crate) struct FieldAccessor(pub(crate) String);
+pub(crate) struct FieldAccessor(pub(crate) DuperKey<'static>);
 
 impl DuperAccessor for FieldAccessor {
     fn access<'accessor: 'value, 'value>(
         &'accessor self,
         value: &'value DuperValue<'value>,
     ) -> AccessorReturn<'value> {
-        if let DuperInner::Object(object) = &value.inner {
-            Box::new(
-                object
-                    .iter()
-                    .find(|(key, _)| key.as_ref() == self.0)
-                    .into_iter()
-                    .map(|(_, value)| value),
-            )
-        } else if let DuperInner::Array(array) = &value.inner {
-            Box::new(array.iter().filter_map(|duper| {
-                if let DuperInner::Object(object) = &duper.inner {
-                    object
-                        .iter()
-                        .find(|(key, _)| key.as_ref() == self.0)
-                        .map(|(_, value)| value)
+        match value {
+            DuperValue::Object { inner: object, .. } => Box::new(object.get(&self.0).into_iter()),
+            DuperValue::Array { inner: array, .. } => Box::new(array.iter().flat_map(|duper| {
+                if let DuperValue::Object { inner: object, .. } = &duper {
+                    object.get(&self.0)
                 } else {
                     None
                 }
-            }))
-        } else {
-            Box::new(iter::empty())
+            })),
+            _ => Box::new(iter::empty()),
         }
     }
 }
@@ -81,12 +70,10 @@ impl DuperAccessor for IndexAccessor {
         &'accessor self,
         value: &'value DuperValue<'value>,
     ) -> AccessorReturn<'value> {
-        if let DuperInner::Array(array) = &value.inner {
-            Box::new(array.get(self.0).into_iter())
-        } else if let DuperInner::Tuple(tuple) = &value.inner {
-            Box::new(tuple.get(self.0).into_iter())
-        } else {
-            Box::new(iter::empty())
+        match value {
+            DuperValue::Array { inner: array, .. } => Box::new(array.get(self.0).into_iter()),
+            DuperValue::Tuple { inner: tuple, .. } => Box::new(tuple.get(self.0).into_iter()),
+            _ => Box::new(iter::empty()),
         }
     }
 }
@@ -98,20 +85,22 @@ impl DuperAccessor for ReverseIndexAccessor {
         &'accessor self,
         value: &'value DuperValue<'value>,
     ) -> AccessorReturn<'value> {
-        if let DuperInner::Array(array) = &value.inner {
-            if let Some(index) = array.len().checked_sub(self.0) {
-                Box::new(array.get(index).into_iter())
-            } else {
-                Box::new(iter::empty())
+        match value {
+            DuperValue::Array { inner: array, .. } => {
+                if let Some(index) = array.len().checked_sub(self.0) {
+                    Box::new(array.get(index).into_iter())
+                } else {
+                    Box::new(iter::empty())
+                }
             }
-        } else if let DuperInner::Tuple(tuple) = &value.inner {
-            if let Some(index) = tuple.len().checked_sub(self.0) {
-                Box::new(tuple.get(index).into_iter())
-            } else {
-                Box::new(iter::empty())
+            DuperValue::Tuple { inner: tuple, .. } => {
+                if let Some(index) = tuple.len().checked_sub(self.0) {
+                    Box::new(tuple.get(index).into_iter())
+                } else {
+                    Box::new(iter::empty())
+                }
             }
-        } else {
-            Box::new(iter::empty())
+            _ => Box::new(iter::empty()),
         }
     }
 }
@@ -126,7 +115,7 @@ impl DuperAccessor for RangeIndexAccessor {
         &'accessor self,
         value: &'value DuperValue<'value>,
     ) -> AccessorReturn<'value> {
-        if let DuperInner::Array(array) = &value.inner {
+        if let DuperValue::Array { inner: array, .. } = value {
             let start = match self.start {
                 Bound::Included(i) => i,
                 Bound::Excluded(i) => i + 1,
@@ -150,7 +139,7 @@ impl DuperAccessor for AnyAccessor {
         &'accessor self,
         value: &'value DuperValue<'value>,
     ) -> AccessorReturn<'value> {
-        if let DuperInner::Array(array) = &value.inner {
+        if let DuperValue::Array { inner: array, .. } = value {
             Box::new(array.iter())
         } else {
             Box::new(iter::empty())
@@ -165,7 +154,7 @@ impl DuperAccessor for FilterAccessor {
         &'accessor self,
         value: &'value DuperValue<'value>,
     ) -> AccessorReturn<'value> {
-        if let DuperInner::Array(array) = &value.inner {
+        if let DuperValue::Array { inner: array, .. } = value {
             Box::new(array.iter().filter(|value| self.0.filter(value)))
         } else {
             Box::new(iter::empty())
