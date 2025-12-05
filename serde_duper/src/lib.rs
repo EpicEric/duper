@@ -340,10 +340,7 @@ pub use duper::serde::ser::{
     Serializer, to_duper, to_string, to_string_minified, to_string_pretty,
 };
 pub use duper::serde::temporal::TemporalString;
-pub use duper::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTuple, DuperValue,
-};
+pub use duper::{DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperValue};
 
 #[cfg(feature = "macros")]
 pub use serde_duper_macros::duper;

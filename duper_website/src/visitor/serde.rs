@@ -1,7 +1,8 @@
+use std::borrow::Cow;
+
 use base64::{Engine, prelude::BASE64_STANDARD};
 use duper::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperTemporal, DuperTuple, DuperValue, visitor::DuperVisitor,
+    DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperValue, visitor::DuperVisitor,
 };
 
 // A visitor that simplifies Duper values for Serde serializers.
@@ -19,74 +20,70 @@ impl DuperVisitor for SerdeVisitor {
         for (key, value) in object.iter() {
             new_object.push((DuperKey::from(key.as_ref().to_owned()), value.accept(self)));
         }
-        DuperValue {
+        DuperValue::Object {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::Object(
-                DuperObject::try_from(new_object).expect("object keys are unchanged"),
-            ),
+            inner: DuperObject::try_from(new_object).expect("object keys are unchanged"),
         }
     }
 
     fn visit_array<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        array: &DuperArray<'a>,
+        array: &[DuperValue<'a>],
     ) -> Self::Value {
         let mut new_array = Vec::with_capacity(array.len());
         for value in array.iter() {
             new_array.push(value.accept(self));
         }
-        DuperValue {
+        DuperValue::Array {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::Array(DuperArray::from(new_array)),
+            inner: new_array,
         }
     }
 
     fn visit_tuple<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        tuple: &DuperTuple<'a>,
+        tuple: &[DuperValue<'a>],
     ) -> Self::Value {
         let mut new_tuple = Vec::with_capacity(tuple.len());
         for value in tuple.iter() {
             new_tuple.push(value.accept(self));
         }
-        DuperValue {
+        DuperValue::Tuple {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::Tuple(DuperTuple::from(new_tuple)),
+            inner: new_tuple,
         }
     }
 
     fn visit_string<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        string: &DuperString<'a>,
+        string: &'a str,
     ) -> Self::Value {
-        DuperValue {
+        DuperValue::String {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::String(DuperString::from(string.as_ref().to_owned())),
+            inner: Cow::Owned(string.to_string()),
         }
     }
 
     fn visit_bytes<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        bytes: &DuperBytes<'a>,
+        bytes: &'a [u8],
     ) -> Self::Value {
-        DuperValue {
+        DuperValue::String {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::String(DuperString::from(BASE64_STANDARD.encode(bytes.as_ref()))),
+            inner: Cow::Owned(BASE64_STANDARD.encode(bytes)),
         }
     }
 
-    fn visit_temporal<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        temporal: &DuperTemporal<'a>,
-    ) -> Self::Value {
-        DuperValue {
-            identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::String(DuperString::from(temporal.as_ref().to_owned())),
+    fn visit_temporal<'a>(&mut self, temporal: &DuperTemporal<'a>) -> Self::Value {
+        DuperValue::String {
+            identifier: temporal
+                .identifier()
+                .map(|identifier| identifier.static_clone()),
+            inner: Cow::Owned(temporal.as_ref().to_string()),
         }
     }
 
@@ -95,9 +92,9 @@ impl DuperVisitor for SerdeVisitor {
         identifier: Option<&DuperIdentifier<'a>>,
         integer: i64,
     ) -> Self::Value {
-        DuperValue {
+        DuperValue::Integer {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::Integer(integer),
+            inner: integer,
         }
     }
 
@@ -106,9 +103,9 @@ impl DuperVisitor for SerdeVisitor {
         identifier: Option<&DuperIdentifier<'a>>,
         float: f64,
     ) -> Self::Value {
-        DuperValue {
+        DuperValue::Float {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::Float(float),
+            inner: float,
         }
     }
 
@@ -117,16 +114,15 @@ impl DuperVisitor for SerdeVisitor {
         identifier: Option<&DuperIdentifier<'a>>,
         boolean: bool,
     ) -> Self::Value {
-        DuperValue {
+        DuperValue::Boolean {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::Boolean(boolean),
+            inner: boolean,
         }
     }
 
     fn visit_null<'a>(&mut self, identifier: Option<&DuperIdentifier<'a>>) -> Self::Value {
-        DuperValue {
+        DuperValue::Null {
             identifier: identifier.map(|identifier| identifier.static_clone()),
-            inner: DuperInner::Null,
         }
     }
 }

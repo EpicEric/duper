@@ -90,13 +90,12 @@ impl TemporalString {
                         "Unknown TemporalString type {typ}"
                     )));
                 }
-                None => duper::DuperTemporal::try_unspecified_from(Cow::Owned(value)).map_err(
-                    |err| {
+                None => duper::DuperTemporal::try_unspecified_from(None, Cow::Owned(value))
+                    .map_err(|err| {
                         PyValueError::new_err(format!(
                             "Failed to parse Unspecified Temporal value: {err}"
                         ))
-                    },
-                )?,
+                    })?,
             },
         })
     }
@@ -104,15 +103,15 @@ impl TemporalString {
     #[getter]
     fn r#type(&self) -> Option<&str> {
         match self.temporal {
-            duper::DuperTemporal::Instant(_) => Some("Instant"),
-            duper::DuperTemporal::ZonedDateTime(_) => Some("ZonedDateTime"),
-            duper::DuperTemporal::PlainDate(_) => Some("PlainDate"),
-            duper::DuperTemporal::PlainTime(_) => Some("PlainTime"),
-            duper::DuperTemporal::PlainDateTime(_) => Some("PlainDateTime"),
-            duper::DuperTemporal::PlainYearMonth(_) => Some("PlainYearMonth"),
-            duper::DuperTemporal::PlainMonthDay(_) => Some("PlainMonthDay"),
-            duper::DuperTemporal::Duration(_) => Some("Duration"),
-            duper::DuperTemporal::Unspecified(_) => None,
+            duper::DuperTemporal::Instant { .. } => Some("Instant"),
+            duper::DuperTemporal::ZonedDateTime { .. } => Some("ZonedDateTime"),
+            duper::DuperTemporal::PlainDate { .. } => Some("PlainDate"),
+            duper::DuperTemporal::PlainTime { .. } => Some("PlainTime"),
+            duper::DuperTemporal::PlainDateTime { .. } => Some("PlainDateTime"),
+            duper::DuperTemporal::PlainYearMonth { .. } => Some("PlainYearMonth"),
+            duper::DuperTemporal::PlainMonthDay { .. } => Some("PlainMonthDay"),
+            duper::DuperTemporal::Duration { .. } => Some("Duration"),
+            duper::DuperTemporal::Unspecified { .. } => None,
         }
     }
 
@@ -132,19 +131,14 @@ impl TemporalString {
             Ok(temporal.get().clone())
         } else if let Ok(value) = value.extract() {
             Ok(Self {
-                temporal: duper::DuperTemporal::try_unspecified_from(Cow::Owned(value)).map_err(
-                    |err| {
+                temporal: duper::DuperTemporal::try_unspecified_from(None, Cow::Owned(value))
+                    .map_err(|err| {
                         PyValueError::new_err(format!(
                             "Failed to parse Unspecified Temporal value: {err}"
                         ))
-                    },
-                )?,
+                    })?,
             })
-        } else if let Ok(duper::DuperValue {
-            identifier: _,
-            inner: duper::DuperInner::Temporal(temporal),
-        }) = serialize_pyany(value.clone())
-        {
+        } else if let Ok(duper::DuperValue::Temporal(temporal)) = serialize_pyany(value.clone()) {
             Ok(Self {
                 temporal: temporal.static_clone(),
             })
@@ -173,29 +167,35 @@ impl TemporalString {
                 let py = args.py();
                 let value = args.extract::<(TemporalString,)>()?.0;
                 match value.temporal {
-                    duper::DuperTemporal::Instant(inner)
-                    | duper::DuperTemporal::PlainDateTime(inner) => {
+                    duper::DuperTemporal::Instant { inner } => {
                         let datetime = py.import("datetime")?.getattr("datetime")?;
                         Ok(datetime
                             .getattr("fromisoformat")?
                             .call1((inner.as_ref(),))?
                             .unbind())
                     }
-                    duper::DuperTemporal::PlainDate(inner) => {
+                    duper::DuperTemporal::PlainDateTime { inner } => {
+                        let datetime = py.import("datetime")?.getattr("datetime")?;
+                        Ok(datetime
+                            .getattr("fromisoformat")?
+                            .call1((inner.as_ref(),))?
+                            .unbind())
+                    }
+                    duper::DuperTemporal::PlainDate { inner } => {
                         let date = py.import("datetime")?.getattr("date")?;
                         Ok(date
                             .getattr("fromisoformat")?
                             .call1((inner.as_ref(),))?
                             .unbind())
                     }
-                    duper::DuperTemporal::PlainTime(inner) => {
+                    duper::DuperTemporal::PlainTime { inner } => {
                         let time = py.import("datetime")?.getattr("time")?;
                         Ok(time
                             .getattr("fromisoformat")?
                             .call1((inner.as_ref(),))?
                             .unbind())
                     }
-                    duper::DuperTemporal::Duration(inner) => {
+                    duper::DuperTemporal::Duration { inner } => {
                         let timedelta = py.import("datetime")?.getattr("timedelta")?;
                         let adapter = py
                             .import("pydantic")?

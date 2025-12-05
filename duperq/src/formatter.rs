@@ -1,8 +1,7 @@
 // duperq 'span.tagged && span[0]name == sp0001 | "[${level}] ${span[0]time} - ${span[0]status} ${telemetry.duration:ms}"'
 
 use duper::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTemporal, DuperTuple,
-    DuperValue,
+    DuperIdentifier, DuperObject, DuperTemporal, DuperValue,
     format::{
         format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
         format_key, format_null, format_temporal,
@@ -114,7 +113,7 @@ impl DuperVisitor for FormatterVisitor {
     fn visit_array<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        array: &DuperArray<'a>,
+        array: &[DuperValue<'a>],
     ) -> Self::Value {
         let len = array.len();
 
@@ -143,7 +142,7 @@ impl DuperVisitor for FormatterVisitor {
     fn visit_tuple<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        tuple: &DuperTuple<'a>,
+        tuple: &[DuperValue<'a>],
     ) -> Self::Value {
         let len = tuple.len();
 
@@ -172,7 +171,7 @@ impl DuperVisitor for FormatterVisitor {
     fn visit_string<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        value: &DuperString<'a>,
+        value: &'a str,
     ) -> Self::Value {
         if let Some(identifier) = identifier {
             let value = format_duper_string(value);
@@ -185,7 +184,7 @@ impl DuperVisitor for FormatterVisitor {
     fn visit_bytes<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        bytes: &DuperBytes<'a>,
+        bytes: &'a [u8],
     ) -> Self::Value {
         if let Some(identifier) = identifier {
             let bytes = format_duper_bytes(bytes);
@@ -195,11 +194,8 @@ impl DuperVisitor for FormatterVisitor {
         }
     }
 
-    fn visit_temporal<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        temporal: &DuperTemporal<'a>,
-    ) -> Self::Value {
+    fn visit_temporal<'a>(&mut self, temporal: &DuperTemporal<'a>) -> Self::Value {
+        let identifier = temporal.identifier();
         if let Some(identifier) = identifier {
             let value = format_temporal(temporal);
             self.buf.push_str(&format!("{identifier}({value})"));

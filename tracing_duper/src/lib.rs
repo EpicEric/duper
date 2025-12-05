@@ -66,12 +66,7 @@ use std::{
 
 #[cfg(feature = "chrono")]
 use chrono::{Local, Utc};
-#[cfg(feature = "chrono")]
-use duper::DuperTemporal;
-use duper::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject, DuperString,
-    DuperValue, Serializer,
-};
+use duper::{DuperIdentifier, DuperKey, DuperObject, DuperValue, Serializer};
 use tracing_core::{Event, Subscriber, field};
 use tracing_subscriber::{Layer, field::VisitOutput, registry::LookupSpan};
 
@@ -95,13 +90,10 @@ pub struct ChronoUtcTimer;
 #[cfg(feature = "chrono")]
 impl DuperTimer for ChronoUtcTimer {
     fn get_timestamp(&self) -> Option<DuperValue<'static>> {
-        Some(DuperValue {
-            identifier: Some(DuperIdentifier::try_from("Instant").expect("valid identifier")),
-            inner: DuperInner::Temporal(
-                DuperTemporal::try_instant_from(Cow::Owned(Utc::now().to_rfc3339()))
-                    .expect("valid ISO-8601 Instant"),
-            ),
-        })
+        Some(
+            DuperValue::try_instant_from(Cow::Owned(Utc::now().to_rfc3339()))
+                .expect("valid ISO-8601 Instant"),
+        )
     }
 }
 
@@ -112,13 +104,10 @@ pub struct ChronoLocalTimer;
 #[cfg(feature = "chrono")]
 impl DuperTimer for ChronoLocalTimer {
     fn get_timestamp(&self) -> Option<DuperValue<'static>> {
-        Some(DuperValue {
-            identifier: Some(DuperIdentifier::try_from("Instant").expect("valid identifier")),
-            inner: DuperInner::Temporal(
-                DuperTemporal::try_instant_from(Cow::Owned(Local::now().to_rfc3339()))
-                    .expect("valid ISO-8601 Instant"),
-            ),
-        })
+        Some(
+            DuperValue::try_instant_from(Cow::Owned(Local::now().to_rfc3339()))
+                .expect("valid ISO-8601 Instant"),
+        )
     }
 }
 
@@ -370,9 +359,9 @@ where
         let mut visitor = DuperVisitor::new();
         visitor.values.insert(
             DuperKey::from("span_id"),
-            DuperValue {
+            DuperValue::Integer {
                 identifier: None,
-                inner: DuperInner::Integer(id.into_u64() as i64),
+                inner: id.into_u64() as i64,
             },
         );
         attrs.record(&mut visitor);
@@ -415,9 +404,9 @@ where
         if self.display_level {
             log.push((
                 DuperKey::from("level"),
-                DuperValue {
+                DuperValue::String {
                     identifier: None,
-                    inner: DuperInner::String(DuperString::from(metadata.level().as_str())),
+                    inner: Cow::Borrowed(metadata.level().as_str()),
                 },
             ));
         }
@@ -431,9 +420,9 @@ where
         if self.display_target {
             log.push((
                 DuperKey::from("target"),
-                DuperValue {
+                DuperValue::String {
                     identifier: None,
-                    inner: DuperInner::String(DuperString::from(metadata.target())),
+                    inner: Cow::Borrowed(metadata.target()),
                 },
             ));
         }
@@ -441,26 +430,26 @@ where
         if self.display_file {
             log.push((
                 DuperKey::from("file"),
-                DuperValue {
-                    identifier: None,
-                    inner: metadata
-                        .file()
-                        .map(|file| DuperInner::String(DuperString::from(file)))
-                        .unwrap_or(DuperInner::Null),
-                },
+                metadata
+                    .file()
+                    .map(|file| DuperValue::String {
+                        identifier: None,
+                        inner: Cow::Borrowed(file),
+                    })
+                    .unwrap_or(DuperValue::Null { identifier: None }),
             ));
         }
 
         if self.display_line {
             log.push((
                 DuperKey::from("line"),
-                DuperValue {
-                    identifier: None,
-                    inner: metadata
-                        .line()
-                        .map(|line| DuperInner::Integer(line.into()))
-                        .unwrap_or(DuperInner::Null),
-                },
+                metadata
+                    .line()
+                    .map(|line| DuperValue::Integer {
+                        identifier: None,
+                        inner: line.into(),
+                    })
+                    .unwrap_or(DuperValue::Null { identifier: None }),
             ));
         }
 
@@ -476,9 +465,9 @@ where
                 {
                     log.push((
                         DuperKey::from("span"),
-                        DuperValue {
+                        DuperValue::Object {
                             identifier: None,
-                            inner: DuperInner::Object(fields.0.clone()),
+                            inner: fields.0.clone(),
                         },
                     ));
                 }
@@ -488,18 +477,18 @@ where
                         for span in scope.from_root() {
                             let extensions = span.extensions();
                             if let Some(fields) = extensions.get::<DuperFields>() {
-                                spans.push(DuperValue {
+                                spans.push(DuperValue::Object {
                                     identifier: None,
-                                    inner: DuperInner::Object(fields.0.clone()),
+                                    inner: fields.0.clone(),
                                 });
                             }
                         }
                     }
                     log.push((
                         DuperKey::from("spans"),
-                        DuperValue {
+                        DuperValue::Array {
                             identifier: None,
-                            inner: DuperInner::Array(DuperArray::from(spans)),
+                            inner: spans,
                         },
                     ));
                 }
@@ -514,9 +503,9 @@ where
         } else {
             log.push((
                 DuperKey::from("fields"),
-                DuperValue {
+                DuperValue::Object {
                     identifier: None,
-                    inner: DuperInner::Object(object),
+                    inner: object,
                 },
             ));
         }
@@ -525,9 +514,9 @@ where
         if let Err(error) = writeln!(
             self.make_writer.make_writer_for(event.metadata()),
             "{}",
-            serializer.serialize(&DuperValue {
+            serializer.serialize(&DuperValue::Object {
                 identifier: None,
-                inner: DuperInner::Object(DuperObject::from_lossy(log)),
+                inner: DuperObject::from_lossy(log),
             })
         ) {
             let _ = error;
@@ -660,9 +649,9 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
         }
         self.values.insert(
             key,
-            DuperValue {
+            DuperValue::String {
                 identifier: None,
-                inner: DuperInner::String(DuperString::from(format!("{:?}", value))),
+                inner: Cow::Owned(format!("{:?}", value)),
             },
         );
     }
@@ -674,9 +663,9 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
         }
         self.values.insert(
             key,
-            DuperValue {
+            DuperValue::Float {
                 identifier: None,
-                inner: DuperInner::Float(value),
+                inner: value,
             },
         );
     }
@@ -688,9 +677,9 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
         }
         self.values.insert(
             key,
-            DuperValue {
+            DuperValue::Integer {
                 identifier: None,
-                inner: DuperInner::Integer(value),
+                inner: value,
             },
         );
     }
@@ -703,17 +692,17 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
         if let Ok(value) = i64::try_from(value) {
             self.values.insert(
                 key,
-                DuperValue {
+                DuperValue::Integer {
                     identifier: None,
-                    inner: DuperInner::Integer(value),
+                    inner: value,
                 },
             );
         } else {
             self.values.insert(
                 key,
-                DuperValue {
+                DuperValue::String {
                     identifier: Some(DuperIdentifier::try_from("U64").expect("valid identifier")),
-                    inner: DuperInner::String(DuperString::from(value.to_string())),
+                    inner: Cow::Owned(value.to_string()),
                 },
             );
         }
@@ -727,17 +716,17 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
         if let Ok(value) = i64::try_from(value) {
             self.values.insert(
                 key,
-                DuperValue {
+                DuperValue::Integer {
                     identifier: None,
-                    inner: DuperInner::Integer(value),
+                    inner: value,
                 },
             );
         } else {
             self.values.insert(
                 key,
-                DuperValue {
+                DuperValue::String {
                     identifier: Some(DuperIdentifier::try_from("I128").expect("valid identifier")),
-                    inner: DuperInner::String(DuperString::from(value.to_string())),
+                    inner: Cow::Owned(value.to_string()),
                 },
             );
         }
@@ -752,17 +741,17 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
         if let Ok(value) = i64::try_from(value) {
             self.values.insert(
                 key,
-                DuperValue {
+                DuperValue::Integer {
                     identifier: None,
-                    inner: DuperInner::Integer(value),
+                    inner: value,
                 },
             );
         } else {
             self.values.insert(
                 key,
-                DuperValue {
+                DuperValue::String {
                     identifier: Some(DuperIdentifier::try_from("U128").expect("valid identifier")),
-                    inner: DuperInner::String(DuperString::from(value.to_string())),
+                    inner: Cow::Owned(value.to_string()),
                 },
             );
         }
@@ -775,9 +764,9 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
         }
         self.values.insert(
             key,
-            DuperValue {
+            DuperValue::Boolean {
                 identifier: None,
-                inner: DuperInner::Boolean(value),
+                inner: value,
             },
         );
     }
@@ -799,9 +788,9 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
             }
             self.values.insert(
                 key,
-                DuperValue {
+                DuperValue::String {
                     identifier: None,
-                    inner: DuperInner::String(DuperString::from(value.to_string())),
+                    inner: Cow::Owned(value.to_string()),
                 },
             );
         }
@@ -814,9 +803,9 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
         }
         self.values.insert(
             key,
-            DuperValue {
+            DuperValue::Bytes {
                 identifier: None,
-                inner: DuperInner::Bytes(DuperBytes::from(value.to_vec())),
+                inner: Cow::Owned(value.to_vec()),
             },
         );
     }
@@ -832,9 +821,9 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
         }
         self.values.insert(
             key,
-            DuperValue {
+            DuperValue::String {
                 identifier: Some(DuperIdentifier::try_from("Error").expect("valid identifier")),
-                inner: DuperInner::String(DuperString::from(value.to_string())),
+                inner: Cow::Owned(value.to_string()),
             },
         );
     }

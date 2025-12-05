@@ -398,7 +398,7 @@ pub mod DuperDuration {
                 .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?,
         ))
         .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?;
-        duper::serde::temporal::TemporalString(duration).serialize(serializer)
+        duper::serde::temporal::TemporalString::from(duration).serialize(serializer)
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<WrappedType, D::Error>
@@ -408,51 +408,51 @@ pub mod DuperDuration {
         use std::str::FromStr;
 
         let temporal = duper::serde::temporal::TemporalString::deserialize(deserializer)?;
-        match temporal.0 {
-            duper::DuperTemporal::Duration(inner) | duper::DuperTemporal::Unspecified(inner) => {
-                let duration = temporal_rs::Duration::from_str(inner.into_inner().as_ref())
-                    .map_err(|error| {
-                        <D::Error as serde_core::de::Error>::custom(error.to_string())
-                    })?;
-                let mut secs_rounding_options = temporal_rs::options::RoundingOptions::default();
-                secs_rounding_options.largest_unit = Some(temporal_rs::options::Unit::Second);
-                secs_rounding_options.smallest_unit = Some(temporal_rs::options::Unit::Second);
-                let secs = duration
-                    .round(secs_rounding_options, None)
-                    .map_err(|error| {
-                        <D::Error as serde_core::de::Error>::custom(error.to_string())
-                    })?;
-                let nanosecs = duration.subtract(&secs).map_err(|error| {
+        let duration = match temporal {
+            duper::serde::temporal::TemporalString::Duration(inner) => {
+                temporal_rs::Duration::from_str(inner.as_ref()).map_err(|error| {
                     <D::Error as serde_core::de::Error>::custom(error.to_string())
-                })?;
-                let mut nanosecs_rounding_options =
-                    temporal_rs::options::RoundingOptions::default();
-                nanosecs_rounding_options.largest_unit =
-                    Some(temporal_rs::options::Unit::Nanosecond);
-                let nanosecs =
-                    nanosecs
-                        .round(nanosecs_rounding_options, None)
-                        .map_err(|error| {
-                            <D::Error as serde_core::de::Error>::custom(error.to_string())
-                        })?;
-                Ok(WrappedType::new(
-                    secs.seconds()
-                        .try_into()
-                        .map_err(|error: std::num::TryFromIntError| {
-                            <D::Error as serde_core::de::Error>::custom(error.to_string())
-                        })?,
-                    nanosecs.nanoseconds().try_into().map_err(
-                        |error: std::num::TryFromIntError| {
-                            <D::Error as serde_core::de::Error>::custom(error.to_string())
-                        },
-                    )?,
-                ))
+                })?
             }
-            _ => Err(<D::Error as serde_core::de::Error>::custom(format!(
-                "expected Temporal Duration, found {:?}",
-                temporal.0
-            ))),
-        }
+            duper::serde::temporal::TemporalString::Unspecified(inner) => {
+                temporal_rs::Duration::from_str(inner.as_ref()).map_err(|error| {
+                    <D::Error as serde_core::de::Error>::custom(error.to_string())
+                })?
+            }
+            _ => {
+                return Err(<D::Error as serde_core::de::Error>::custom(format!(
+                    "expected Temporal Duration, found {:?}",
+                    temporal
+                )));
+            }
+        };
+        let mut secs_rounding_options = temporal_rs::options::RoundingOptions::default();
+        secs_rounding_options.largest_unit = Some(temporal_rs::options::Unit::Second);
+        secs_rounding_options.smallest_unit = Some(temporal_rs::options::Unit::Second);
+        let secs = duration
+            .round(secs_rounding_options, None)
+            .map_err(|error| <D::Error as serde_core::de::Error>::custom(error.to_string()))?;
+        let nanosecs = duration
+            .subtract(&secs)
+            .map_err(|error| <D::Error as serde_core::de::Error>::custom(error.to_string()))?;
+        let mut nanosecs_rounding_options = temporal_rs::options::RoundingOptions::default();
+        nanosecs_rounding_options.largest_unit = Some(temporal_rs::options::Unit::Nanosecond);
+        let nanosecs = nanosecs
+            .round(nanosecs_rounding_options, None)
+            .map_err(|error| <D::Error as serde_core::de::Error>::custom(error.to_string()))?;
+        Ok(WrappedType::new(
+            secs.seconds()
+                .try_into()
+                .map_err(|error: std::num::TryFromIntError| {
+                    <D::Error as serde_core::de::Error>::custom(error.to_string())
+                })?,
+            nanosecs
+                .nanoseconds()
+                .try_into()
+                .map_err(|error: std::num::TryFromIntError| {
+                    <D::Error as serde_core::de::Error>::custom(error.to_string())
+                })?,
+        ))
     }
 }
 #[cfg(feature = "temporal")]
@@ -486,7 +486,7 @@ pub mod DuperOptionDuration {
                         .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?,
                 ))
                 .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?;
-                duper::serde::temporal::TemporalString(duration).serialize(serializer)
+                duper::serde::temporal::TemporalString::from(duration).serialize(serializer)
             }
             None => serializer.serialize_newtype_struct("Duration", &Option::<()>::None),
         }
@@ -512,56 +512,57 @@ pub mod DuperOptionDuration {
                 use std::str::FromStr;
 
                 let temporal = duper::serde::temporal::TemporalString::deserialize(deserializer)?;
-                match temporal.0 {
-                    duper::DuperTemporal::Duration(inner)
-                    | duper::DuperTemporal::Unspecified(inner) => {
-                        let duration = temporal_rs::Duration::from_str(inner.into_inner().as_ref())
-                            .map_err(|error| {
-                                <D::Error as serde_core::de::Error>::custom(error.to_string())
-                            })?;
-                        let mut secs_rounding_options =
-                            temporal_rs::options::RoundingOptions::default();
-                        secs_rounding_options.largest_unit =
-                            Some(temporal_rs::options::Unit::Second);
-                        secs_rounding_options.smallest_unit =
-                            Some(temporal_rs::options::Unit::Second);
-                        let secs =
-                            duration
-                                .round(secs_rounding_options, None)
-                                .map_err(|error| {
-                                    <D::Error as serde_core::de::Error>::custom(error.to_string())
-                                })?;
-                        let nanosecs = duration.subtract(&secs).map_err(|error| {
+                let duration = match temporal {
+                    duper::serde::temporal::TemporalString::Duration(inner) => {
+                        temporal_rs::Duration::from_str(inner.as_ref()).map_err(|error| {
+                            <D::Error as serde_core::de::Error>::custom(error.to_string())
+                        })?
+                    }
+                    duper::serde::temporal::TemporalString::Unspecified(inner) => {
+                        temporal_rs::Duration::from_str(inner.as_ref()).map_err(|error| {
+                            <D::Error as serde_core::de::Error>::custom(error.to_string())
+                        })?
+                    }
+                    _ => {
+                        return Err(<D::Error as serde_core::de::Error>::custom(format!(
+                            "expected Temporal Duration, found {:?}",
+                            temporal
+                        )));
+                    }
+                };
+                let mut secs_rounding_options = temporal_rs::options::RoundingOptions::default();
+                secs_rounding_options.largest_unit = Some(temporal_rs::options::Unit::Second);
+                secs_rounding_options.smallest_unit = Some(temporal_rs::options::Unit::Second);
+                let secs = duration
+                    .round(secs_rounding_options, None)
+                    .map_err(|error| {
+                        <D::Error as serde_core::de::Error>::custom(error.to_string())
+                    })?;
+                let nanosecs = duration.subtract(&secs).map_err(|error| {
+                    <D::Error as serde_core::de::Error>::custom(error.to_string())
+                })?;
+                let mut nanosecs_rounding_options =
+                    temporal_rs::options::RoundingOptions::default();
+                nanosecs_rounding_options.largest_unit =
+                    Some(temporal_rs::options::Unit::Nanosecond);
+                let nanosecs =
+                    nanosecs
+                        .round(nanosecs_rounding_options, None)
+                        .map_err(|error| {
                             <D::Error as serde_core::de::Error>::custom(error.to_string())
                         })?;
-                        let mut nanosecs_rounding_options =
-                            temporal_rs::options::RoundingOptions::default();
-                        nanosecs_rounding_options.largest_unit =
-                            Some(temporal_rs::options::Unit::Nanosecond);
-                        let nanosecs =
-                            nanosecs
-                                .round(nanosecs_rounding_options, None)
-                                .map_err(|error| {
-                                    <D::Error as serde_core::de::Error>::custom(error.to_string())
-                                })?;
-                        Ok(Some(WrappedType::new(
-                            secs.seconds().try_into().map_err(
-                                |error: std::num::TryFromIntError| {
-                                    <D::Error as serde_core::de::Error>::custom(error.to_string())
-                                },
-                            )?,
-                            nanosecs.nanoseconds().try_into().map_err(
-                                |error: std::num::TryFromIntError| {
-                                    <D::Error as serde_core::de::Error>::custom(error.to_string())
-                                },
-                            )?,
-                        )))
-                    }
-                    _ => Err(<D::Error as serde_core::de::Error>::custom(format!(
-                        "expected Temporal Duration, found {:?}",
-                        temporal.0
-                    ))),
-                }
+                Ok(Some(WrappedType::new(
+                    secs.seconds()
+                        .try_into()
+                        .map_err(|error: std::num::TryFromIntError| {
+                            <D::Error as serde_core::de::Error>::custom(error.to_string())
+                        })?,
+                    nanosecs.nanoseconds().try_into().map_err(
+                        |error: std::num::TryFromIntError| {
+                            <D::Error as serde_core::de::Error>::custom(error.to_string())
+                        },
+                    )?,
+                )))
             }
 
             fn visit_none<E>(self) -> Result<Self::Value, E>

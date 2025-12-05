@@ -51,6 +51,7 @@ pub const FIELD_VALUE: &str = "$__duper_private_value";
 /// let deserialized: MyType<'_> = duper::serde::de::from_string(&output).unwrap();
 /// assert!(matches!(deserialized.inner, TemporalString::PlainYearMonth(_)));
 /// ```
+#[derive(Debug)]
 pub enum TemporalString<'a> {
     Instant(DuperTemporalInstant<'a>),
     ZonedDateTime(DuperTemporalZonedDateTime<'a>),

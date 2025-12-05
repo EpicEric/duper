@@ -1,7 +1,4 @@
-use duper::{
-    DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString, DuperTemporal, DuperTuple,
-    visitor::DuperVisitor,
-};
+use duper::{DuperIdentifier, DuperObject, DuperTemporal, visitor::DuperVisitor};
 
 use crate::{DuperObjectEntry, DuperValue};
 
@@ -31,7 +28,7 @@ impl DuperVisitor for UniffiVisitor {
     fn visit_array<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        array: &DuperArray<'a>,
+        array: &[duper::DuperValue<'a>],
     ) -> Self::Value {
         let mut value = Vec::with_capacity(array.len());
         for val in array.iter() {
@@ -46,7 +43,7 @@ impl DuperVisitor for UniffiVisitor {
     fn visit_tuple<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        tuple: &DuperTuple<'a>,
+        tuple: &[duper::DuperValue<'a>],
     ) -> Self::Value {
         let mut value = Vec::with_capacity(tuple.len());
         for val in tuple.iter() {
@@ -61,18 +58,18 @@ impl DuperVisitor for UniffiVisitor {
     fn visit_string<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        string: &DuperString<'a>,
+        string: &'a str,
     ) -> Self::Value {
         DuperValue::String {
             identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-            value: string.as_ref().to_string(),
+            value: string.to_string(),
         }
     }
 
     fn visit_bytes<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        bytes: &DuperBytes<'a>,
+        bytes: &'a [u8],
     ) -> Self::Value {
         DuperValue::Bytes {
             identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
@@ -80,13 +77,11 @@ impl DuperVisitor for UniffiVisitor {
         }
     }
 
-    fn visit_temporal<'a>(
-        &mut self,
-        identifier: Option<&DuperIdentifier<'a>>,
-        temporal: &DuperTemporal<'a>,
-    ) -> Self::Value {
+    fn visit_temporal<'a>(&mut self, temporal: &DuperTemporal<'a>) -> Self::Value {
         DuperValue::Temporal {
-            identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
+            identifier: temporal
+                .identifier()
+                .map(|identifier| identifier.as_ref().to_string()),
             value: temporal.as_ref().to_string(),
         }
     }
