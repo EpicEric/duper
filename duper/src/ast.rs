@@ -706,7 +706,7 @@ impl<'a> DuperValue<'a> {
     ) -> Result<Self, DuperTemporalTryFromError<'a>> {
         Ok(Self::Temporal(DuperTemporal::Unspecified {
             identifier: identifier
-                .map(|identifier| DuperTemporalIdentifier::try_from(identifier))
+                .map(DuperTemporalIdentifier::try_from)
                 .transpose()?,
             inner: DuperTemporalUnspecified::try_from(value)?,
         }))
@@ -1031,7 +1031,7 @@ impl<'a> DuperTemporal<'a> {
     ) -> Result<Self, DuperTemporalTryFromError<'a>> {
         Ok(Self::Unspecified {
             identifier: identifier
-                .map(|identifier| DuperTemporalIdentifier::try_from(identifier))
+                .map(DuperTemporalIdentifier::try_from)
                 .transpose()?,
             inner: DuperTemporalUnspecified::try_from(value)?,
         })

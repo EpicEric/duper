@@ -14,7 +14,7 @@ pub enum SerdeError {
     #[error("{0}")]
     Custom(String),
     #[error("NAPI error: {0}")]
-    NAPI(#[from] napi::Error),
+    Napi(#[from] napi::Error),
 }
 
 impl serde_core::ser::Error for SerdeError {

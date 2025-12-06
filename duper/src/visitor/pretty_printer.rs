@@ -1,10 +1,12 @@
 //! Utilities for pretty-printing Duper values.
 
 use crate::{
-    ast::{DuperIdentifier, DuperObject, DuperValue, DuperTemporal}, format::{
+    ast::{DuperIdentifier, DuperObject, DuperTemporal, DuperValue},
+    format::{
         format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
         format_key, format_null, format_temporal,
-    }, visitor::DuperVisitor
+    },
+    visitor::DuperVisitor,
 };
 
 /// A Duper visitor which pretty-prints the provided [`DuperValue`] with
@@ -166,7 +168,7 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
             } else if tuple.len() == 1 {
                 self.buf.push_str("((");
                 tuple
-                    .get(0)
+                    .first()
                     .expect("tuple contains one element")
                     .accept(self);
                 self.buf.push_str("))");
@@ -187,7 +189,7 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
         } else if tuple.len() == 1 {
             self.buf.push('(');
             tuple
-                .get(0)
+                .first()
                 .expect("tuple contains one element")
                 .accept(self);
             self.buf.push(')');
@@ -258,10 +260,7 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
         }
     }
 
-    fn visit_temporal<'a>(
-        &mut self,
-        temporal: &DuperTemporal<'a>,
-    ) -> Self::Value {
+    fn visit_temporal<'a>(&mut self, temporal: &DuperTemporal<'a>) -> Self::Value {
         let identifier = temporal.identifier();
         if !self.strip_identifiers
             && let Some(identifier) = identifier
@@ -504,11 +503,10 @@ mod pretty_printer_tests {
                                             DuperIdentifier::try_from(Cow::Borrowed("Msg"))
                                                 .expect("valid identifier"),
                                         ),
-                                        inner: 
+                                        inner:
                                             Cow::Borrowed(
                                                 "This is a very long string that will push itself into the next line.",
                                             ),
-                                        
                                     },
                                 ),
                                 (
@@ -541,17 +539,13 @@ mod pretty_printer_tests {
                         identifier: None,
                         inner: vec![DuperValue::String {
                             identifier: None,
-                            inner: Cow::Borrowed(
-                                "So many arrays!",
-                            ),
+                            inner: Cow::Borrowed("So many arrays!"),
                         }],
                     }],
                 },
                 DuperValue::String {
                     identifier: None,
-                    inner: Cow::Borrowed(
-                        r#""Hello world!""#,
-                    ),
+                    inner: Cow::Borrowed(r#""Hello world!""#),
                 },
             ],
         };
@@ -594,12 +588,11 @@ mod pretty_printer_tests {
                                         DuperIdentifier::try_from(Cow::Borrowed("Str"))
                                             .expect("valid identifier"),
                                     ),
-                                    inner: Cow::Borrowed(
-                                        "test",
-                                    ),
+                                    inner: Cow::Borrowed("test"),
                                 },
                             ),
-                        ]).unwrap(),
+                        ])
+                        .unwrap(),
                     },
                 ),
                 (
@@ -627,7 +620,8 @@ mod pretty_printer_tests {
                         ],
                     },
                 ),
-            ]).unwrap(),
+            ])
+            .unwrap(),
         };
         let pp = PrettyPrinter::new(true, "  ").unwrap().pretty_print(&value);
         assert_snapshot!(pp);
@@ -669,13 +663,12 @@ mod pretty_printer_tests {
                                             identifier: None,
                                             inner: false,
                                         },
-                                        DuperValue::Null {
-                                            identifier: None,
-                                        },
+                                        DuperValue::Null { identifier: None },
                                     ],
                                 },
                             ),
-                        ]).unwrap(),
+                        ])
+                        .unwrap(),
                     },
                 ),
                 (
@@ -685,7 +678,8 @@ mod pretty_printer_tests {
                         inner: Cow::Borrowed("value"),
                     },
                 ),
-            ]).unwrap(),
+            ])
+            .unwrap(),
         };
         let pp = PrettyPrinter::new(false, "\t")
             .unwrap()

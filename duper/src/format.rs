@@ -17,27 +17,27 @@ pub fn format_key<'a>(key: &'a DuperKey<'a>) -> Cow<'a, str> {
             if c == '_' {
                 was_underscore_or_hyphen = true;
             } else if !c.is_ascii_alphabetic() {
-                return Cow::Owned(format_duper_string(&key.0.as_ref()));
+                return Cow::Owned(format_duper_string(key.0.as_ref()));
             }
         } else if c == '_' || c == '-' {
             if was_underscore_or_hyphen {
-                return Cow::Owned(format_duper_string(&key.0.as_ref()));
+                return Cow::Owned(format_duper_string(key.0.as_ref()));
             }
             was_underscore_or_hyphen = true;
         } else if c.is_ascii_alphanumeric() {
             was_underscore_or_hyphen = false;
         } else {
-            return Cow::Owned(format_duper_string(&key.0.as_ref()));
+            return Cow::Owned(format_duper_string(key.0.as_ref()));
         }
     }
     if was_underscore_or_hyphen {
-        Cow::Owned(format_duper_string(&key.0.as_ref()))
+        Cow::Owned(format_duper_string(key.0.as_ref()))
     } else {
         Cow::Borrowed(key.0.as_ref())
     }
 }
 
-pub fn format_duper_string<'a>(string: &'a str) -> String {
+pub fn format_duper_string(string: &str) -> String {
     if string.is_empty() {
         // Empty string
         return r#""""#.into();
