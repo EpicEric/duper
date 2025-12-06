@@ -65,7 +65,6 @@ pub enum TemporalString<'a> {
 }
 
 impl TemporalString<'_> {
-    ///
     pub fn name(&self) -> &'static str {
         match self {
             TemporalString::Instant(_) => "Instant",

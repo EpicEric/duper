@@ -69,7 +69,7 @@ impl DuperType {
                 },
             ) => Some(DuperValue::Array {
                 identifier: identifier.clone(),
-                inner: tuple.iter().cloned().collect::<Vec<_>>(),
+                inner: tuple.to_vec(),
             }),
             (
                 DuperType::Tuple,
@@ -79,7 +79,7 @@ impl DuperType {
                 },
             ) => Some(DuperValue::Tuple {
                 identifier: identifier.clone(),
-                inner: array.iter().cloned().collect::<Vec<_>>(),
+                inner: array.to_vec(),
             }),
             (
                 DuperType::String,

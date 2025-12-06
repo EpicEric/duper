@@ -1,8 +1,8 @@
 use std::{borrow::Cow, marker::PhantomData};
 
 use crate::{
-    DuperIdentifier, DuperKey, DuperObject, DuperValue,
-    PrettyPrinter as DuperPrettyPrinter, Serializer as DuperSerializer,
+    DuperIdentifier, DuperKey, DuperObject, DuperValue, PrettyPrinter as DuperPrettyPrinter,
+    Serializer as DuperSerializer,
 };
 use serde_core::{Serialize, ser};
 
@@ -246,7 +246,7 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue::Float {
             identifier: None,
-            inner: v.into(),
+            inner: v,
         })
     }
 

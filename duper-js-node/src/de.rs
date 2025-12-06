@@ -145,7 +145,7 @@ impl<'de, 'env> MapAccess<'de> for DuperMetaMapAccess<'env> {
                             env: self.env,
                             array: value.coerce_to_object().expect("checked object"),
                         })
-                    } else if let Ok(bytes) = Uint8Array::from_unknown(value.clone()) {
+                    } else if let Ok(bytes) = Uint8Array::from_unknown(value) {
                         seed.deserialize(bytes.as_ref().into_deserializer())
                     } else {
                         seed.deserialize(DuperMetaInnerObjectDeserializer {

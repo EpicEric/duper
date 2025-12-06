@@ -3,9 +3,12 @@ use std::borrow::Cow;
 use chumsky::prelude::*;
 
 use crate::{
-    ast::{DuperTemporal, DuperTemporalDuration, DuperTemporalInstant, DuperTemporalPlainDate,
-    DuperTemporalPlainDateTime, DuperTemporalPlainMonthDay, DuperTemporalPlainTime,
-    DuperTemporalPlainYearMonth, DuperTemporalZonedDateTime, DuperValue, DuperTemporalUnspecified},
+    ast::{
+        DuperTemporal, DuperTemporalDuration, DuperTemporalInstant, DuperTemporalPlainDate,
+        DuperTemporalPlainDateTime, DuperTemporalPlainMonthDay, DuperTemporalPlainTime,
+        DuperTemporalPlainYearMonth, DuperTemporalUnspecified, DuperTemporalZonedDateTime,
+        DuperValue,
+    },
     parser::{ascii_alphabetic, ascii_alphanumeric, whitespace_and_comments},
 };
 
@@ -41,9 +44,11 @@ pub fn temporal_instant<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperValue::Temporal(DuperTemporal::Instant {
-            inner: DuperTemporalInstant(Cow::Borrowed(instant)),
-        }))
+        .map(|instant| {
+            DuperValue::Temporal(DuperTemporal::Instant {
+                inner: DuperTemporalInstant(Cow::Borrowed(instant)),
+            })
+        })
 }
 
 pub fn temporal_zoned_date_time<'a>()
@@ -61,9 +66,11 @@ pub fn temporal_zoned_date_time<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperValue::Temporal(DuperTemporal::ZonedDateTime {
-            inner: DuperTemporalZonedDateTime(Cow::Borrowed(instant)),
-        }))
+        .map(|instant| {
+            DuperValue::Temporal(DuperTemporal::ZonedDateTime {
+                inner: DuperTemporalZonedDateTime(Cow::Borrowed(instant)),
+            })
+        })
 }
 
 pub fn temporal_plain_date<'a>()
@@ -81,9 +88,11 @@ pub fn temporal_plain_date<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperValue::Temporal(DuperTemporal::PlainDate {
-            inner: DuperTemporalPlainDate(Cow::Borrowed(instant)),
-        }))
+        .map(|instant| {
+            DuperValue::Temporal(DuperTemporal::PlainDate {
+                inner: DuperTemporalPlainDate(Cow::Borrowed(instant)),
+            })
+        })
 }
 
 pub fn temporal_plain_time<'a>()
@@ -101,9 +110,11 @@ pub fn temporal_plain_time<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperValue::Temporal(DuperTemporal::PlainTime {
-            inner: DuperTemporalPlainTime(Cow::Borrowed(instant)),
-        }))
+        .map(|instant| {
+            DuperValue::Temporal(DuperTemporal::PlainTime {
+                inner: DuperTemporalPlainTime(Cow::Borrowed(instant)),
+            })
+        })
 }
 
 pub fn temporal_plain_date_time<'a>()
@@ -121,9 +132,11 @@ pub fn temporal_plain_date_time<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperValue::Temporal(DuperTemporal::PlainDateTime {
-            inner: DuperTemporalPlainDateTime(Cow::Borrowed(instant)),
-        }))
+        .map(|instant| {
+            DuperValue::Temporal(DuperTemporal::PlainDateTime {
+                inner: DuperTemporalPlainDateTime(Cow::Borrowed(instant)),
+            })
+        })
 }
 
 pub fn temporal_plain_year_month<'a>()
@@ -141,9 +154,11 @@ pub fn temporal_plain_year_month<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperValue::Temporal(DuperTemporal::PlainYearMonth {
-            inner: DuperTemporalPlainYearMonth(Cow::Borrowed(instant)),
-        }))
+        .map(|instant| {
+            DuperValue::Temporal(DuperTemporal::PlainYearMonth {
+                inner: DuperTemporalPlainYearMonth(Cow::Borrowed(instant)),
+            })
+        })
 }
 
 pub fn temporal_plain_month_day<'a>()
@@ -161,9 +176,11 @@ pub fn temporal_plain_month_day<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|instant| DuperValue::Temporal(DuperTemporal::PlainMonthDay {
-            inner: DuperTemporalPlainMonthDay(Cow::Borrowed(instant)),
-        }))
+        .map(|instant| {
+            DuperValue::Temporal(DuperTemporal::PlainMonthDay {
+                inner: DuperTemporalPlainMonthDay(Cow::Borrowed(instant)),
+            })
+        })
 }
 
 pub fn temporal_duration<'a>()
@@ -181,9 +198,11 @@ pub fn temporal_duration<'a>()
                 .padded_by(whitespace_and_comments()),
         )
         .then_ignore(just(')'))
-        .map(|duration| DuperValue::Temporal(DuperTemporal::Duration {
-            inner: DuperTemporalDuration(Cow::Borrowed(duration)),
-        }))
+        .map(|duration| {
+            DuperValue::Temporal(DuperTemporal::Duration {
+                inner: DuperTemporalDuration(Cow::Borrowed(duration)),
+            })
+        })
 }
 
 pub fn temporal_unspecified<'a>()
@@ -192,10 +211,12 @@ pub fn temporal_unspecified<'a>()
         .to_slice()
         .delimited_by(just('\''), just('\''))
         .padded_by(whitespace_and_comments())
-        .map(|unspecified| DuperValue::Temporal(DuperTemporal::Unspecified {
-            identifier: None,
-            inner: DuperTemporalUnspecified(Cow::Borrowed(unspecified)),
-        }))
+        .map(|unspecified| {
+            DuperValue::Temporal(DuperTemporal::Unspecified {
+                identifier: None,
+                inner: DuperTemporalUnspecified(Cow::Borrowed(unspecified)),
+            })
+        })
 }
 
 // Inner values

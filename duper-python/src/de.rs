@@ -104,7 +104,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         string: &'a str,
     ) -> Self::Value {
         Ok(VisitorValue {
-            value: PyString::new(self.py, &string).into_any(),
+            value: PyString::new(self.py, string).into_any(),
             duper: identifier
                 .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
@@ -117,7 +117,7 @@ impl<'py> DuperVisitor for Visitor<'py> {
         bytes: &'a [u8],
     ) -> Self::Value {
         Ok(VisitorValue {
-            value: PyBytes::new(self.py, &bytes).into_any(),
+            value: PyBytes::new(self.py, bytes).into_any(),
             duper: identifier
                 .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,
