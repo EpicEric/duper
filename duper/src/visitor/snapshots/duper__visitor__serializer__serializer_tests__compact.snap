@@ -1,0 +1,5 @@
+---
+source: duper/src/visitor/serializer.rs
+expression: value
+---
+{product_id:"1dd7b7aa-515e-405f-85a9-8ac812242609",name:"Wireless Bluetooth Headphones",brand:"AudioTech",price:"129.99",dimensions:(18.5,15.2,7.8),weight:0.285,in_stock:true,specifications:{battery_life:"30h",noise_cancellation:true,connectivity:["Bluetooth 5.0","3.5mm Jack"]},image_thumbnail:b64"iVBORw0KGgoAAAANSUhEUgAAAGQ=",tags:["electronics","audio","wireless"],release_date:"2023-11-15",warranty_period:null,customer_ratings:{latest_review:r#"Absolutely ""astounding""!! 😎"#,average:4.5,count:127},created_at:"2023-11-17T21:50:43+00:00"}

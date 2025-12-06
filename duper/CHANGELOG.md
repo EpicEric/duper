@@ -14,6 +14,7 @@
 ### Fixed
 
 - Fix meta-(de)serialization.
+- **Breaking:** Enforce invariants through major refactor of the type system.
 
 ## 0.4.3 (2025-11-30)
 
