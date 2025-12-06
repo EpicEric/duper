@@ -1,4 +1,7 @@
+//! Duper-customized (de)serialization support for native and third-party types.
+
 #![allow(non_snake_case)]
+
 use serde_core::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// A helper macro to generate boilerplate for most serializable/deserializable

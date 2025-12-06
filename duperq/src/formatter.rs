@@ -67,7 +67,7 @@ struct FormatterVisitor {
 }
 
 impl FormatterVisitor {
-    pub fn visit<'a>(&mut self, value: &'a DuperValue<'a>) -> String {
+    pub(crate) fn visit<'a>(&mut self, value: &'a DuperValue<'a>) -> String {
         self.buf.clear();
         value.accept(self);
         std::mem::take(&mut self.buf)

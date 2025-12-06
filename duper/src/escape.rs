@@ -1,22 +1,35 @@
+//! Functions to handle escaping and unescaping of strings and byte strings.
+
 use std::{ascii, borrow::Cow, fmt::Display};
 use unicode_general_category::{GeneralCategory, get_general_category};
 
 #[derive(Debug)]
+/// Possible errors when unescaping Duper strings/byte strings.
 pub enum UnescapeError {
-    UnescapedTab,
+    /// An unescaped control character was found.
+    UnescapedControlCharacter,
+    /// An invalid byte sequence was present.
     InvalidByteSequence(String),
-    InvalidUnicode(String),
+    /// A malformed 4-digit unicode sequence was present.
+    Invalid4DigitUnicode(String),
+    /// A malformed 8-digit unicode sequence was present.
+    Invalid8DigitUnicode(String),
 }
 
 impl Display for UnescapeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UnescapeError::UnescapedTab => f.write_str("unescaped tab not allowed"),
+            UnescapeError::UnescapedControlCharacter => {
+                f.write_str("unescaped control character not allowed")
+            }
             UnescapeError::InvalidByteSequence(hex_str) => f.write_fmt(format_args!(
                 "invalid escape sequence for bytes: \\x{hex_str}"
             )),
-            UnescapeError::InvalidUnicode(hex_str) => f.write_fmt(format_args!(
+            UnescapeError::Invalid4DigitUnicode(hex_str) => f.write_fmt(format_args!(
                 "invalid escape sequence for unicode: \\u{hex_str}"
+            )),
+            UnescapeError::Invalid8DigitUnicode(hex_str) => f.write_fmt(format_args!(
+                "invalid escape sequence for unicode: \\U{hex_str}"
             )),
         }
     }
@@ -24,18 +37,20 @@ impl Display for UnescapeError {
 
 impl std::error::Error for UnescapeError {}
 
+/// Unescape the inner contents of a quoted string.
 pub fn unescape_str<'a>(input: &'a str) -> Result<Cow<'a, str>, UnescapeError> {
-    if !input.contains('\\') {
-        return Ok(Cow::Borrowed(input));
-    }
-
+    let mut is_escaped = false;
     let mut result = String::with_capacity(input.len());
     let mut chars = input.chars();
 
     while let Some(c) = chars.next() {
-        if c == '\t' {
-            return Err(UnescapeError::UnescapedTab);
+        if ('\u{0000}'..='\u{0009}').contains(&c)
+            || ('\u{000b}'..='\u{001f}').contains(&c)
+            || c == '\u{007f}'
+        {
+            return Err(UnescapeError::UnescapedControlCharacter);
         } else if c == '\\' {
+            is_escaped = true;
             match chars.next() {
                 Some('"') => result.push('"'),
                 Some('\\') => result.push('\\'),
@@ -96,7 +111,7 @@ pub fn unescape_str<'a>(input: &'a str) -> Result<Cow<'a, str>, UnescapeError> {
                     {
                         result.push(unicode_char);
                     } else {
-                        return Err(UnescapeError::InvalidUnicode(hex_str));
+                        return Err(UnescapeError::Invalid4DigitUnicode(hex_str));
                     }
                 }
                 Some('U') => {
@@ -107,7 +122,7 @@ pub fn unescape_str<'a>(input: &'a str) -> Result<Cow<'a, str>, UnescapeError> {
                     {
                         result.push(unicode_char);
                     } else {
-                        return Err(UnescapeError::InvalidUnicode(hex_str));
+                        return Err(UnescapeError::Invalid8DigitUnicode(hex_str));
                     }
                 }
                 Some(other) => {
@@ -121,9 +136,14 @@ pub fn unescape_str<'a>(input: &'a str) -> Result<Cow<'a, str>, UnescapeError> {
         }
     }
 
-    Ok(Cow::Owned(result))
+    Ok(if is_escaped {
+        Cow::Owned(result)
+    } else {
+        Cow::Borrowed(input)
+    })
 }
 
+/// Escape a string into a Duper quoted string.
 pub fn escape_str<'a>(input: &'a Cow<'a, str>) -> Cow<'a, str> {
     let mut result = None;
 
@@ -218,19 +238,21 @@ pub fn escape_str<'a>(input: &'a Cow<'a, str>) -> Cow<'a, str> {
     }
 }
 
+/// Unescape the inner contents of a quoted byte string.
 pub fn unescape_bytes<'a>(input: &'a str) -> Result<Cow<'a, [u8]>, UnescapeError> {
-    if !input.contains('\\') {
-        return Ok(Cow::Borrowed(input.as_bytes()));
-    }
-
+    let mut is_escaped = false;
     let mut result = Vec::with_capacity(input.len());
     let mut chars = input.chars();
     let mut buf = [0u8; 4];
 
     while let Some(c) = chars.next() {
-        if c == '\t' {
-            return Err(UnescapeError::UnescapedTab);
+        if ('\u{0000}'..='\u{0009}').contains(&c)
+            || ('\u{000b}'..='\u{001f}').contains(&c)
+            || c == '\u{007f}'
+        {
+            return Err(UnescapeError::UnescapedControlCharacter);
         } else if c == '\\' {
+            is_escaped = true;
             match chars.next() {
                 Some('"') => result.push(b'"'),
                 Some('\\') => result.push(b'\\'),
@@ -259,7 +281,7 @@ pub fn unescape_bytes<'a>(input: &'a str) -> Result<Cow<'a, [u8]>, UnescapeError
                     {
                         result.extend_from_slice(unicode_char.encode_utf8(&mut buf).as_bytes());
                     } else {
-                        return Err(UnescapeError::InvalidUnicode(hex_str));
+                        return Err(UnescapeError::Invalid4DigitUnicode(hex_str));
                     }
                 }
                 Some('U') => {
@@ -270,7 +292,7 @@ pub fn unescape_bytes<'a>(input: &'a str) -> Result<Cow<'a, [u8]>, UnescapeError
                     {
                         result.extend_from_slice(unicode_char.encode_utf8(&mut buf).as_bytes());
                     } else {
-                        return Err(UnescapeError::InvalidUnicode(hex_str));
+                        return Err(UnescapeError::Invalid8DigitUnicode(hex_str));
                     }
                 }
                 Some(other) => {
@@ -284,9 +306,14 @@ pub fn unescape_bytes<'a>(input: &'a str) -> Result<Cow<'a, [u8]>, UnescapeError
         }
     }
 
-    Ok(Cow::Owned(result))
+    Ok(if is_escaped {
+        Cow::Owned(result)
+    } else {
+        Cow::Borrowed(input.as_bytes())
+    })
 }
 
+/// Escape a byte slice into a Duper quoted byte string.
 pub fn escape_bytes<'a>(input: &'a Cow<'a, [u8]>) -> Cow<'a, str> {
     if input.iter().all(|&b| {
         b.is_ascii()

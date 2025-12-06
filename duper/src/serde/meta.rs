@@ -1,3 +1,7 @@
+//! A module containing additional methods for [`DuperValue`], which allow serialization
+//! and deserialization into values containing all metadata required to reconstruct
+//! a Duper value losslessly.
+
 use std::{borrow::Cow, fmt::Display};
 
 use indexmap::IndexMap;

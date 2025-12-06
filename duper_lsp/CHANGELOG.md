@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Validation of `Decimal` strings.
+
 ### Changed
 
 - Bump `duper` to 0.5.0.

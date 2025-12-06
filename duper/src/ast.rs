@@ -261,7 +261,7 @@ impl<'a> DuperIdentifier<'a> {
         ))
     }
 
-    /// Create a clone of this DuperIdentifier with a static lifetime.
+    /// Create a clone of this `DuperIdentifier` with a static lifetime.
     pub fn static_clone(&self) -> DuperIdentifier<'static> {
         DuperIdentifier(Cow::Owned(self.0.clone().into_owned()))
     }
@@ -348,7 +348,7 @@ impl<'a> DuperTemporalIdentifier<'a> {
         Self::try_from(identifier)
     }
 
-    /// Create a clone of this DuperTemporalIdentifier with a static lifetime.
+    /// Create a clone of this `DuperTemporalIdentifier` with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporalIdentifier<'static> {
         DuperTemporalIdentifier(DuperIdentifier(Cow::Owned(self.0.0.clone().into_owned())))
     }
@@ -458,6 +458,7 @@ impl<'a> DuperKey<'a> {
         self.0
     }
 
+    /// Create a clone of this `DuperKey` with a static lifetime.
     pub fn static_clone(&self) -> DuperKey<'static> {
         DuperKey(Cow::Owned(self.0.clone().into_owned()))
     }
@@ -591,6 +592,7 @@ impl<'a> DuperValue<'a> {
         }
     }
 
+    /// Returns a clone of the identifier associated with this Duper value.
     pub fn identifier(&self) -> Option<DuperIdentifier<'a>> {
         match self {
             DuperValue::Temporal(inner) => inner.identifier(),
@@ -606,6 +608,8 @@ impl<'a> DuperValue<'a> {
         }
     }
 
+    /// Replaces the identifier of the value, returning an error if the
+    /// identifier is invalid.
     pub fn with_identifier(
         self,
         identifier: Option<DuperIdentifier<'a>>,
@@ -779,6 +783,7 @@ impl<'a> DuperObject<'a> {
         self.0.iter()
     }
 
+    /// Returns the [`DuperValue`] with the given key.
     pub fn get<'b>(&'b self, key: &'b DuperKey<'_>) -> Option<&'b DuperValue<'a>> {
         self.0.get(key)
     }
@@ -860,6 +865,10 @@ impl Display for DuperObjectTryFromError<'_> {
 impl std::error::Error for DuperObjectTryFromError<'_> {}
 
 impl<'a> DuperTemporal<'a> {
+    /// Replaces the identifier of the value, returning an error if the
+    /// identifier is invalid.
+    ///
+    /// Only unspecified values can have their identifier updated.
     pub fn with_identifier(
         self,
         identifier: Option<DuperIdentifier<'a>>,
@@ -892,6 +901,7 @@ impl<'a> DuperTemporal<'a> {
         }
     }
 
+    /// Create a clone of this `DuperTemporal` with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporal<'static> {
         match self {
             DuperTemporal::Instant { inner } => DuperTemporal::Instant {
@@ -927,6 +937,7 @@ impl<'a> DuperTemporal<'a> {
         }
     }
 
+    /// Returns a clone of identifier associated with this Duper Temporal value.
     pub fn identifier(&self) -> Option<DuperIdentifier<'a>> {
         match self {
             DuperTemporal::Instant { .. } => Some(DuperIdentifier(Cow::Borrowed("Instant"))),
@@ -1060,7 +1071,7 @@ impl<'a> DuperTemporalInstant<'a> {
         self.0
     }
 
-    /// Create a clone of this DuperTemporalInstant with a static lifetime.
+    /// Create a clone of this `DuperTemporalInstant` with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporalInstant<'static> {
         DuperTemporalInstant(Cow::Owned(self.0.clone().into_owned()))
     }
@@ -1103,7 +1114,7 @@ impl<'a> DuperTemporalZonedDateTime<'a> {
         self.0
     }
 
-    /// Create a clone of this DuperTemporalZonedDateTime with a static lifetime.
+    /// Create a clone of this `DuperTemporalZonedDateTime` with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporalZonedDateTime<'static> {
         DuperTemporalZonedDateTime(Cow::Owned(self.0.clone().into_owned()))
     }
@@ -1146,7 +1157,7 @@ impl<'a> DuperTemporalPlainDate<'a> {
         self.0
     }
 
-    /// Create a clone of this DuperTemporalPlainDate with a static lifetime.
+    /// Create a clone of this `DuperTemporalPlainDate` with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporalPlainDate<'static> {
         DuperTemporalPlainDate(Cow::Owned(self.0.clone().into_owned()))
     }
@@ -1189,7 +1200,7 @@ impl<'a> DuperTemporalPlainTime<'a> {
         self.0
     }
 
-    /// Create a clone of this DuperTemporalPlainTime with a static lifetime.
+    /// Create a clone of this `DuperTemporalPlainTime` with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporalPlainTime<'static> {
         DuperTemporalPlainTime(Cow::Owned(self.0.clone().into_owned()))
     }
@@ -1232,7 +1243,7 @@ impl<'a> DuperTemporalPlainDateTime<'a> {
         self.0
     }
 
-    /// Create a clone of this DuperTemporalPlainDateTime with a static lifetime.
+    /// Create a clone of this `DuperTemporalPlainDateTime` with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporalPlainDateTime<'static> {
         DuperTemporalPlainDateTime(Cow::Owned(self.0.clone().into_owned()))
     }
@@ -1275,7 +1286,7 @@ impl<'a> DuperTemporalPlainYearMonth<'a> {
         self.0
     }
 
-    /// Create a clone of this DuperTemporalPlainYearMonth with a static lifetime.
+    /// Create a clone of this `DuperTemporalPlainYearMonth` with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporalPlainYearMonth<'static> {
         DuperTemporalPlainYearMonth(Cow::Owned(self.0.clone().into_owned()))
     }
@@ -1318,7 +1329,7 @@ impl<'a> DuperTemporalPlainMonthDay<'a> {
         self.0
     }
 
-    /// Create a clone of this DuperTemporalPlainMonthDay with a static lifetime.
+    /// Create a clone of this `DuperTemporalPlainMonthDay` with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporalPlainMonthDay<'static> {
         DuperTemporalPlainMonthDay(Cow::Owned(self.0.clone().into_owned()))
     }
@@ -1361,7 +1372,7 @@ impl<'a> DuperTemporalDuration<'a> {
         self.0
     }
 
-    /// Create a clone of this DuperTemporalDuration with a static lifetime.
+    /// Create a clone of this `DuperTemporalDuration` with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporalDuration<'static> {
         DuperTemporalDuration(Cow::Owned(self.0.clone().into_owned()))
     }
@@ -1404,7 +1415,7 @@ impl<'a> DuperTemporalUnspecified<'a> {
         self.0
     }
 
-    /// Create a clone of this DuperTemporal with a static lifetime.
+    /// Create a clone of this `DuperTemporal` with a static lifetime.
     pub fn static_clone(&self) -> DuperTemporalUnspecified<'static> {
         DuperTemporalUnspecified(Cow::Owned(self.0.clone().into_owned()))
     }

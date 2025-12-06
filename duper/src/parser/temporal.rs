@@ -1,3 +1,5 @@
+//! Temporal-specific parsing and AST-building utilities for Duper.
+
 use std::borrow::Cow;
 
 use chumsky::prelude::*;
@@ -14,6 +16,7 @@ use crate::{
 
 // Duper Temporal values
 
+/// Parse a known Temporal value.
 pub fn temporal_specified<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     choice((
@@ -29,6 +32,7 @@ pub fn temporal_specified<'a>()
     .padded_by(whitespace_and_comments())
 }
 
+/// Parse a Temporal Instant, including the identifier and single quotes.
 pub fn temporal_instant<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("Instant")
@@ -51,6 +55,7 @@ pub fn temporal_instant<'a>()
         })
 }
 
+/// Parse a Temporal ZonedDateTime, including the identifier and single quotes.
 pub fn temporal_zoned_date_time<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("ZonedDateTime")
@@ -73,6 +78,7 @@ pub fn temporal_zoned_date_time<'a>()
         })
 }
 
+/// Parse a Temporal PlainDate, including the identifier and single quotes.
 pub fn temporal_plain_date<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainDate")
@@ -95,6 +101,7 @@ pub fn temporal_plain_date<'a>()
         })
 }
 
+/// Parse a Temporal PlainTime, including the identifier and single quotes.
 pub fn temporal_plain_time<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainTime")
@@ -117,6 +124,7 @@ pub fn temporal_plain_time<'a>()
         })
 }
 
+/// Parse a Temporal PlainDateTime, including the identifier and single quotes.
 pub fn temporal_plain_date_time<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainDateTime")
@@ -139,6 +147,7 @@ pub fn temporal_plain_date_time<'a>()
         })
 }
 
+/// Parse a Temporal PlainYearMonth, including the identifier and single quotes.
 pub fn temporal_plain_year_month<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainYearMonth")
@@ -161,6 +170,7 @@ pub fn temporal_plain_year_month<'a>()
         })
 }
 
+/// Parse a Temporal PlainMonthDay, including the identifier and single quotes.
 pub fn temporal_plain_month_day<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("PlainMonthDay")
@@ -183,6 +193,7 @@ pub fn temporal_plain_month_day<'a>()
         })
 }
 
+/// Parse a Temporal Duration, including the identifier and single quotes.
 pub fn temporal_duration<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     just("Duration")
@@ -205,6 +216,7 @@ pub fn temporal_duration<'a>()
         })
 }
 
+/// Parse an unspecified Temporal value, delimited by single quotes.
 pub fn temporal_unspecified<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     unspecified()
@@ -221,6 +233,7 @@ pub fn temporal_unspecified<'a>()
 
 // Inner values
 
+/// Parse a ZonedDateTime.
 pub fn zoned_date_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     date_time()
         .then(time_offset())
@@ -230,6 +243,7 @@ pub fn zoned_date_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a,
         .ignored()
 }
 
+/// Parse a ZonedDateTime with a non-Z offset.
 pub fn non_z_zoned_date_time<'a>()
 -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     date_time()
@@ -240,6 +254,7 @@ pub fn non_z_zoned_date_time<'a>()
         .ignored()
 }
 
+/// Parse an Instant.
 pub fn instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         zoned_date_time(),
@@ -247,6 +262,7 @@ pub fn instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>>
     ))
 }
 
+/// Parse an instant with a non-Z offset.
 pub fn non_z_instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         non_z_zoned_date_time(),
@@ -254,6 +270,7 @@ pub fn non_z_instant<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, c
     ))
 }
 
+/// Parse a PlainDate.
 pub fn plain_date<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         plain_date_time(),
@@ -261,6 +278,7 @@ pub fn plain_date<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char
     ))
 }
 
+/// Parse a PlainTime.
 pub fn plain_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         plain_date_time(),
@@ -268,6 +286,7 @@ pub fn plain_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char
     ))
 }
 
+/// Parse a PlainDateTime.
 pub fn plain_date_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         non_z_instant(),
@@ -275,6 +294,7 @@ pub fn plain_date_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a,
     ))
 }
 
+/// Parse a PlainYearMonth.
 pub fn plain_year_month<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         plain_date(),
@@ -285,6 +305,7 @@ pub fn plain_year_month<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a
     ))
 }
 
+/// Parse a PlainMonthDay.
 pub fn plain_month_day<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         plain_date(),
@@ -292,6 +313,7 @@ pub fn plain_month_day<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a,
     ))
 }
 
+/// Parse a Duration.
 pub fn duration<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     let fractional = text::int(10).then(just('.').then(text::digits(10).at_most(9)).or_not());
 
@@ -355,6 +377,7 @@ pub fn duration<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>
         .ignored()
 }
 
+/// Parse an unspecified Temporal value.
 pub fn unspecified<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     choice((
         instant(),

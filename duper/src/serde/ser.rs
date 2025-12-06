@@ -1,3 +1,5 @@
+//! Serde [`serde_core::Serializer`] implementation for Duper.
+
 use std::{borrow::Cow, marker::PhantomData};
 
 use crate::{

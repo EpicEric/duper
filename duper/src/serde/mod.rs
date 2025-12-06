@@ -1,3 +1,12 @@
+//! Serde support for Duper. This requires the `serde` feature flag to be enabled.
+//!
+//! Included in this module are:
+//! - (De)serialize implementations to work with Duper values directly;
+//! - [`ser`] / [`de`]: (De)serializer implementations for native types;
+//! - [`meta`]: Meta-(de)serialization, for wider support;
+//! - [`temporal`]: Custom Serde support for Temporal values;
+//! - [`error`]: A Duper-specific Serde error.
+
 pub mod de;
 pub mod error;
 pub mod meta;

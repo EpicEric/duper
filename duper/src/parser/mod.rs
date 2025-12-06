@@ -1,3 +1,5 @@
+//! Parsing and AST-building utilities for Duper.
+
 use std::borrow::Cow;
 
 use base64::Engine;
@@ -16,20 +18,41 @@ pub struct DuperParser;
 impl DuperParser {
     /// Parse a Duper trunk, i.e. only an array, tuple, or object at the top level.
     ///
-    /// A pretty-printed version of the error can be obtained from the `prettify_error` method.
+    /// A pretty-printed version of the error can be obtained from the
+    /// [`DuperParser::prettify_error`] method.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use duper::DuperParser;
+    ///
+    /// DuperParser::parse_duper_trunk(r#"
+    ///     ("key", {})
+    /// "#).unwrap();
+    /// ```
     pub fn parse_duper_trunk<'a>(input: &'a str) -> Result<DuperValue<'a>, Vec<Rich<'a, char>>> {
         let value = duper_trunk().parse(input).into_result()?;
-        match &value {
-            &DuperValue::Object { .. } | &DuperValue::Array { .. } | &DuperValue::Tuple { .. } => {
-                Ok(value)
-            }
-            _ => unreachable!(),
-        }
+        debug_assert!(matches!(
+            &value,
+            &DuperValue::Object { .. } | &DuperValue::Array { .. } | &DuperValue::Tuple { .. }
+        ));
+        Ok(value)
     }
 
     /// Parse a Duper value at the top level.
     ///
-    /// A pretty-printed version of the error can be obtained from the `prettify_error` method.
+    /// A pretty-printed version of the error can be obtained from the
+    /// [`DuperParser::prettify_error`] method.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use duper::DuperParser;
+    ///
+    /// DuperParser::parse_duper_value(r#"
+    ///     "Hello, Duper!"
+    /// "#).unwrap();
+    /// ```
     pub fn parse_duper_value<'a>(input: &'a str) -> Result<DuperValue<'a>, Vec<Rich<'a, char>>> {
         duper_value().parse(input).into_result()
     }
@@ -116,6 +139,7 @@ pub(crate) fn identifier_lossy<'a>()
         .map(|string| DuperIdentifier(Cow::Owned(string)))
 }
 
+/// Parse an identifier.
 pub fn identifier<'a>()
 -> impl Parser<'a, &'a str, DuperIdentifier<'a>, extra::Err<Rich<'a, char>>> + Clone {
     one_of('A'..='Z')
@@ -125,6 +149,7 @@ pub fn identifier<'a>()
         .map(|identifier| DuperIdentifier(Cow::Borrowed(identifier)))
 }
 
+/// Parse a trunk value with an optional identifier.
 pub fn identified_trunk<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     let inner_trunk = choice((
@@ -145,6 +170,7 @@ pub fn identified_trunk<'a>()
         .padded_by(whitespace_and_comments())
 }
 
+/// Parse a Duper value with an optional identifier.
 pub fn identified_value<'a>()
 -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     recursive(move |identified_value| {
@@ -212,6 +238,7 @@ pub fn identified_value<'a>()
     })
 }
 
+/// Parse a Duper object.
 pub fn object<'a>(
     identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
 ) -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
@@ -237,6 +264,7 @@ pub fn object<'a>(
         )
 }
 
+/// Parse a Duper object key.
 pub fn object_key<'a>() -> impl Parser<'a, &'a str, DuperKey<'a>, extra::Err<Rich<'a, char>>> + Clone
 {
     let plain_key = ascii_alphabetic()
@@ -252,6 +280,7 @@ pub fn object_key<'a>() -> impl Parser<'a, &'a str, DuperKey<'a>, extra::Err<Ric
         .or(plain_key)
 }
 
+/// Parse a Duper array.
 pub fn array<'a>(
     identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
 ) -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
@@ -281,6 +310,7 @@ pub fn array<'a>(
             }))
 }
 
+/// Parse a Duper tuple.
 pub fn tuple<'a>(
     identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
 ) -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
@@ -310,6 +340,7 @@ pub fn tuple<'a>(
             }))
 }
 
+/// Parse a quote-delimited Duper string.
 pub fn quoted_string<'a>()
 -> impl Parser<'a, &'a str, Cow<'a, str>, extra::Err<Rich<'a, char>>> + Clone {
     quoted_inner()
@@ -317,6 +348,7 @@ pub fn quoted_string<'a>()
         .delimited_by(just('"'), just('"'))
 }
 
+/// Parse a Base64 Duper byte string.
 pub fn base64_bytes<'a>() -> impl Parser<'a, &'a str, Vec<u8>, extra::Err<Rich<'a, char>>> + Clone {
     base64_digit()
         .padded()
@@ -335,6 +367,7 @@ pub fn base64_bytes<'a>() -> impl Parser<'a, &'a str, Vec<u8>, extra::Err<Rich<'
         .delimited_by(just("b64\""), just('"'))
 }
 
+/// Parse a quote-delimited Duper byte string.
 pub fn quoted_bytes<'a>()
 -> impl Parser<'a, &'a str, Cow<'a, [u8]>, extra::Err<Rich<'a, char>>> + Clone {
     quoted_inner()
@@ -342,6 +375,7 @@ pub fn quoted_bytes<'a>()
         .delimited_by(just("b\""), just('"'))
 }
 
+/// Parse the inner contents of a Duper quoted string or quoted byte string.
 pub fn quoted_inner<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
     let escaped_characters = just('\\')
         .then(choice((
@@ -360,6 +394,7 @@ pub fn quoted_inner<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'
         .to_slice()
 }
 
+/// Parse a raw Duper string.
 pub fn raw_string<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
     let hashtags = just('#')
         .repeated()
@@ -398,6 +433,7 @@ pub fn raw_string<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a,
     )
 }
 
+/// Parse a raw Duper byte string.
 pub fn raw_bytes<'a>() -> impl Parser<'a, &'a str, &'a [u8], extra::Err<Rich<'a, char>>> + Clone {
     let hashtags = just('#')
         .repeated()
@@ -438,6 +474,7 @@ pub fn raw_bytes<'a>() -> impl Parser<'a, &'a str, &'a [u8], extra::Err<Rich<'a,
     )
 }
 
+/// Parse a Duper float.
 pub fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, char>>> + Clone {
     let decimal = one_of("+-").or_not().then(integer_digits()).to_slice();
 
@@ -473,6 +510,7 @@ pub fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, char>>> 
     })
 }
 
+/// Parse a Duper integer.
 pub fn integer<'a>() -> impl Parser<'a, &'a str, i64, extra::Err<Rich<'a, char>>> + Clone {
     let decimal_integer = one_of("+-")
         .or_not()
@@ -519,10 +557,12 @@ pub fn integer<'a>() -> impl Parser<'a, &'a str, i64, extra::Err<Rich<'a, char>>
     choice((hex_integer, octal_integer, binary_integer, decimal_integer))
 }
 
+/// Parse a Duper boolean.
 pub fn boolean<'a>() -> impl Parser<'a, &'a str, bool, extra::Err<Rich<'a, char>>> + Clone {
     choice((just("true").to(true), just("false").to(false)))
 }
 
+/// Parse a Duper null value.
 pub fn null<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
     just("null").to(())
 }

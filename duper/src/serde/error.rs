@@ -1,3 +1,5 @@
+//! Module for the [`DuperSerdeError`] value.
+
 use std::fmt::{self, Display};
 
 use crate::{

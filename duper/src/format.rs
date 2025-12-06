@@ -1,3 +1,5 @@
+//! Functions to handle formatting of Duper values.
+
 use std::borrow::Cow;
 
 use base64::{Engine, prelude::BASE64_STANDARD};
@@ -7,6 +9,7 @@ use crate::{
     escape::{escape_bytes, escape_str, is_invisible_unicode},
 };
 
+/// Format a key as a Duper plain key or string.
 pub fn format_key<'a>(key: &'a DuperKey<'a>) -> Cow<'a, str> {
     if key.0.is_empty() {
         return Cow::Borrowed(r#""""#);
@@ -37,6 +40,7 @@ pub fn format_key<'a>(key: &'a DuperKey<'a>) -> Cow<'a, str> {
     }
 }
 
+/// Format a string as a Duper quoted or raw string.
 pub fn format_duper_string(string: &str) -> String {
     if string.is_empty() {
         // Empty string
@@ -98,6 +102,7 @@ pub fn format_duper_string(string: &str) -> String {
     }
 }
 
+/// Format a byte slice as a Duper quoted, raw, or Base64 byte string.
 pub fn format_duper_bytes(bytes: &[u8]) -> String {
     if bytes.is_empty() {
         // Empty bytes
@@ -176,22 +181,27 @@ pub fn format_duper_bytes(bytes: &[u8]) -> String {
     }
 }
 
+// Format a Temporal value for Duper.
 pub fn format_temporal(temporal: impl AsRef<str>) -> String {
-    format!("'{}'", temporal.as_ref())
+    format!("'{}'", temporal.as_ref().trim())
 }
 
+// Format an integer for Duper.
 pub fn format_integer(integer: i64) -> String {
     integer.to_string()
 }
 
+// Format a float for Duper.
 pub fn format_float(float: f64) -> String {
     ryu::Buffer::new().format(float).into()
 }
 
+// Format a boolean for Duper.
 pub fn format_boolean(bool: bool) -> &'static str {
     if bool { "true" } else { "false" }
 }
 
+// Format a null value for Duper.
 pub fn format_null() -> &'static str {
     "null"
 }

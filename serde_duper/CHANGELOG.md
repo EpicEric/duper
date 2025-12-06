@@ -4,7 +4,7 @@
 
 ### Added
 
-- `temporal` feature to enable Temporal support for `Duration`.
+- `temporal` feature to enable Temporal support for `Duration` and support `temporal_rs` types.
 
 ### Changed
 

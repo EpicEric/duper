@@ -1,3 +1,5 @@
+//! A utility for better serialization/deserialization support of Temporal values.
+
 use std::{borrow::Cow, marker::PhantomData};
 
 use serde_core::{de::IntoDeserializer, ser::SerializeStruct};
@@ -75,7 +77,7 @@ impl TemporalString<'_> {
             TemporalString::PlainYearMonth(_) => "PlainYearMonth",
             TemporalString::PlainMonthDay(_) => "PlainMonthDay",
             TemporalString::Duration(_) => "Duration",
-            TemporalString::Unspecified(_) => "Unspecified",
+            TemporalString::Unspecified(_) => "Temporal",
         }
     }
 }
@@ -164,7 +166,7 @@ impl<'a> serde_core::Serialize for TemporalString<'a> {
             TemporalString::PlainYearMonth(inner) => ("PlainYearMonth", inner.as_ref()),
             TemporalString::PlainMonthDay(inner) => ("PlainMonthDay", inner.as_ref()),
             TemporalString::Duration(inner) => ("Duration", inner.as_ref()),
-            TemporalString::Unspecified(inner) => ("Unspecified", inner.as_ref()),
+            TemporalString::Unspecified(inner) => ("Temporal", inner.as_ref()),
         };
         let mut s = serializer.serialize_struct(STRUCT, 2)?;
         s.serialize_field(FIELD_TYPE, typ)?;
@@ -245,13 +247,13 @@ impl<'a, 'de> serde_core::Deserialize<'de> for TemporalString<'a> {
                         DuperTemporalDuration::try_from(Cow::Owned(value))
                             .map_err(serde_core::de::Error::custom)?,
                     )),
-                    "Unspecified" => Ok(TemporalString::Unspecified(
+                    "Temporal" => Ok(TemporalString::Unspecified(
                         DuperTemporalUnspecified::try_from(Cow::Owned(value))
                             .map_err(serde_core::de::Error::custom)?,
                     )),
                     typ => Err(serde_core::de::Error::invalid_value(
                         serde_core::de::Unexpected::Str(typ),
-                        &"one of: Instant, ZonedDateTime, PlainDate, PlainTime, PlainDateTime, PlainYearMonth, PlainMonthDay, Duration, Unspecified",
+                        &"one of: Instant, ZonedDateTime, PlainDate, PlainTime, PlainDateTime, PlainYearMonth, PlainMonthDay, Duration, Temporal",
                     )),
                 }
             }

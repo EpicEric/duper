@@ -5,6 +5,7 @@ use smol::{Unblock, channel, io::AsyncWriteExt};
 use crate::filter::DuperFilter;
 
 #[async_trait(?Send)]
+/// An opaque layer that processes a [`DuperValue`] asynchronously.
 pub trait Processor {
     async fn process(&mut self, value: DuperValue<'static>);
 

@@ -1,6 +1,13 @@
-use std::{borrow::Cow, collections::HashSet, sync::LazyLock};
+use std::{
+    borrow::Cow,
+    collections::HashSet,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    str::FromStr,
+    sync::LazyLock,
+};
 
 use base64::Engine;
+use ipnet::{IpNet, Ipv4Net, Ipv6Net};
 use line_index::{LineCol, LineIndex, WideEncoding};
 use lsp_types::{Diagnostic, DiagnosticSeverity};
 use regex::Regex;
@@ -128,6 +135,27 @@ static QUERY_FLOATS: LazyLock<Query> = LazyLock::new(|| {
 
 static REGEX_UUID: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)^UUID(v?\d)?$").expect("valid UUID regex"));
+
+static REGEX_DECIMAL: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)^Decimal$").expect("valid Decimal regex"));
+
+static REGEX_IP4ADDR: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)^IPv?4(Addr(ess)?)?$").expect("valid IPv4 address regex"));
+
+static REGEX_IP6ADDR: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)^IPv?6(Addr(ess)?)?$").expect("valid IPv6 address regex"));
+
+static REGEX_IPADDR: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)^IP(Addr(ess)?)?$").expect("valid IP address regex"));
+
+static REGEX_IP4NET: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)^IPv?4Net(work)?$").expect("valid IPv4 network regex"));
+
+static REGEX_IP6NET: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)^IPv?6Net(work)?$").expect("valid IPv6 network regex"));
+
+static REGEX_IPNET: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)^IPNet(work)?$").expect("valid IP network regex"));
 
 pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<Diagnostic> {
     let mut diagnostics = vec![];
@@ -878,20 +906,103 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
             }
         }
         if let (Some(identifier), Some((string, node))) = (identifier, value.as_ref()) {
-            if REGEX_UUID.is_match(identifier)
-                && let Err(err) = uuid::Uuid::try_parse(string)
-            {
-                diagnostics.push(Diagnostic::new(
-                    to_range(node.range(), &index, is_utf8),
-                    Some(DiagnosticSeverity::WARNING),
-                    None,
-                    None,
-                    format!("Invalid UUID: {err}"),
-                    None,
-                    None,
-                ))
+            if REGEX_UUID.is_match(identifier) {
+                if let Err(err) = uuid::Uuid::try_parse(string) {
+                    diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::WARNING),
+                        None,
+                        None,
+                        format!("Invalid UUID: {err}"),
+                        None,
+                        None,
+                    ))
+                }
+            } else if REGEX_DECIMAL.is_match(identifier) {
+                if let Err(err) = rust_decimal::Decimal::from_str(string.as_ref()) {
+                    diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::WARNING),
+                        None,
+                        None,
+                        format!("Invalid Decimal: {err}"),
+                        None,
+                        None,
+                    ))
+                }
+            } else if REGEX_IP4ADDR.is_match(identifier) {
+                if let Err(err) = Ipv4Addr::from_str(string.as_ref()) {
+                    diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::WARNING),
+                        None,
+                        None,
+                        format!("Invalid IPv4 address: {err}"),
+                        None,
+                        None,
+                    ))
+                }
+            } else if REGEX_IP6ADDR.is_match(identifier) {
+                if let Err(err) = Ipv6Addr::from_str(string.as_ref()) {
+                    diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::WARNING),
+                        None,
+                        None,
+                        format!("Invalid IPv6 address: {err}"),
+                        None,
+                        None,
+                    ))
+                }
+            } else if REGEX_IPADDR.is_match(identifier) {
+                if let Err(err) = IpAddr::from_str(string.as_ref()) {
+                    diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::WARNING),
+                        None,
+                        None,
+                        format!("Invalid IP address: {err}"),
+                        None,
+                        None,
+                    ))
+                }
+            } else if REGEX_IP4NET.is_match(identifier) {
+                if let Err(err) = Ipv4Net::from_str(string.as_ref()) {
+                    diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::WARNING),
+                        None,
+                        None,
+                        format!("Invalid IPv4 network: {err}"),
+                        None,
+                        None,
+                    ))
+                }
+            } else if REGEX_IP6NET.is_match(identifier) {
+                if let Err(err) = Ipv6Net::from_str(string.as_ref()) {
+                    diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::WARNING),
+                        None,
+                        None,
+                        format!("Invalid IPv6 network: {err}"),
+                        None,
+                        None,
+                    ))
+                }
+            } else if REGEX_IPNET.is_match(identifier) {
+                if let Err(err) = IpNet::from_str(string.as_ref()) {
+                    diagnostics.push(Diagnostic::new(
+                        to_range(node.range(), &index, is_utf8),
+                        Some(DiagnosticSeverity::WARNING),
+                        None,
+                        None,
+                        format!("Invalid IP network: {err}"),
+                        None,
+                        None,
+                    ))
+                }
             }
-            // TO-DO: Validate more well-known types
         } else {
             warn!(
                 ?identifier,

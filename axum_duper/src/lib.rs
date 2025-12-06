@@ -16,7 +16,9 @@ use axum::{
 use duper::serde::error::DuperSerdeErrorKind;
 use serde_core::{Serialize, de::DeserializeOwned};
 
+/// Default MIME type for Duper files.
 pub static DUPER_CONTENT_TYPE: &str = "application/duper";
+/// Alternative MIME type for Duper files.
 pub static DUPER_ALT_CONTENT_TYPE: &str = "application/x-duper";
 
 /// Rejection used for [`Duper`].

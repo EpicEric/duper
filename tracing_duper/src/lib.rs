@@ -1,7 +1,7 @@
 #![doc(html_logo_url = "https://duper.dev.br/logos/duper-100-100.png")]
 //! A composable [`tracing_subscriber`] layer to emit Duper events.
 //!
-//! You can install it to a [`tracing_subscriber::registry`] just like any other
+//! You can install it to a [`tracing_subscriber::registry()`] just like any other
 //! filter or formatter:
 //!
 //! ```
@@ -16,15 +16,15 @@
 //!
 //! See [`DuperLayer`] for all the available configuration.
 //!
-//! Now, you can emit [`tracing`] spans and events as usual. If you'd like to
+//! Now, you can emit `tracing` spans and events as usual. If you'd like to
 //! emit Duper values, use `$duper.` as the prefix of the field, and set the
 //! value to a Duper-formatted string.
 //!
-//! ```ignore
+//! ```
 //! use tracing::{debug, warn};
 //!
 //! #[tracing::instrument]
-//! pub fn send_gifts(count: &mut usize) {
+//! fn send_gifts(count: &mut usize) {
 //!     if *count < 12 {
 //!         warn!("too few gifts... try again later");
 //!     } else {
@@ -49,7 +49,7 @@
 //! ```
 //!
 //! To create Duper values programmatically, look into [`duper`] and [`duper::Serializer`], or
-//! the [`serde_duper`] crate.
+//! the `serde_duper` crate.
 //!
 //! ## Feature flags
 //!
@@ -607,7 +607,7 @@ where
 
 struct DuperFields<'a>(DuperObject<'a>);
 
-pub struct DuperVisitor<'a> {
+struct DuperVisitor<'a> {
     values: BTreeMap<DuperKey<'a>, DuperValue<'a>>,
 }
 

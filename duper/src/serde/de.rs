@@ -1,3 +1,5 @@
+//! Serde [`serde_core::Deserializer`] implementation for Duper.
+
 use std::borrow::Cow;
 
 use crate::{DuperKey, DuperParser, DuperValue, serde::temporal::TemporalString};

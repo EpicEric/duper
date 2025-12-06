@@ -3,7 +3,7 @@ use tracing_duper::DuperLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tracing::instrument]
-pub fn send_gifts(count: &mut usize) {
+fn send_gifts(count: &mut usize) {
     if *count < 12 {
         warn!("too few gifts... try again later");
     } else {
