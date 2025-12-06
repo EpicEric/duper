@@ -14,8 +14,8 @@ use crate::{DuperIdentifier, DuperTemporal, DuperValue, ast::DuperObject};
 ///
 /// ```
 /// use duper::{
-///     DuperArray, DuperBytes, DuperIdentifier, DuperObject, DuperString,
-///     DuperTemporal, DuperTuple, visitor::DuperVisitor,
+///     DuperIdentifier, DuperObject, DuperTemporal,
+///     DuperValue, visitor::DuperVisitor,
 /// };
 ///
 /// struct MyVisitor;

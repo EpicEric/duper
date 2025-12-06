@@ -655,7 +655,10 @@ mod serde_tests {
                     ),
                     (
                         DuperKey::from("temporal"),
-                        DuperValue::try_unspecified_from(None, Cow::Borrowed("16:20:00")).unwrap(),
+                        DuperValue::String {
+                            identifier: None,
+                            inner: Cow::Borrowed("16:20:00")
+                        }
                     ),
                     (
                         DuperKey::from("integer"),

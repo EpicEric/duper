@@ -352,10 +352,7 @@ pub use serde_duper_macros::duper;
 /// ```
 /// use std::borrow::Cow;
 /// use serde::Deserialize;
-/// use serde_duper::{
-///     DuperBytes, DuperIdentifier, DuperInner, DuperKey, DuperObject,
-///     DuperString, DuperValue,
-/// };
+/// use serde_duper::{DuperIdentifier, DuperKey, DuperObject, DuperValue};
 ///
 /// #[derive(Deserialize, Debug)]
 /// struct User {
@@ -364,30 +361,28 @@ pub use serde_duper_macros::duper;
 /// }
 ///
 /// // The type of `d` is `serde_duper::DuperValue`
-/// let d = DuperValue {
+/// let d = DuperValue::Object {
 ///     identifier: Some(DuperIdentifier::try_from(Cow::Borrowed("User")).unwrap()),
-///     inner: DuperInner::Object(DuperObject::try_from(vec![
+///     inner: DuperObject::try_from(vec![
 ///         (
 ///             DuperKey::from(Cow::Borrowed("fingerprint")),
-///             DuperValue {
+///             DuperValue::Bytes {
 ///                 identifier: None,
-///                 inner: DuperInner::Bytes(DuperBytes::from(Cow::Borrowed(
+///                 inner: Cow::Borrowed(
 ///                     &b"\xF9\xBA\x14\x3B\x95\xFF\x6D\x82"[..],
-///                 ))),
+///                 ),
 ///             }
 ///         ),
 ///         (
 ///             DuperKey::from(Cow::Borrowed("location")),
-///             DuperValue {
+///             DuperValue::String {
 ///                 identifier: Some(
 ///                     DuperIdentifier::try_from(Cow::Borrowed("City")).unwrap(),
 ///                 ),
-///                 inner: DuperInner::String(DuperString::from(
-///                     Cow::Borrowed("Menlo Park, CA"),
-///                 )),
+///                 inner: Cow::Borrowed("Menlo Park, CA"),
 ///             }
 ///         ),
-///     ]).unwrap()),
+///     ]).unwrap(),
 /// };
 ///
 /// let u: User = serde_duper::from_value(d).unwrap();
