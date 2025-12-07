@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { parse } from "@duper-js/wasm";
+import { parse } from "@duper-js/node";
 import { globalConst } from "vite-plugin-global-const";
 import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
@@ -41,43 +41,63 @@ export default async () => {
       nav: [
         { text: "Home", link: "/" },
         { text: "Quick start", link: "/quick-start" },
+        { text: "Blog", link: "/blog/" },
         { text: "Specification", link: "/spec" },
-        { text: "GitHub", link: "https://github.com/EpicEric/duper" },
       ],
 
-      sidebar: [
-        {
-          text: "Getting started",
+      sidebar: {
+        "/blog": {
+          base: "/blog/",
           items: [
-            { text: "Quick start", link: "/quick-start" },
             {
-              text: "An introduction to Duper",
-              link: "/intro-to-duper",
+              text: "Posts",
+              link: "/",
+              items: [
+                {
+                  text: "Duper's new superpowers!",
+                  link: "/duper-s-new-superpowers",
+                },
+              ],
             },
           ],
         },
-        {
-          text: "Language guides",
+        "/": {
+          base: "/",
           items: [
-            { text: "JavaScript", link: "/guide-javascript" },
-            { text: ".NET (alpha)", link: "/guide-dotnet" },
-            { text: "Python", link: "/guide-python" },
-            { text: "Rust", link: "/guide-rust" },
+            {
+              text: "Getting started",
+              items: [
+                { text: "Quick start", link: "/quick-start" },
+                {
+                  text: "An introduction to Duper",
+                  link: "/intro-to-duper",
+                },
+              ],
+            },
+            {
+              text: "Language guides",
+              items: [
+                { text: "JavaScript", link: "/guide/javascript" },
+                { text: ".NET (alpha)", link: "/guide/dotnet" },
+                { text: "Python", link: "/guide/python" },
+                { text: "Rust", link: "/guide/rust" },
+              ],
+            },
+            {
+              text: "Editor support",
+              items: [{ text: "Visual Studio Code", link: "/tools/vs-code" }],
+            },
+            {
+              text: "Tools",
+              items: [
+                { text: "duperq", link: "/tools/duperq" },
+                { text: "duperfmt", link: "/tools/duperfmt" },
+              ],
+            },
+            { text: "Specification", link: "/spec" },
           ],
         },
-        {
-          text: "Editor support",
-          items: [{ text: "Visual Studio Code", link: "/vs-code" }],
-        },
-        {
-          text: "Tools",
-          items: [
-            { text: "duperq", link: "/duperq" },
-            { text: "duperfmt", link: "/duperfmt" },
-          ],
-        },
-        { text: "Specification", link: "/spec" },
-      ],
+      },
 
       outline: {
         level: [2, 3],

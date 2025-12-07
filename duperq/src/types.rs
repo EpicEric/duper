@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use duper::DuperValue;
+use duper::{DuperTemporal, DuperValue};
 
 use crate::filter::{DuperFilter, IsTruthyFilter};
 
@@ -39,19 +39,37 @@ impl DuperType {
             (DuperType::Tuple, DuperValue::Tuple { .. }) => Some(value.clone()),
             (DuperType::String, DuperValue::String { .. }) => Some(value.clone()),
             (DuperType::Bytes, DuperValue::Bytes { .. }) => Some(value.clone()),
-            // TO-DO: Validate this
+            (DuperType::TemporalInstant, DuperValue::Temporal(DuperTemporal::Instant { .. })) => {
+                Some(value.clone())
+            }
             (
-                DuperType::TemporalInstant
-                | DuperType::TemporalZonedDateTime
-                | DuperType::TemporalPlainDate
-                | DuperType::TemporalPlainTime
-                | DuperType::TemporalPlainDateTime
-                | DuperType::TemporalPlainYearMonth
-                | DuperType::TemporalPlainMonthDay
-                | DuperType::TemporalDuration
-                | DuperType::TemporalUnspecified,
-                DuperValue::Temporal(_),
+                DuperType::TemporalZonedDateTime,
+                DuperValue::Temporal(DuperTemporal::ZonedDateTime { .. }),
             ) => Some(value.clone()),
+            (
+                DuperType::TemporalPlainDate,
+                DuperValue::Temporal(DuperTemporal::PlainDate { .. }),
+            ) => Some(value.clone()),
+            (
+                DuperType::TemporalPlainTime,
+                DuperValue::Temporal(DuperTemporal::PlainTime { .. }),
+            ) => Some(value.clone()),
+            (
+                DuperType::TemporalPlainDateTime,
+                DuperValue::Temporal(DuperTemporal::PlainDateTime { .. }),
+            ) => Some(value.clone()),
+            (
+                DuperType::TemporalPlainYearMonth,
+                DuperValue::Temporal(DuperTemporal::PlainYearMonth { .. }),
+            ) => Some(value.clone()),
+            (
+                DuperType::TemporalPlainMonthDay,
+                DuperValue::Temporal(DuperTemporal::PlainMonthDay { .. }),
+            ) => Some(value.clone()),
+            (DuperType::TemporalDuration, DuperValue::Temporal(DuperTemporal::Duration { .. })) => {
+                Some(value.clone())
+            }
+            (DuperType::TemporalUnspecified, DuperValue::Temporal(_)) => Some(value.clone()),
             (DuperType::Integer, DuperValue::Integer { .. }) => Some(value.clone()),
             (DuperType::Float, DuperValue::Float { .. }) => Some(value.clone()),
             (DuperType::Number, DuperValue::Integer { .. } | DuperValue::Float { .. }) => {
@@ -182,6 +200,31 @@ impl DuperType {
                 str::from_utf8(bytes.as_ref()).ok().and_then(|string| {
                     DuperValue::try_unspecified_from(None, Cow::Borrowed(string)).ok()
                 })
+            }
+            (DuperType::TemporalInstant, DuperValue::Temporal(temporal)) => {
+                DuperValue::try_instant_from(Cow::Owned(temporal.as_ref().to_string())).ok()
+            }
+            (DuperType::TemporalZonedDateTime, DuperValue::Temporal(temporal)) => {
+                DuperValue::try_zoned_date_time_from(Cow::Owned(temporal.as_ref().to_string())).ok()
+            }
+            (DuperType::TemporalPlainDate, DuperValue::Temporal(temporal)) => {
+                DuperValue::try_plain_date_from(Cow::Owned(temporal.as_ref().to_string())).ok()
+            }
+            (DuperType::TemporalPlainTime, DuperValue::Temporal(temporal)) => {
+                DuperValue::try_plain_time_from(Cow::Owned(temporal.as_ref().to_string())).ok()
+            }
+            (DuperType::TemporalPlainDateTime, DuperValue::Temporal(temporal)) => {
+                DuperValue::try_plain_date_time_from(Cow::Owned(temporal.as_ref().to_string())).ok()
+            }
+            (DuperType::TemporalPlainYearMonth, DuperValue::Temporal(temporal)) => {
+                DuperValue::try_plain_year_month_from(Cow::Owned(temporal.as_ref().to_string()))
+                    .ok()
+            }
+            (DuperType::TemporalPlainMonthDay, DuperValue::Temporal(temporal)) => {
+                DuperValue::try_plain_month_day_from(Cow::Owned(temporal.as_ref().to_string())).ok()
+            }
+            (DuperType::TemporalDuration, DuperValue::Temporal(temporal)) => {
+                DuperValue::try_duration_from(Cow::Owned(temporal.as_ref().to_string())).ok()
             }
             (
                 DuperType::Integer,
