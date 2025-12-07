@@ -1,6 +1,6 @@
 {
   "name": "@duper-js/wasm",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "WebAssembly bindings for Duper, the format that's super!",
   "keywords": [
     "Duper",
