@@ -9,7 +9,7 @@ npm install --save @duper-js/node
 npm install --save @duper-js/wasm
 ```
 
-See [the JavaScript guide](/guide-javascript).
+See [the JavaScript guide](/guide/javascript).
 
 ## .NET / C# (alpha)
 
@@ -17,7 +17,7 @@ See [the JavaScript guide](/guide-javascript).
 dotnet add package EpicEric.Duper
 ```
 
-See [the .NET guide](/guide-dotnet).
+See [the .NET guide](/guide/dotnet).
 
 ## Python
 
@@ -25,7 +25,7 @@ See [the .NET guide](/guide-dotnet).
 uv add duper-python
 ```
 
-See [the Python guide](/guide-python).
+See [the Python guide](/guide/python).
 
 ## Rust
 
@@ -33,4 +33,4 @@ See [the Python guide](/guide-python).
 cargo add serde_duper
 ```
 
-See [the Rust guide](/guide-rust).
+See [the Rust guide](/guide/rust).

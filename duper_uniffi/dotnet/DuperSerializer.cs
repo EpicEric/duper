@@ -668,7 +668,7 @@ public class DuperSerializer
       {
         return new DuperValue.Temporal(identifier, DateOnly.FromDateTime(((DateTimeOffset)value).DateTime).ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture));
       }
-      return new DuperValue.Temporal(identifier ?? "Instant", ((DateTimeOffset)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      return new DuperValue.Temporal("Instant", ((DateTimeOffset)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
     }
     else if (t.IsAssignableTo(typeof(DateTime)))
     {
@@ -688,7 +688,7 @@ public class DuperSerializer
       {
         return new DuperValue.Temporal(identifier, DateOnly.FromDateTime((DateTime)value).ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture));
       }
-      return new DuperValue.Temporal(identifier ?? "PlainDateTime", ((DateTime)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      return new DuperValue.Temporal("PlainDateTime", ((DateTime)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
     }
     else if (t.IsAssignableTo(typeof(DateOnly)))
     {
@@ -700,11 +700,11 @@ public class DuperSerializer
       {
         return new DuperValue.Temporal(identifier, ((DateOnly)value).ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture));
       }
-      return new DuperValue.Temporal(identifier ?? "PlainDate", ((DateOnly)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      return new DuperValue.Temporal("PlainDate", ((DateOnly)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
     }
     else if (t.IsAssignableTo(typeof(TimeOnly)))
     {
-      return new DuperValue.Temporal(identifier ?? "PlainTime", ((TimeOnly)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+      return new DuperValue.Temporal("PlainTime", ((TimeOnly)value).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
     }
     else if (IsTuple(t))
     {

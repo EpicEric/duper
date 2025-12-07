@@ -27,9 +27,9 @@ Duper aims to be a human-friendly extension of JSON with quality-of-life improve
 ## Preliminaries
 
 - Duper is case-sensitive, and files must be a valid UTF-8 encoded Unicode document.
-- "Whitespace" refers to tab (U+0009), space (U+0020), line feed (U+000A), or carriage return (U+000D).
+- "Whitespace" refers to tab (U+0009), space (U+0020), line feed (U+000A), and carriage return (U+000D).
 - "Newline" refers to line feed (U+000A) or carriage return (U+000D).
-- "Control characters other than line feeds" refers to the codepoints U+0000-U+0009, U+000B-U+001F, or U+007F.
+- "Control characters other than line feeds" refers to the codepoints U+0000 through U+0009, U+000B through U+001F, and U+007F.
 - Files must have only one root value. Parsers must always accept objects, arrays, and tuples as the root value. Implementations may allow other values as the root value.
 - JSON values are valid Duper values.
 
@@ -337,7 +337,7 @@ These values may or may not contain an [identifier](#identifiers). In the case w
                                                       // it's a Temporal value. // [!code warning]
 
   // Not allowed
-  missing_offset: Instant('2025-10-31T19:39:02'),  // INVALID // [!code error]
+  wrong_type: Duration('2025-10-31T19:39:02'),  // INVALID // [!code error]
 }
 ```
 
