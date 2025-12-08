@@ -13,7 +13,7 @@ BlogPost({
 # Duper's new superpowers!
 
 <p align="center">
-  <img src="/images/blog/header-duper-s-new-superpowers.webp" alt="The Duper mole, sitting down and reading a paper sheet." />
+  <img src="/images/blog/header-duper-s-new-superpowers.webp" alt="Duper's mascot, a mole with glasses and a flailing cape, turned giant and fighting a dinosaur kaiju over a half-destroyed city." />
 </p>
 
 [Duper's specification version 0.4.1](/spec) has been released, and with it, a plethora of exciting changes have come to the ecosystem!
