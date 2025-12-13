@@ -1,5 +1,7 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
-use duper::{DuperIdentifier, DuperObject, DuperTemporal, DuperValue, visitor::DuperVisitor};
+use duper::{
+    DuperFloat, DuperIdentifier, DuperObject, DuperTemporal, DuperValue, visitor::DuperVisitor,
+};
 use saphyr::{ScalarOwned, ScalarStyle, Tag, YamlOwned};
 
 // A visitor that serializes Duper into a Saphyr YAML value.
@@ -87,9 +89,11 @@ impl DuperVisitor for SaphyrVisitor {
     fn visit_float<'a>(
         &mut self,
         _identifier: Option<&DuperIdentifier<'a>>,
-        float: f64,
+        float: DuperFloat,
     ) -> Self::Value {
-        Ok(YamlOwned::Value(ScalarOwned::FloatingPoint(float.into())))
+        Ok(YamlOwned::Value(ScalarOwned::FloatingPoint(
+            float.into_inner().into(),
+        )))
     }
 
     fn visit_boolean<'a>(

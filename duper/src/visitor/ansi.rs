@@ -3,6 +3,7 @@
 use std::io::{Error, Write};
 
 use crate::{
+    DuperFloat,
     ast::{DuperIdentifier, DuperObject, DuperTemporal, DuperValue},
     format::{
         format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
@@ -397,7 +398,11 @@ impl<'ansi> DuperVisitor for Ansi<'ansi> {
         Ok(())
     }
 
-    fn visit_float(&mut self, identifier: Option<&DuperIdentifier<'_>>, float: f64) -> Self::Value {
+    fn visit_float(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'_>>,
+        float: DuperFloat,
+    ) -> Self::Value {
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
@@ -483,7 +488,7 @@ mod ansi_tests {
     use insta::assert_debug_snapshot;
 
     use super::{ANSI_THEME, Ansi, VSCODE_DARK_PLUS_THEME};
-    use crate::{DuperIdentifier, DuperKey, DuperObject, DuperValue};
+    use crate::{DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperValue};
 
     fn example_value() -> DuperValue<'static> {
         DuperValue::Object {
@@ -524,15 +529,15 @@ mod ansi_tests {
                         inner: vec![
                             DuperValue::Float {
                                 identifier: None,
-                                inner: 18.5,
+                                inner: DuperFloat::assert(18.5),
                             },
                             DuperValue::Float {
                                 identifier: None,
-                                inner: 15.2,
+                                inner: DuperFloat::assert(15.2),
                             },
                             DuperValue::Float {
                                 identifier: None,
-                                inner: 7.8,
+                                inner: DuperFloat::assert(7.8),
                             },
                         ],
                     },
@@ -541,7 +546,7 @@ mod ansi_tests {
                     DuperKey(Cow::Borrowed("weight")),
                     DuperValue::Float {
                         identifier: Some(DuperIdentifier(Cow::Borrowed("Weight"))),
-                        inner: 0.285,
+                        inner: DuperFloat::assert(0.285),
                     },
                 ),
                 (
@@ -646,7 +651,7 @@ mod ansi_tests {
                                 DuperKey(Cow::Borrowed("average")),
                                 DuperValue::Float {
                                     identifier: None,
-                                    inner: 4.5,
+                                    inner: DuperFloat::assert(4.5),
                                 },
                             ),
                             (

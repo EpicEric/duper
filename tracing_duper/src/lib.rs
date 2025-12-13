@@ -66,7 +66,7 @@ use std::{
 
 #[cfg(feature = "chrono")]
 use chrono::{Local, Utc};
-use duper::{DuperIdentifier, DuperKey, DuperObject, DuperValue, Serializer};
+use duper::{DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperValue, Serializer};
 use tracing_core::{Event, Subscriber, field};
 use tracing_subscriber::{Layer, field::VisitOutput, registry::LookupSpan};
 
@@ -661,13 +661,15 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
         if self.values.contains_key(&key) {
             return;
         }
-        self.values.insert(
-            key,
-            DuperValue::Float {
-                identifier: None,
-                inner: value,
-            },
-        );
+        if let Ok(value) = DuperFloat::try_new(value) {
+            self.values.insert(
+                key,
+                DuperValue::Float {
+                    identifier: None,
+                    inner: value,
+                },
+            );
+        }
     }
 
     fn record_i64(&mut self, field: &tracing_core::Field, value: i64) {

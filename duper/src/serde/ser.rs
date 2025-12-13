@@ -3,8 +3,8 @@
 use std::{borrow::Cow, marker::PhantomData};
 
 use crate::{
-    DuperIdentifier, DuperKey, DuperObject, DuperValue, PrettyPrinter as DuperPrettyPrinter,
-    Serializer as DuperSerializer,
+    DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperValue,
+    PrettyPrinter as DuperPrettyPrinter, Serializer as DuperSerializer,
 };
 use serde_core::{Serialize, ser};
 
@@ -155,7 +155,7 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("I128")).expect("valid identifier"),
                 ),
-                inner: float,
+                inner: DuperFloat::assert(float),
             })
         } else {
             Ok(DuperValue::String {
@@ -201,7 +201,7 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("U64")).expect("valid identifier"),
                 ),
-                inner: float,
+                inner: DuperFloat::assert(float),
             })
         } else {
             Ok(DuperValue::String {
@@ -226,7 +226,7 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
                 identifier: Some(
                     DuperIdentifier::try_from(Cow::Borrowed("U128")).expect("valid identifier"),
                 ),
-                inner: float,
+                inner: DuperFloat::assert(float),
             })
         } else {
             Ok(DuperValue::String {
@@ -239,16 +239,15 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
-        Ok(DuperValue::Float {
-            identifier: None,
-            inner: v.into(),
-        })
+        self.serialize_f64(v.into())
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
         Ok(DuperValue::Float {
             identifier: None,
-            inner: v,
+            inner: DuperFloat::try_new(v).map_err(|error| {
+                DuperSerdeError::invalid_value(format!("invalid float: {error:?}"))
+            })?,
         })
     }
 
@@ -349,7 +348,7 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         Ok(Self::SerializeSeq {
             serializer: self,
-            elements: len.map(|len| Vec::with_capacity(len)).unwrap_or_default(),
+            elements: len.map(Vec::with_capacity).unwrap_or_default(),
         })
     }
 
@@ -391,7 +390,7 @@ impl<'ser, 'a> ser::Serializer for &'ser mut Serializer<'a> {
         Ok(Self::SerializeMap {
             serializer: self,
             identifier: None,
-            entries: len.map(|len| Vec::with_capacity(len)).unwrap_or_default(),
+            entries: len.map(Vec::with_capacity).unwrap_or_default(),
             next_key: None,
         })
     }

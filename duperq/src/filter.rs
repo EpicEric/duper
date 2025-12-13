@@ -1,6 +1,7 @@
 use std::{cmp::Ordering, fmt::Display, str::FromStr};
 
-use duper::{DuperTemporal, DuperValue};
+use approx::{abs_diff_eq, abs_diff_ne};
+use duper::{DuperFloat, DuperTemporal, DuperValue};
 use temporal_rs::{
     Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth,
     TemporalError, ZonedDateTime,
@@ -148,7 +149,7 @@ pub(crate) enum EqValue {
     TemporalPlainMonthDay(PlainMonthDay),
     TemporalDuration(Duration),
     Integer(i64),
-    Float(f64, Option<f64>),
+    Float(DuperFloat, Option<DuperFloat>),
     Boolean(bool),
     Null,
 }
@@ -156,7 +157,7 @@ pub(crate) enum EqValue {
 impl EqValue {
     pub(crate) fn try_from_duper(
         value: DuperValue<'_>,
-        epsilon: Option<f64>,
+        epsilon: Option<DuperFloat>,
     ) -> Result<Self, TryFromDuperValueError> {
         match value {
             DuperValue::Object { .. } => Err(TryFromDuperValueError::InvalidType("Object")),
@@ -276,13 +277,21 @@ impl DuperFilter for EqFilter {
             }
             (EqValue::Integer(this), DuperValue::Integer { inner: that, .. }) => this == that,
             (EqValue::Float(this, epsilon), DuperValue::Float { inner: that, .. }) => {
-                (this - that).abs() <= epsilon.unwrap_or(0.0).abs()
+                abs_diff_eq!(
+                    this,
+                    that,
+                    epsilon = epsilon.unwrap_or(DuperFloat::assert(0.0))
+                )
             }
             (EqValue::Integer(this), DuperValue::Float { inner: that, .. }) => {
-                *this == *that as i64
+                *this == *that.as_ref() as i64
             }
             (EqValue::Float(this, epsilon), DuperValue::Integer { inner: that, .. }) => {
-                (this - *that as f64).abs() <= epsilon.unwrap_or(0.0).abs()
+                abs_diff_eq!(
+                    this,
+                    &DuperFloat::assert(*that as f64),
+                    epsilon = epsilon.unwrap_or(DuperFloat::assert(0.0))
+                )
             }
             (EqValue::Boolean(this), DuperValue::Boolean { inner: that, .. }) => this == that,
             (EqValue::Null, DuperValue::Null { .. }) => true,
@@ -370,13 +379,21 @@ impl DuperFilter for NeFilter {
             }
             (EqValue::Integer(this), DuperValue::Integer { inner: that, .. }) => this != that,
             (EqValue::Float(this, epsilon), DuperValue::Float { inner: that, .. }) => {
-                (this - that).abs() > epsilon.unwrap_or(0.0).abs()
+                abs_diff_ne!(
+                    this,
+                    that,
+                    epsilon = epsilon.unwrap_or(DuperFloat::assert(0.0))
+                )
             }
             (EqValue::Integer(this), DuperValue::Float { inner: that, .. }) => {
-                *this != *that as i64
+                *this != *that.as_ref() as i64
             }
             (EqValue::Float(this, epsilon), DuperValue::Integer { inner: that, .. }) => {
-                (this - *that as f64).abs() > epsilon.unwrap_or(0.0).abs()
+                abs_diff_ne!(
+                    this,
+                    &DuperFloat::assert(*that as f64),
+                    epsilon = epsilon.unwrap_or(DuperFloat::assert(0.0))
+                )
             }
             (EqValue::Boolean(this), DuperValue::Boolean { inner: that, .. }) => this != that,
             (EqValue::Null, DuperValue::Null { .. }) => false,
@@ -395,7 +412,7 @@ pub(crate) enum CmpValue {
     TemporalPlainYearMonth(PlainYearMonth),
     TemporalDuration(Duration),
     Integer(i64),
-    Float(f64),
+    Float(DuperFloat),
 }
 
 impl TryFrom<DuperValue<'_>> for CmpValue {
@@ -507,13 +524,13 @@ macro_rules! cmp_filter {
                         matches!(that.cmp(this), $ord)
                     }
                     (CmpValue::Float(this), DuperValue::Float { inner: that, .. }) => {
-                        matches!(that.partial_cmp(this), Some($ord))
+                        matches!(that.cmp(this), $ord)
                     }
                     (CmpValue::Integer(this), DuperValue::Float { inner: that, .. }) => {
-                        matches!((*that as i64).cmp(this), $ord)
+                        matches!((*that.as_ref() as i64).cmp(this), $ord)
                     }
                     (CmpValue::Float(this), DuperValue::Integer { inner: that, .. }) => {
-                        matches!((*that as f64).partial_cmp(this), Some($ord))
+                        matches!(DuperFloat::assert(*that as f64).cmp(this), $ord)
                     }
                     _ => false,
                 }

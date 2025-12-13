@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use duper::{DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperValue};
+use duper::{DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperValue};
 
 use crate::{DuperError, DuperObjectEntry, DuperValue as Value};
 
@@ -74,7 +74,7 @@ impl Value {
             }),
             Value::Float { identifier, value } => Ok(DuperValue::Float {
                 identifier: identifier.map(DuperIdentifier::try_from).transpose()?,
-                inner: value,
+                inner: DuperFloat::try_new(value)?,
             }),
             Value::Boolean { identifier, value } => Ok(DuperValue::Boolean {
                 identifier: identifier.map(DuperIdentifier::try_from).transpose()?,

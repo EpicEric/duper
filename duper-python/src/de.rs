@@ -1,4 +1,4 @@
-use duper::{DuperTemporal, visitor::DuperVisitor};
+use duper::{DuperFloat, DuperTemporal, visitor::DuperVisitor};
 use pyo3::{IntoPyObjectExt, prelude::*, types::*};
 
 use crate::{Duper, temporal::TemporalString};
@@ -150,10 +150,10 @@ impl<'py> DuperVisitor for Visitor<'py> {
     fn visit_float<'a>(
         &mut self,
         identifier: Option<&duper::DuperIdentifier<'a>>,
-        float: f64,
+        float: DuperFloat,
     ) -> Self::Value {
         Ok(VisitorValue {
-            value: PyFloat::new(self.py, float).into_any(),
+            value: PyFloat::new(self.py, float.into_inner()).into_any(),
             duper: identifier
                 .map(|identifier| Duper::from_identifier(identifier)?.into_pyobject(self.py))
                 .transpose()?,

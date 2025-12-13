@@ -2,7 +2,8 @@ use std::borrow::Cow;
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use duper::{
-    DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperValue, visitor::DuperVisitor,
+    DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperValue,
+    visitor::DuperVisitor,
 };
 
 // A visitor that simplifies Duper values for Serde serializers.
@@ -101,7 +102,7 @@ impl DuperVisitor for SerdeVisitor {
     fn visit_float<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        float: f64,
+        float: DuperFloat,
     ) -> Self::Value {
         DuperValue::Float {
             identifier: identifier.map(|identifier| identifier.static_clone()),

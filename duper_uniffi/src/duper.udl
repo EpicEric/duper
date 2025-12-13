@@ -24,6 +24,7 @@ enum DuperError {
   "InvalidIdentifier",
   "InvalidObject",
   "InvalidTemporal",
+  "InvalidFloat",
 };
 
 dictionary SerializeOptions {

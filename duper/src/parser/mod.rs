@@ -8,6 +8,7 @@ use chumsky::prelude::*;
 pub(crate) mod temporal;
 
 use crate::{
+    DuperFloat,
     ast::{DuperIdentifier, DuperKey, DuperObject, DuperValue},
     escape::{unescape_bytes, unescape_str},
     parser::temporal::{temporal_specified, temporal_unspecified},
@@ -198,9 +199,9 @@ pub fn identified_value<'a>()
                 identifier: None,
                 inner: Cow::Borrowed(str),
             }),
-            float().map(|inner| DuperValue::Float {
+            float().map(|float| DuperValue::Float {
                 identifier: None,
-                inner,
+                inner: DuperFloat::assert(float),
             }),
             integer().map(|inner| DuperValue::Integer {
                 identifier: None,
@@ -650,8 +651,8 @@ pub(crate) fn control_character<'a>()
 #[cfg(test)]
 mod duper_parser_tests {
     use crate::{
-        DuperIdentifier, DuperKey, DuperObject, DuperParser, DuperTemporal, DuperTemporalInstant,
-        DuperValue,
+        DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperParser, DuperTemporal,
+        DuperTemporalInstant, DuperValue,
     };
 
     #[test]
@@ -1446,15 +1447,15 @@ mod duper_parser_tests {
                             inner: vec![
                                 DuperValue::Float {
                                     identifier: None,
-                                    inner: 18.5
+                                    inner: DuperFloat::assert(18.5)
                                 },
                                 DuperValue::Float {
                                     identifier: None,
-                                    inner: 15.2
+                                    inner: DuperFloat::assert(15.2)
                                 },
                                 DuperValue::Float {
                                     identifier: None,
-                                    inner: 7.8
+                                    inner: DuperFloat::assert(7.8)
                                 },
                             ],
                         }
@@ -1463,7 +1464,7 @@ mod duper_parser_tests {
                         DuperKey(Cow::Borrowed("weight")),
                         DuperValue::Float {
                             identifier: Some(DuperIdentifier(Cow::Borrowed("Weight"))),
-                            inner: 0.285
+                            inner: DuperFloat::assert(0.285)
                         }
                     ),
                     (
@@ -1570,7 +1571,7 @@ mod duper_parser_tests {
                                     DuperKey(Cow::Borrowed("average")),
                                     DuperValue::Float {
                                         identifier: None,
-                                        inner: 4.5,
+                                        inner: DuperFloat::assert(4.5),
                                     }
                                 ),
                                 (

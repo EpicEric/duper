@@ -14,6 +14,8 @@ use crate::{
     visitor::DuperVisitor,
 };
 
+pub type DuperFloat = decorum::R64<decorum::divergence::OrError>;
+
 /// A Duper identifier: `MyIdentifier(...)`
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct DuperIdentifier<'a>(pub(crate) Cow<'a, str>);
@@ -70,7 +72,7 @@ pub enum DuperValue<'a> {
         /// The identifier of this value.
         identifier: Option<DuperIdentifier<'a>>,
         /// The actual value of the float.
-        inner: f64,
+        inner: DuperFloat,
     },
     /// A boolean.
     Boolean {

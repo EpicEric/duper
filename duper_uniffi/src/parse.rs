@@ -1,4 +1,4 @@
-use duper::{DuperIdentifier, DuperObject, DuperTemporal, visitor::DuperVisitor};
+use duper::{DuperFloat, DuperIdentifier, DuperObject, DuperTemporal, visitor::DuperVisitor};
 
 use crate::{DuperObjectEntry, DuperValue};
 
@@ -100,11 +100,11 @@ impl DuperVisitor for UniffiVisitor {
     fn visit_float<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        float: f64,
+        float: DuperFloat,
     ) -> Self::Value {
         DuperValue::Float {
             identifier: identifier.map(|identifier| identifier.as_ref().to_string()),
-            value: float,
+            value: float.into_inner(),
         }
     }
 

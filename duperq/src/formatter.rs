@@ -1,7 +1,7 @@
 // duperq 'span.tagged && span[0]name == sp0001 | "[${level}] ${span[0]time} - ${span[0]status} ${telemetry.duration:ms}"'
 
 use duper::{
-    DuperIdentifier, DuperObject, DuperTemporal, DuperValue,
+    DuperFloat, DuperIdentifier, DuperObject, DuperTemporal, DuperValue,
     format::{
         format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
         format_key, format_null, format_temporal,
@@ -217,7 +217,11 @@ impl DuperVisitor for FormatterVisitor {
         }
     }
 
-    fn visit_float(&mut self, identifier: Option<&DuperIdentifier<'_>>, float: f64) -> Self::Value {
+    fn visit_float(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'_>>,
+        float: DuperFloat,
+    ) -> Self::Value {
         if let Some(identifier) = identifier {
             let value = format_float(float);
             self.buf.push_str(&format!("{identifier}({value})"));

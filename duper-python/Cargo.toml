@@ -1,7 +1,7 @@
 [package]
 name = "duper-python"
 description = "The format that's super!"
-version = "0.4.2"
+version = "0.4.3"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"

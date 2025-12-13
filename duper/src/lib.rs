@@ -35,6 +35,8 @@
 //!   for use with [`axum`](https://docs.rs/axum).
 //!
 
+pub use decorum::constraint::NotRealError;
+
 pub mod ast;
 pub mod escape;
 pub mod format;
@@ -45,8 +47,8 @@ pub mod validate;
 pub mod visitor;
 
 pub use ast::{
-    DuperIdentifier, DuperIdentifierTryFromError, DuperKey, DuperObject, DuperObjectTryFromError,
-    DuperTemporal, DuperTemporalDuration, DuperTemporalIdentifier,
+    DuperFloat, DuperIdentifier, DuperIdentifierTryFromError, DuperKey, DuperObject,
+    DuperObjectTryFromError, DuperTemporal, DuperTemporalDuration, DuperTemporalIdentifier,
     DuperTemporalIdentifierTryFromError, DuperTemporalInstant, DuperTemporalPlainDate,
     DuperTemporalPlainDateTime, DuperTemporalPlainMonthDay, DuperTemporalPlainTime,
     DuperTemporalPlainYearMonth, DuperTemporalTryFromError, DuperTemporalUnspecified,

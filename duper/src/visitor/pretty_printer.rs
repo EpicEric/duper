@@ -1,6 +1,7 @@
 //! Utilities for pretty-printing Duper values.
 
 use crate::{
+    DuperFloat,
     ast::{DuperIdentifier, DuperObject, DuperTemporal, DuperValue},
     format::{
         format_boolean, format_duper_bytes, format_duper_string, format_float, format_integer,
@@ -287,7 +288,11 @@ impl<'pp> DuperVisitor for PrettyPrinter<'pp> {
         }
     }
 
-    fn visit_float(&mut self, identifier: Option<&DuperIdentifier<'_>>, float: f64) -> Self::Value {
+    fn visit_float(
+        &mut self,
+        identifier: Option<&DuperIdentifier<'_>>,
+        float: DuperFloat,
+    ) -> Self::Value {
         if !self.strip_identifiers
             && let Some(identifier) = identifier
         {
@@ -333,7 +338,9 @@ mod pretty_printer_tests {
     use insta::assert_snapshot;
 
     use super::PrettyPrinter;
-    use crate::{DuperIdentifier, DuperKey, DuperObject, DuperValue, parser::DuperParser};
+    use crate::{
+        DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperValue, parser::DuperParser,
+    };
 
     #[test]
     fn empty_object() {
@@ -608,7 +615,7 @@ mod pretty_printer_tests {
                                     DuperIdentifier::try_from(Cow::Borrowed("Float"))
                                         .expect("valid identifier"),
                                 ),
-                                inner: 4.2,
+                                inner: DuperFloat::assert(4.2),
                             },
                             DuperValue::Boolean {
                                 identifier: Some(

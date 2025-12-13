@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Bump `duper_lsp` to 0.1.3.
+
 ## 0.5.2 (2025-12-07)
 
 - Bump `duper_lsp` to 0.1.2.

@@ -41,9 +41,9 @@ struct Cli {
 #[derive(Error, Debug, Diagnostic)]
 struct TreeSitterReport {
     #[source_code]
-    src: NamedSource<String>,
+    _src: NamedSource<String>,
     #[label(collection)]
-    reports: Vec<LabeledSpan>,
+    _reports: Vec<LabeledSpan>,
 }
 
 impl Display for TreeSitterReport {
@@ -129,8 +129,8 @@ fn main() -> miette::Result<()> {
     }
     if !reports.is_empty() {
         return Err(TreeSitterReport {
-            src: NamedSource::new(src, input),
-            reports,
+            _src: NamedSource::new(src, input),
+            _reports: reports,
         }
         .into());
     }

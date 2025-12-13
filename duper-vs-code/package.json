@@ -2,7 +2,7 @@
   "name": "duper-vs-code",
   "displayName": "Duper",
   "description": "Duper support for Visual Studio Code",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "publisher": "epic-eric",
   "homepage": "https://duper.dev.br",
   "bugs": {

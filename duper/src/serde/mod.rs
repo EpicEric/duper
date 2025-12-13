@@ -22,7 +22,8 @@ use serde_core::{
 };
 
 use crate::{
-    DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperTemporalIdentifier, DuperValue,
+    DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperTemporalIdentifier,
+    DuperValue,
 };
 
 impl<'a> Serialize for DuperIdentifier<'a> {
@@ -102,7 +103,7 @@ impl<'a> Serialize for DuperValue<'a> {
                 }
             },
             DuperValue::Integer { inner, .. } => serializer.serialize_i64(*inner),
-            DuperValue::Float { inner, .. } => serializer.serialize_f64(*inner),
+            DuperValue::Float { inner, .. } => serializer.serialize_f64(*inner.as_ref()),
             DuperValue::Boolean { inner, .. } => serializer.serialize_bool(*inner),
             DuperValue::Null { .. } => serializer.serialize_none(),
         }
@@ -169,7 +170,7 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
                             DuperIdentifier::try_from(Cow::Borrowed("I128"))
                                 .expect("valid identifier"),
                         ),
-                        inner: float,
+                        inner: DuperFloat::assert(float),
                     })
                 } else {
                     Ok(DuperValue::String {
@@ -220,7 +221,7 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
                             DuperIdentifier::try_from(Cow::Borrowed("U64"))
                                 .expect("valid identifier"),
                         ),
-                        inner: float,
+                        inner: DuperFloat::assert(float),
                     })
                 } else {
                     Ok(DuperValue::String {
@@ -250,7 +251,7 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
                             DuperIdentifier::try_from(Cow::Borrowed("U128"))
                                 .expect("valid identifier"),
                         ),
-                        inner: float,
+                        inner: DuperFloat::assert(float),
                     })
                 } else {
                     Ok(DuperValue::String {
@@ -269,7 +270,9 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             {
                 Ok(DuperValue::Float {
                     identifier: None,
-                    inner: v,
+                    inner: DuperFloat::try_new(v).map_err(|error| {
+                        serde_core::de::Error::custom(format!("invalid float: {error:?}",))
+                    })?,
                 })
             }
 
@@ -362,10 +365,7 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             where
                 A: SeqAccess<'de>,
             {
-                let mut vec = seq
-                    .size_hint()
-                    .map(|len| Vec::with_capacity(len))
-                    .unwrap_or_default();
+                let mut vec = seq.size_hint().map(Vec::with_capacity).unwrap_or_default();
                 while let Some(element) = seq.next_element()? {
                     vec.push(element);
                 }
@@ -379,10 +379,7 @@ impl<'de> Deserialize<'de> for DuperValue<'de> {
             where
                 A: MapAccess<'de>,
             {
-                let mut vec = map
-                    .size_hint()
-                    .map(|len| Vec::with_capacity(len))
-                    .unwrap_or_default();
+                let mut vec = map.size_hint().map(Vec::with_capacity).unwrap_or_default();
                 while let Some(element) = map.next_entry()? {
                     vec.push(element);
                 }
@@ -486,7 +483,7 @@ mod serde_tests {
     use serde::{Deserialize, Serialize};
 
     use crate::{
-        DuperIdentifier, DuperKey, DuperObject, DuperValue, PrettyPrinter,
+        DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperValue, PrettyPrinter,
         serde::{de::Deserializer, ser::Serializer},
     };
 
@@ -623,7 +620,7 @@ mod serde_tests {
                     DuperKey::from("float"),
                     DuperValue::Float {
                         identifier: None,
-                        inner: 8.25,
+                        inner: DuperFloat::assert(8.25),
                     },
                 ),
                 (
@@ -680,7 +677,7 @@ mod serde_tests {
                         DuperKey::from("float"),
                         DuperValue::Float {
                             identifier: None,
-                            inner: 8.25,
+                            inner: DuperFloat::assert(8.25),
                         },
                     ),
                     (
@@ -727,7 +724,7 @@ mod serde_tests {
                     identifier: Some(
                         DuperIdentifier::try_from("MyFloat").expect("valid identifier"),
                     ),
-                    inner: 8.25,
+                    inner: DuperFloat::assert(8.25),
                 },
                 DuperValue::Boolean {
                     identifier: Some(
@@ -768,7 +765,7 @@ mod serde_tests {
                     },
                     DuperValue::Float {
                         identifier: None,
-                        inner: 8.25,
+                        inner: DuperFloat::assert(8.25),
                     },
                     DuperValue::Boolean {
                         identifier: None,

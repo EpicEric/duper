@@ -12,7 +12,7 @@ use serde_core::{
 };
 
 use crate::{
-    DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperValue,
+    DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperTemporal, DuperValue,
     serde::error::DuperSerdeError,
 };
 
@@ -271,7 +271,7 @@ enum DeDuperInner<'b> {
     Bytes(Cow<'b, [u8]>),
     Temporal(DeDuperTemporal<'b>),
     Integer(i64),
-    Float(f64),
+    Float(DuperFloat),
     Boolean(bool),
     Null,
 }
@@ -637,7 +637,7 @@ impl<'de> Visitor<'de> for DeDuperInnerVisitor {
         } else if let float = v as f64
             && float as i128 == v
         {
-            Ok(DeDuperInner::Float(float))
+            Ok(DeDuperInner::Float(DuperFloat::assert(float)))
         } else {
             Ok(DeDuperInner::String(Cow::Owned(v.to_string())))
         }
@@ -673,7 +673,7 @@ impl<'de> Visitor<'de> for DeDuperInnerVisitor {
         } else if let float = v as f64
             && float as u64 == v
         {
-            Ok(DeDuperInner::Float(float))
+            Ok(DeDuperInner::Float(DuperFloat::assert(float)))
         } else {
             Ok(DeDuperInner::String(Cow::Owned(v.to_string())))
         }
@@ -688,7 +688,7 @@ impl<'de> Visitor<'de> for DeDuperInnerVisitor {
         } else if let float = v as f64
             && float as u128 == v
         {
-            Ok(DeDuperInner::Float(float))
+            Ok(DeDuperInner::Float(DuperFloat::assert(float)))
         } else {
             Ok(DeDuperInner::String(Cow::Owned(v.to_string())))
         }
@@ -698,7 +698,9 @@ impl<'de> Visitor<'de> for DeDuperInnerVisitor {
     where
         E: Error,
     {
-        Ok(DeDuperInner::Float(v))
+        Ok(DeDuperInner::Float(DuperFloat::try_new(v).map_err(
+            |error| serde_core::de::Error::custom(format!("invalid float: {error:?}",)),
+        )?))
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
@@ -775,10 +777,7 @@ impl<'de> Visitor<'de> for DeDuperInnerVisitor {
     where
         A: SeqAccess<'de>,
     {
-        let mut vec = seq
-            .size_hint()
-            .map(|len| Vec::with_capacity(len))
-            .unwrap_or_default();
+        let mut vec = seq.size_hint().map(Vec::with_capacity).unwrap_or_default();
         while let Some(element) = seq.next_element()? {
             vec.push(element);
         }
@@ -789,10 +788,7 @@ impl<'de> Visitor<'de> for DeDuperInnerVisitor {
     where
         A: MapAccess<'de>,
     {
-        let mut vec = map
-            .size_hint()
-            .map(|len| Vec::with_capacity(len))
-            .unwrap_or_default();
+        let mut vec = map.size_hint().map(Vec::with_capacity).unwrap_or_default();
         while let Some(element) = map.next_entry()? {
             vec.push(element);
         }
@@ -1126,7 +1122,7 @@ mod serde_meta_tests {
     use insta::assert_snapshot;
 
     use crate::{
-        DuperIdentifier, DuperKey, DuperObject, DuperValue, PrettyPrinter,
+        DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperValue, PrettyPrinter,
         serde::{de::Deserializer, ser::Serializer},
     };
 
@@ -1295,7 +1291,7 @@ mod serde_meta_tests {
                     DuperKey::from("float"),
                     DuperValue::Float {
                         identifier: None,
-                        inner: 8.25,
+                        inner: DuperFloat::assert(8.25),
                     },
                 ),
                 (
@@ -1352,7 +1348,7 @@ mod serde_meta_tests {
                     identifier: Some(
                         DuperIdentifier::try_from("MyFloat").expect("valid identifier"),
                     ),
-                    inner: 8.25,
+                    inner: DuperFloat::assert(8.25),
                 },
                 DuperValue::Boolean {
                     identifier: Some(

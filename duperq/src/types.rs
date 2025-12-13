@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use duper::{DuperTemporal, DuperValue};
+use duper::{DuperFloat, DuperTemporal, DuperValue};
 
 use crate::filter::{DuperFilter, IsTruthyFilter};
 
@@ -234,7 +234,7 @@ impl DuperType {
                 },
             ) => Some(DuperValue::Integer {
                 identifier: identifier.clone(),
-                inner: *float as i64,
+                inner: *float.as_ref() as i64,
             }),
             (
                 DuperType::Float,
@@ -244,7 +244,7 @@ impl DuperType {
                 },
             ) => Some(DuperValue::Float {
                 identifier: identifier.clone(),
-                inner: *integer as f64,
+                inner: DuperFloat::try_new(*integer as f64).ok()?,
             }),
             (DuperType::Boolean, value) => Some(DuperValue::Boolean {
                 identifier: value.identifier(),

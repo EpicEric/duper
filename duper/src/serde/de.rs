@@ -179,7 +179,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
                     .deserialize_any(visitor)
             }
             Some(DuperValue::Integer { inner: integer, .. }) => visitor.visit_i64(integer),
-            Some(DuperValue::Float { inner: float, .. }) => visitor.visit_f64(float),
+            Some(DuperValue::Float { inner: float, .. }) => visitor.visit_f64(float.into_inner()),
             Some(DuperValue::Boolean { inner: boolean, .. }) => visitor.visit_bool(boolean),
             Some(DuperValue::Null { .. }) => visitor.visit_none(),
             None => Err(de::Error::custom("already consumed deserializer value")),

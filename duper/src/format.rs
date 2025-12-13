@@ -5,6 +5,7 @@ use std::borrow::Cow;
 use base64::{Engine, prelude::BASE64_STANDARD};
 
 use crate::{
+    DuperFloat,
     ast::DuperKey,
     escape::{escape_bytes, escape_str, is_invisible_unicode},
 };
@@ -181,27 +182,27 @@ pub fn format_duper_bytes(bytes: &[u8]) -> String {
     }
 }
 
-// Format a Temporal value for Duper.
+/// Format a Temporal value for Duper.
 pub fn format_temporal(temporal: impl AsRef<str>) -> String {
     format!("'{}'", temporal.as_ref().trim())
 }
 
-// Format an integer for Duper.
+/// Format an integer for Duper.
 pub fn format_integer(integer: i64) -> String {
     integer.to_string()
 }
 
-// Format a float for Duper.
-pub fn format_float(float: f64) -> String {
-    ryu::Buffer::new().format(float).into()
+/// Format a float for Duper.
+pub fn format_float(float: DuperFloat) -> String {
+    ryu::Buffer::new().format(float.into_inner()).into()
 }
 
-// Format a boolean for Duper.
+/// Format a boolean for Duper.
 pub fn format_boolean(bool: bool) -> &'static str {
     if bool { "true" } else { "false" }
 }
 
-// Format a null value for Duper.
+/// Format a null value for Duper.
 pub fn format_null() -> &'static str {
     "null"
 }

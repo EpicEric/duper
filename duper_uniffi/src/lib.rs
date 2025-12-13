@@ -67,6 +67,8 @@ pub enum DuperError {
     InvalidObject(#[from] DuperObjectTryFromError<'static>),
     #[error("Temporal error: {0}")]
     InvalidTemporal(#[from] DuperTemporalTryFromError<'static>),
+    #[error("Invalid float: {0}")]
+    InvalidFloat(#[from] duper::NotRealError),
 }
 
 pub fn parse(input: &str, parse_any: bool) -> Result<DuperValue, DuperError> {

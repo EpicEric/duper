@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use duper::{DuperIdentifier, DuperKey, DuperObject, DuperValue};
+use duper::{DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperValue};
 use pyo3::{BoundObject, exceptions::PyValueError, prelude::*, types::*};
 
 use well_known_type::WellKnownType;
@@ -79,7 +79,9 @@ pub(crate) fn serialize_pyany<'py>(obj: Bound<'py, PyAny>) -> PyResult<DuperValu
     } else if obj.is_instance_of::<PyFloat>() {
         Ok(DuperValue::Float {
             identifier: None,
-            inner: obj.extract()?,
+            inner: DuperFloat::try_new(obj.extract::<f64>()?).map_err(|error| {
+                PyErr::new::<PyValueError, String>(format!("Invalid float: {error:?}"))
+            })?,
         })
     } else if obj.is_none() {
         Ok(DuperValue::Null { identifier: None })

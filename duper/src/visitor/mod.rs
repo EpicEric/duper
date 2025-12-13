@@ -5,7 +5,10 @@ pub mod ansi;
 pub mod pretty_printer;
 pub mod serializer;
 
-use crate::{DuperIdentifier, DuperTemporal, DuperValue, ast::DuperObject};
+use crate::{
+    DuperIdentifier, DuperTemporal, DuperValue,
+    ast::{DuperFloat, DuperObject},
+};
 
 /// A trait for implementing a Duper visitor. You can visit a `DuperValue`
 /// with `value.accept(&mut visitor)`.
@@ -17,6 +20,7 @@ use crate::{DuperIdentifier, DuperTemporal, DuperValue, ast::DuperObject};
 ///     DuperIdentifier, DuperObject, DuperTemporal,
 ///     DuperValue, visitor::DuperVisitor,
 /// };
+/// # use duper::DuperFloat;
 ///
 /// struct MyVisitor;
 ///
@@ -54,42 +58,35 @@ use crate::{DuperIdentifier, DuperTemporal, DuperValue, ast::DuperObject};
 ///     #     identifier: Option<&DuperIdentifier<'a>>,
 ///     #     tuple: &[DuperValue<'a>],
 ///     # ) -> Self::Value {}
-///     #
 ///     # fn visit_string<'a>(
 ///     #     &mut self,
 ///     #     identifier: Option<&DuperIdentifier<'a>>,
 ///     #     string: &'a str,
 ///     # ) -> Self::Value {}
-///     #
 ///     # fn visit_bytes<'a>(
 ///     #     &mut self,
 ///     #     identifier: Option<&DuperIdentifier<'a>>,
 ///     #     bytes: &'a [u8],
 ///     # ) -> Self::Value {}
-///     #
 ///     # fn visit_temporal<'a>(
 ///     #     &mut self,
 ///     #     temporal: &DuperTemporal<'a>,
 ///     # ) -> Self::Value {}
-///     #
 ///     # fn visit_integer<'a>(
 ///     #     &mut self,
 ///     #     identifier: Option<&DuperIdentifier<'a>>,
 ///     #     integer: i64,
 ///     # ) -> Self::Value {}
-///     #
 ///     # fn visit_float<'a>(
 ///     #     &mut self,
 ///     #     identifier: Option<&DuperIdentifier<'a>>,
-///     #     float: f64,
+///     #     float: DuperFloat,
 ///     # ) -> Self::Value {}
-///     #
 ///     # fn visit_boolean<'a>(
 ///     #     &mut self,
 ///     #     identifier: Option<&DuperIdentifier<'a>>,
 ///     #     boolean: bool,
 ///     # ) -> Self::Value {}
-///     #
 ///     # fn visit_null<'a>(
 ///     #     &mut self,
 ///     #     identifier: Option<&DuperIdentifier<'a>>
@@ -149,7 +146,7 @@ pub trait DuperVisitor {
     fn visit_float<'a>(
         &mut self,
         identifier: Option<&DuperIdentifier<'a>>,
-        float: f64,
+        float: DuperFloat,
     ) -> Self::Value;
 
     /// Visits a boolean.

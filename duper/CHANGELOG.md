@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Breaking:** Force real values for floats.
+
 ## 0.5.0 (2025-12-07)
 
 ### Added

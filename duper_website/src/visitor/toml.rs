@@ -1,7 +1,9 @@
 use std::str::FromStr;
 
 use base64::{Engine, prelude::BASE64_STANDARD};
-use duper::{DuperIdentifier, DuperObject, DuperTemporal, DuperValue, visitor::DuperVisitor};
+use duper::{
+    DuperFloat, DuperIdentifier, DuperObject, DuperTemporal, DuperValue, visitor::DuperVisitor,
+};
 use toml::{Value, value::Datetime};
 
 use crate::temporal::{Instant, PlainDate, PlainDateTime, PlainTime};
@@ -124,9 +126,9 @@ impl DuperVisitor for TomlVisitor {
     fn visit_float<'a>(
         &mut self,
         _identifier: Option<&DuperIdentifier<'a>>,
-        float: f64,
+        float: DuperFloat,
     ) -> Self::Value {
-        Ok(Some(Value::Float(float)))
+        Ok(Some(Value::Float(float.into_inner())))
     }
 
     fn visit_boolean<'a>(
