@@ -50,6 +50,7 @@ See [the specification](https://duper.dev.br/spec.html) for more details.
   - Libraries
     - [`serde_duper`](./serde_duper/): Adds Duper-specific support for extra types for use with Serde, including a proc-macro via [`serde_duper_macros`](./serde_duper_macros/).
     - [`axum_duper`](./axum_duper/): Axum support for Duper requests and responses.
+    - [`tracing_duper`](./tracing_duper/): A tracing layer for Duper.
   - Bindings
     - [`duper-python`](./duper-python/): Python bindings using PyO3, including Pydantic and FastAPI support.
     - [`duper-js-node`](./duper-js-node/): Node.JS bindings using NAPI-RS.
