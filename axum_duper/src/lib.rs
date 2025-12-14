@@ -18,8 +18,11 @@ use serde_core::{Serialize, de::DeserializeOwned};
 
 /// Default MIME type for Duper files.
 pub static DUPER_CONTENT_TYPE: &str = "application/duper";
-/// Alternative MIME type for Duper files.
+/// Alternative MIME type for Duper files, handled by the Duper extractor.
 pub static DUPER_ALT_CONTENT_TYPE: &str = "application/x-duper";
+/// Default MIME type for JSON files, handled by the Duper extractor (given
+/// that Duper is a superset of JSON).
+pub static JSON_CONTENT_TYPE: &str = "application/json";
 
 /// Rejection used for [`Duper`].
 ///
@@ -168,15 +171,23 @@ where
             .headers()
             .get(CONTENT_TYPE)
             .and_then(|content_type| content_type.to_str().ok())
-            && (content_type == DUPER_CONTENT_TYPE || content_type == DUPER_ALT_CONTENT_TYPE)
         {
-            let string = String::from_request(req, state)
-                .await
-                .map_err(|_| DuperRejection::DuperDataError)?;
-            Self::from_string(&string)
-        } else {
-            Err(DuperRejection::MissingDuperContentType)
+            let content_type = if let Some((content_type, _)) = content_type.split_once(';') {
+                content_type
+            } else {
+                content_type
+            };
+            if content_type == DUPER_CONTENT_TYPE
+                || content_type == DUPER_ALT_CONTENT_TYPE
+                || content_type == JSON_CONTENT_TYPE
+            {
+                let string = String::from_request(req, state)
+                    .await
+                    .map_err(|_| DuperRejection::DuperDataError)?;
+                return Self::from_string(&string);
+            }
         }
+        Err(DuperRejection::MissingDuperContentType)
     }
 }
 

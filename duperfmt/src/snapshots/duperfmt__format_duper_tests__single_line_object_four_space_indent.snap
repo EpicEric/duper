@@ -1,0 +1,5 @@
+---
+source: duperfmt/src/lib.rs
+expression: "String::from_utf8(output).unwrap()"
+---
+{level: "WARN", timestamp: Instant('2025-12-04T13:29:33.947380870-03:00'), target: "simple", span: {count: 10, span_id: 1}, spans: [{count: 10, span_id: 1}], fields: {message: "too few gifts... try again later"}}
