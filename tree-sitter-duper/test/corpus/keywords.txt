@@ -1,0 +1,32 @@
+==================
+True
+==================
+
+true
+
+---
+
+(duper_value
+  (boolean))
+
+==================
+False
+==================
+
+false
+
+---
+
+(duper_value
+  (boolean))
+
+==================
+Null value
+==================
+
+null
+
+---
+
+(duper_value
+  (null))

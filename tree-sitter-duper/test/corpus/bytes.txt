@@ -1,41 +1,40 @@
 ==================
-Basic string
+Quoted bytes
 ==================
 
-"hello"
+b"\x1b\t\x00"
 
 ---
 
 (duper_value
-  (string
-    (quoted_string
+  (bytes
+    (quoted_bytes
       (quoted_content))))
 
 ==================
-Raw string
+Raw bytes
 ==================
 
-r"I am
-powerful"
+br"¯\_(ツ)_/¯"
 
 ---
 
 (duper_value
-  (string
-    (raw_string
+  (bytes
+    (raw_bytes
       (raw_start)
       (raw_content)
       (raw_end))))
 
 ==================
-Two slashes in string
+Base64 bytes
 ==================
 
-"//"
+b64"RHVwZXI"
 
 ---
 
 (duper_value
-  (string
-    (quoted_string
-      (quoted_content))))
+  (bytes
+    (base64_bytes
+      (base64_content))))

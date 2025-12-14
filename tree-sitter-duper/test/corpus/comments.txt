@@ -1,0 +1,30 @@
+==================
+Line comment before
+==================
+
+// Line comment
+12_000
+
+---
+
+(duper_value
+  (line_comment)
+  (integer
+    (decimal_integer)))
+
+==================
+Block comment after
+==================
+
+"foo"
+/*
+  Block comment
+*/
+
+---
+
+(duper_value
+  (string
+    (quoted_string
+      (quoted_content)))
+  (block_comment))

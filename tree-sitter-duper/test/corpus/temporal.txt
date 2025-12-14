@@ -1,0 +1,39 @@
+==================
+Full extension
+==================
+
+ZonedDateTime('2022-02-28T11:06:00.092121729+08:00[Asia/Shanghai][u-ca=chinese]')
+
+---
+
+(duper_value
+  (identified_value
+    (identifier)
+    (temporal
+      (temporal_content))))
+
+==================
+Whitespace padding
+==================
+
+'  2022-02-28T03:06:00.092121729+02:00  '
+
+---
+
+(duper_value
+  (temporal
+    (temporal_content)))
+
+==================
+Unknown identifier
+==================
+
+UnknownIdent('--11-03')
+
+---
+
+(duper_value
+  (identified_value
+    (identifier)
+    (temporal
+      (temporal_content))))

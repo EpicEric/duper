@@ -1,0 +1,118 @@
+==================
+Compact with Temporal
+==================
+
+{id:"5",http:Instant('2000-11-01T00:00:00-03:00')}
+
+---
+
+(duper_value
+  (object
+    (object_entry
+      (object_key
+        (plain_key))
+      (duper_value
+        (string
+          (quoted_string
+            (quoted_content)))))
+    (object_entry
+      (object_key
+        (plain_key))
+      (duper_value
+        (identified_value
+          (identifier)
+          (temporal
+            (temporal_content)))))))
+
+==================
+Weird formatting
+==================
+
+{duper: 1337, _123: b"bar", _a-b_c
+  :
+    true, "_": false, "": null}
+
+---
+
+(duper_value
+  (object
+    (object_entry
+      (object_key
+        (plain_key))
+      (duper_value
+        (integer
+          (decimal_integer))))
+    (object_entry
+      (object_key
+        (plain_key))
+      (duper_value
+        (bytes
+          (quoted_bytes
+            (quoted_content)))))
+    (object_entry
+      (object_key
+        (plain_key))
+      (duper_value
+        (boolean)))
+    (object_entry
+      (object_key
+        (quoted_string
+          (quoted_content)))
+      (duper_value
+        (boolean)))
+    (object_entry
+      (object_key
+        (quoted_string
+          (quoted_content)))
+      (duper_value
+        (null)))))
+
+==================
+Commented entries
+==================
+
+{
+  name: "constant.other.temporal.duper",
+  begin: Regex("'"),
+  end: Regex("'"),
+  // patterns: [
+  //   {
+  //     match: Regex("."),
+  //   },
+  // ],
+}
+
+---
+
+(duper_value
+  (object
+    (object_entry
+      (object_key
+        (plain_key))
+      (duper_value
+        (string
+          (quoted_string
+            (quoted_content)))))
+    (object_entry
+      (object_key
+        (plain_key))
+      (duper_value
+        (identified_value
+          (identifier)
+          (string
+            (quoted_string
+              (quoted_content))))))
+    (object_entry
+      (object_key
+        (plain_key))
+      (duper_value
+        (identified_value
+          (identifier)
+          (string
+            (quoted_string
+              (quoted_content))))))
+    (line_comment)
+    (line_comment)
+    (line_comment)
+    (line_comment)
+    (line_comment)))

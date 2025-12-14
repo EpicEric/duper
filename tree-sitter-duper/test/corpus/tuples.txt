@@ -1,0 +1,37 @@
+==================
+Empty tuple
+==================
+
+(
+)
+
+---
+
+(duper_value
+  (tuple))
+
+==================
+Empty tuple with comma
+==================
+
+(,)
+
+---
+
+(duper_value
+  (tuple))
+
+==================
+Nested tuples with identifier
+==================
+
+Hi((()))
+
+---
+
+(duper_value
+  (identified_value
+    (identifier)
+    (tuple
+      (duper_value
+        (tuple)))))
