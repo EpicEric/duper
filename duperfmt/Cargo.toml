@@ -20,3 +20,6 @@ topiary-core = "0.7"
 topiary-tree-sitter-facade = "0.7"
 tree-sitter = { version = "0.25", features = ["wasm"] }
 tree-sitter-duper = { version = "0.1", path = "../tree-sitter-duper" }
+
+[dev-dependencies]
+insta = "1.44.3"

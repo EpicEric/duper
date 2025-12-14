@@ -1,5 +1,5 @@
 ---
-version: "0.4.1"
+version: "0.4.2"
 ---
 
 <script setup lang="ts">
@@ -604,7 +604,7 @@ Duper files should use the extension `.duper`.
 
 When transferring Duper files over the internet, the appropriate MIME type is `application/duper`.
 
-Webservers should also accept the `application/x-duper` MIME type.
+Webservers should also accept the `application/x-duper` and `application/json` MIME types.
 
 ## W3C-EBNF grammar
 

@@ -81,14 +81,16 @@ fn main() -> miette::Result<()> {
     }
 
     // Read Duper
-    let (src, buf) = if let Some(file) = cli.file.as_ref() {
-        (file.to_string_lossy(), fs::read(file).into_diagnostic()?)
+    let (src, input) = if let Some(file) = cli.file.as_ref() {
+        (
+            file.to_string_lossy(),
+            fs::read_to_string(file).into_diagnostic()?,
+        )
     } else {
-        let mut buf = vec![];
-        io::stdin().read_to_end(&mut buf).into_diagnostic()?;
+        let mut buf = String::new();
+        io::stdin().read_to_string(&mut buf).into_diagnostic()?;
         (Cow::Borrowed("<stdin>"), buf)
     };
-    let input = String::from_utf8(buf).into_diagnostic()?;
 
     // Parse and check for errors
     let mut parser = tree_sitter::Parser::new();

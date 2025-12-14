@@ -5,6 +5,7 @@
 ### Changed
 
 - Bump `duper` to 0.6.0.
+- Handle `Content-Type: application/json` requests in extractor.
 
 ## 0.4.2 (2025-12-07)
 

@@ -16,6 +16,7 @@ __all__ = [
 
 DUPER_CONTENT_TYPE = "application/duper"
 DUPER_ALT_CONTENT_TYPE = "application/x-duper"
+JSON_CONTENT_TYPE = "application/json"
 
 
 T = TypeVar("T")
@@ -77,9 +78,11 @@ def DuperBody(model_type: type[T]) -> Any:  # pyright: ignore[reportExplicitAny,
     """
 
     async def _get_duper_body(request: Request) -> T:
-        if request.headers.get("Content-Type") not in (
+        content_type = request.headers.get("Content-Type")
+        if not content_type or content_type.split(";", 1)[0] not in (
             DUPER_CONTENT_TYPE,
             DUPER_ALT_CONTENT_TYPE,
+            JSON_CONTENT_TYPE,
         ):
             raise HTTPException(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
