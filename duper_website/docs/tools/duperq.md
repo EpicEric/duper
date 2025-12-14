@@ -26,9 +26,9 @@ As an example, we'll assume the following data from a log format:
     method: "GET",
     url: "/shopping-cart",
     statusCode: 200,
-    address: ("192.168.1.100", 14567),
+    address: (IPv4Address("192.168.1.100"), 14567),
     userAgent: "Mozilla/5.0",
-    duration: Duration('PT0.14567S'),
+    duration: Duration('PT0.014567S'),
     history: ["/", "/search?q=headphones+", "/products/42"],
   },
 }

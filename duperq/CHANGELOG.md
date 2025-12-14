@@ -5,6 +5,7 @@
 ### Changed
 
 - Bump `duper` to 0.6.0.
+- Switch to `color-eyre` reports.
 
 ## 0.1.1 (2025-12-07)
 

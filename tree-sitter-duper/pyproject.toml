@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tree-sitter-duper"
 description = "The format that's super!"
-version = "0.1.1"
+version = "0.1.2"
 keywords = ["incremental", "parsing", "tree-sitter", "duper"]
 classifiers = [
   "Intended Audience :: Developers",

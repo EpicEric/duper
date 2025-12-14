@@ -2,13 +2,15 @@ use std::path::PathBuf;
 
 use chumsky::Parser as _;
 use clap::Parser;
+use color_eyre::eyre::eyre;
 use duper::DuperParser;
-use duperq::query;
 use smol::{
     LocalExecutor, Unblock,
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     stream::StreamExt,
 };
+
+use duperq::query;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -25,14 +27,15 @@ struct Cli {
     files: Vec<PathBuf>,
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
     let cli = Cli::parse();
 
     let mut stderr = Unblock::new(std::io::stderr());
     let (pipeline_fns, output) = match query().parse(&cli.query).into_result() {
         Ok(pipeline) => pipeline,
         Err(errors) => {
-            return Err(anyhow::anyhow!(DuperParser::prettify_error(
+            return Err(eyre!(DuperParser::prettify_error(
                 &cli.query, &errors, None
             )?));
         }
@@ -40,10 +43,14 @@ fn main() -> anyhow::Result<()> {
 
     let executor = LocalExecutor::new();
 
-    let mut tasks = Vec::with_capacity(pipeline_fns.len());
-    let mut sink = pipeline_fns
-        .into_iter()
-        .rfold(output, |mut output, pipeline_fn| {
+    let mut tasks = Vec::with_capacity(if cli.files.is_empty() {
+        pipeline_fns.len() + 1
+    } else {
+        pipeline_fns.len() + 2 + num_cpus::get()
+    });
+    let mut sink = pipeline_fns.into_iter().rfold(
+        (output)(Unblock::new(std::io::stdout())),
+        |mut output, pipeline_fn| {
             let (sender, receiver) = smol::channel::bounded(128);
             tasks.push(executor.spawn(async move {
                 while let Ok(value) = receiver.recv().await {
@@ -52,11 +59,10 @@ fn main() -> anyhow::Result<()> {
                 output.close().await;
             }));
             (pipeline_fn)(sender)
-        });
+        },
+    );
 
-    let files = cli.files;
-
-    if files.is_empty() {
+    if cli.files.is_empty() {
         // Read from stdin
         tasks.push(executor.spawn(async move {
             let stdin = BufReader::new(Unblock::new(std::io::stdin()));
@@ -69,7 +75,10 @@ fn main() -> anyhow::Result<()> {
                             && let Ok(parse_error) =
                                 DuperParser::prettify_error(&line, &errors, None)
                         {
-                            let _ = stderr.write_all(parse_error.as_bytes()).await;
+                            let _ = stderr
+                                .write_all(eyre!(parse_error).to_string().as_bytes())
+                                .await;
+                            let _ = stderr.flush().await;
                         }
                     }
                 }
@@ -81,6 +90,7 @@ fn main() -> anyhow::Result<()> {
         let (file_sender, file_receiver) =
             smol::channel::bounded::<Result<(PathBuf, String), std::io::Error>>(128);
         // Iterate over files
+        let files = cli.files;
         tasks.push(executor.spawn(async move {
             for entry in files {
                 if pathbuf_sender.send(entry).await.is_err() {
@@ -124,13 +134,15 @@ fn main() -> anyhow::Result<()> {
                                     Some(pathbuf.to_string_lossy().as_ref()),
                                 )
                             {
-                                let _ = stderr.write_all(parse_error.as_bytes()).await;
+                                let _ = stderr
+                                    .write_all(eyre!(parse_error).to_string().as_bytes())
+                                    .await;
                                 let _ = stderr.flush().await;
                             }
                         }
                     },
                     Err(error) => {
-                        let _ = stderr.write_all(error.to_string().as_bytes()).await;
+                        let _ = stderr.write_all(eyre!(error).to_string().as_bytes()).await;
                         let _ = stderr.flush().await;
                     }
                 }
@@ -139,7 +151,9 @@ fn main() -> anyhow::Result<()> {
         }));
     }
 
-    smol::block_on(executor.run(async move { futures::future::join_all(tasks).await }));
+    smol::block_on(executor.run(async move {
+        futures::future::join_all(tasks).await;
+    }));
 
     Ok(())
 }

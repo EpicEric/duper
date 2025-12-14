@@ -1,0 +1,18 @@
+{
+  id: "1",
+  traceId: UUID("a2ce2f29-84cf-47c9-a877-381855d59e77"),
+  spanId: UUID("78ee3c78-c090-43f2-8568-f4542dc10ea5"),
+  timestamp: "2025-11-29T22:21:45.133Z",
+  level: "INFO",
+  service: "store-webapp",
+  development: false,
+  http: {
+    method: "GET",
+    url: "/shopping-cart",
+    statusCode: 200,
+    address: (IPv4Address("192.168.1.100"), 14567),
+    userAgent: "Mozilla/5.0",
+    duration: Duration('PT0.014567S'),
+    history: ["/", "/search?q=headphones+", "/products/42"],
+  },
+}

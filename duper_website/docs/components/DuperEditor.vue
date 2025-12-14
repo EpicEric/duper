@@ -94,7 +94,7 @@ onMounted(async () => {
   otherEditor = monaco.editor.create(otherMonaco.value!, {
     ...(editorOptions as any),
     value: props.initial ? convertDuper(props.initial, "json") : "",
-    language: "json",
+    language: "duper",
     readOnly: true,
   });
 });
@@ -116,7 +116,7 @@ function handleDuperInput() {
 
 function switchTab(tab: "json" | "yaml" | "toml") {
   activeTab.value = tab;
-  otherEditor?.getModel().setLanguage(tab);
+  otherEditor?.getModel().setLanguage(tab === "json" ? "duper" : tab);
   handleDuperInput();
 }
 

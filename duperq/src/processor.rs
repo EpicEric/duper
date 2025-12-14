@@ -1,6 +1,9 @@
 use async_trait::async_trait;
 use duper::DuperValue;
-use smol::{Unblock, channel, io::AsyncWriteExt};
+use smol::{
+    channel,
+    io::{AsyncWrite, AsyncWriteExt},
+};
 
 use crate::filter::DuperFilter;
 
@@ -94,35 +97,35 @@ impl Processor for SkipProcessor {
     }
 }
 
-pub(crate) struct OutputProcessor {
-    stdout: Unblock<std::io::Stdout>,
+pub(crate) struct OutputProcessor<O> {
+    output: O,
     printer: Box<dyn FnMut(DuperValue<'static>) -> Vec<u8>>,
 }
 
-impl OutputProcessor {
-    pub(crate) fn new(printer: Box<dyn FnMut(DuperValue<'static>) -> Vec<u8>>) -> Self {
-        Self {
-            stdout: Unblock::new(std::io::stdout()),
-            printer,
-        }
+impl<O> OutputProcessor<O> {
+    pub(crate) fn new(output: O, printer: Box<dyn FnMut(DuperValue<'static>) -> Vec<u8>>) -> Self {
+        Self { output, printer }
     }
 }
 
 #[async_trait(?Send)]
-impl Processor for OutputProcessor {
+impl<O> Processor for OutputProcessor<O>
+where
+    O: AsyncWrite + Unpin + 'static,
+{
     async fn process(&mut self, value: DuperValue<'static>) {
-        self.stdout
+        self.output
             .write_all((self.printer)(value).as_ref())
             .await
             .expect("stdout was closed");
-        self.stdout
+        self.output
             .write_all(b"\n")
             .await
             .expect("stdout was closed");
     }
 
     async fn close(&mut self) {
-        self.stdout.flush().await.expect("stdout was closed");
-        self.stdout.close().await.expect("stdout was closed");
+        self.output.flush().await.expect("stdout was closed");
+        self.output.close().await.expect("stdout was closed");
     }
 }
