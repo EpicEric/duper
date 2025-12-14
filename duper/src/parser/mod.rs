@@ -925,6 +925,10 @@ mod duper_parser_tests {
         "#;
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(duper, DuperValue::Object { .. }));
+
+        let input = r#"{id:"5",http:Instant('2000-11-01T00:00:00-03:00')}"#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper, DuperValue::Object { .. }));
     }
 
     #[test]

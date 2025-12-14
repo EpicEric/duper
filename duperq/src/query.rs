@@ -4,7 +4,7 @@ use duper::{
     escape::unescape_str,
     parser::{identified_value, integer, object_key, quoted_string},
 };
-use smol::channel;
+use smol::{channel, io::AsyncWrite};
 
 use crate::{
     accessor::{
@@ -21,26 +21,40 @@ use crate::{
     types::DuperType,
 };
 
-pub(crate) type CreateProcessorFn =
-    Box<dyn FnOnce(channel::Sender<DuperValue<'static>>) -> Box<dyn Processor>>;
+pub(crate) type CreateProcessorFn<P> = Box<dyn FnOnce(P) -> Box<dyn Processor>>;
 
 /// Parses a `duperq` query.
-pub fn query<'a>()
--> impl Parser<'a, &'a str, (Vec<CreateProcessorFn>, Box<dyn Processor>), extra::Err<Rich<'a, char>>>
+pub fn query<'a, O>() -> impl Parser<
+    'a,
+    &'a str,
+    (
+        Vec<CreateProcessorFn<channel::Sender<DuperValue<'static>>>>,
+        CreateProcessorFn<O>,
+    ),
+    extra::Err<Rich<'a, char>>,
+>
+where
+    O: AsyncWrite + Unpin + 'static,
 {
-    let output = choice((
+    let output_processor = choice((
         just("format").padded().ignore_then(fmt().padded()),
         just("ansi").padded().map(|_| {
-            let mut ansi = Ansi::default();
-            OutputProcessor::new(Box::new(move |value| {
-                ansi.to_ansi(&value).unwrap_or_default()
-            }))
+            Box::new(|output| {
+                let mut ansi = Ansi::default();
+                Box::new(OutputProcessor::new(
+                    output,
+                    Box::new(move |value| ansi.to_ansi(&value).unwrap_or_default()),
+                )) as Box<dyn Processor>
+            }) as CreateProcessorFn<O>
         }),
         just("pretty-print").padded().map(|_| {
-            let mut pretty_printer = PrettyPrinter::default();
-            OutputProcessor::new(Box::new(move |value| {
-                pretty_printer.pretty_print(&value).into_bytes()
-            }))
+            Box::new(|output| {
+                let mut pretty_printer = PrettyPrinter::default();
+                Box::new(OutputProcessor::new(
+                    output,
+                    Box::new(move |value| pretty_printer.pretty_print(&value).into_bytes()),
+                )) as Box<dyn Processor>
+            }) as CreateProcessorFn<O>
         }),
     ))
     .padded();
@@ -49,7 +63,7 @@ pub fn query<'a>()
         just("filter").padded().ignore_then(filter()).map(|filter| {
             Box::new(move |sender| {
                 Box::new(FilterProcessor::new(sender, filter)) as Box<dyn Processor>
-            }) as CreateProcessorFn
+            }) as CreateProcessorFn<channel::Sender<DuperValue<'static>>>
         }),
         just("take")
             .padded()
@@ -58,7 +72,8 @@ pub fn query<'a>()
                 if take > 0 {
                     Ok(Box::new(move |sender| {
                         Box::new(TakeProcessor::new(sender, take as usize)) as Box<dyn Processor>
-                    }) as CreateProcessorFn)
+                    })
+                        as CreateProcessorFn<channel::Sender<DuperValue<'static>>>)
                 } else {
                     Err(Rich::custom(
                         span,
@@ -73,26 +88,31 @@ pub fn query<'a>()
                 if skip >= 0 {
                     Ok(Box::new(move |sender| {
                         Box::new(SkipProcessor::new(sender, skip as usize)) as Box<dyn Processor>
-                    }) as CreateProcessorFn)
+                    })
+                        as CreateProcessorFn<channel::Sender<DuperValue<'static>>>)
                 } else {
                     Err(Rich::custom(span, "skip parameter must be positive"))
                 }
             }),
     ))
+    .padded()
     .separated_by(just('|'))
     .collect::<Vec<_>>()
     .then(
         just('|')
             .padded()
-            .ignore_then(output.padded())
+            .ignore_then(output_processor.padded())
             .or_not()
-            .map(|output| {
-                Box::new(output.unwrap_or_else(|| {
-                    let mut serializer = Serializer::default();
-                    OutputProcessor::new(Box::new(move |value| {
-                        serializer.serialize(&value).into_bytes()
-                    }))
-                })) as Box<dyn Processor>
+            .map(|processor| {
+                processor.unwrap_or_else(|| {
+                    Box::new(|output| {
+                        let mut serializer = Serializer::default();
+                        Box::new(OutputProcessor::new(
+                            output,
+                            Box::new(move |value| serializer.serialize(&value).into_bytes()),
+                        )) as Box<dyn Processor>
+                    }) as CreateProcessorFn<O>
+                })
             }),
     )
     .then_ignore(end())
@@ -207,13 +227,18 @@ fn accessor<'a>()
         ));
 
         access
-            .clone()
             .repeated()
-            .at_least(2)
+            .at_least(1)
             .collect::<Vec<_>>()
-            .map(|vec| Box::new(FlattenedAccessor(vec)) as Box<dyn DuperAccessor>)
-            .or(access)
+            .map(|mut vec| {
+                if vec.len() == 1 {
+                    vec.remove(0)
+                } else {
+                    Box::new(FlattenedAccessor(vec)) as Box<dyn DuperAccessor>
+                }
+            })
     })
+    .boxed()
 }
 
 fn leaf_filter<'a>(
@@ -470,37 +495,42 @@ fn duper_type<'a>() -> impl Parser<'a, &'a str, DuperType, extra::Err<Rich<'a, c
     ))
 }
 
-fn fmt<'a>() -> impl Parser<'a, &'a str, OutputProcessor, extra::Err<Rich<'a, char>>> + Clone {
-    just('$')
-        .ignore_then(
-            just("cast")
+fn fmt<'a, O>() -> impl Parser<'a, &'a str, CreateProcessorFn<O>, extra::Err<Rich<'a, char>>> + Clone
+where
+    O: AsyncWrite + Unpin + 'static,
+{
+    choice((
+        just('$').ignore_then(choice((
+            just("cast").padded().ignore_then(
+                accessor()
+                    .padded()
+                    .then_ignore(just(','))
+                    .then(duper_type().padded())
+                    .map(|(accessor, typ)| FormatterAtom::Dynamic(accessor, Some(typ)))
+                    .delimited_by(just('('), just(')')),
+            ),
+            accessor()
+                .map(|accessor| FormatterAtom::Dynamic(accessor, None))
                 .padded()
-                .ignore_then(
-                    accessor()
-                        .padded()
-                        .then_ignore(just(','))
-                        .then(duper_type().padded())
-                        .map(|(accessor, typ)| FormatterAtom::Dynamic(accessor, Some(typ)))
-                        .delimited_by(just('('), just(')')),
-                )
-                .or(accessor()
-                    .map(|accessor| FormatterAtom::Dynamic(accessor, None))
-                    .padded())
                 .delimited_by(just('{'), just('}')),
-        )
-        .or(
-            quoted_inner().try_map(|slice: &str, span| match unescape_str(slice) {
-                Ok(unescaped) => Ok(FormatterAtom::Fixed(unescaped.clone().into_owned())),
-                Err(error) => Err(Rich::custom(span, error.to_string())),
-            }),
-        )
-        .repeated()
-        .collect::<Vec<_>>()
-        .delimited_by(just('"'), just('"'))
-        .map(|atoms| {
+        ))),
+        quoted_inner().try_map(|slice: &str, span| match unescape_str(slice) {
+            Ok(unescaped) => Ok(FormatterAtom::Fixed(unescaped.clone().into_owned())),
+            Err(error) => Err(Rich::custom(span, error.to_string())),
+        }),
+    ))
+    .repeated()
+    .collect::<Vec<_>>()
+    .delimited_by(just('"'), just('"'))
+    .map(|atoms| {
+        Box::new(move |output| {
             let mut formatter = Formatter::new(atoms);
-            OutputProcessor::new(Box::new(move |value| formatter.format(value).into_bytes()))
-        })
+            Box::new(OutputProcessor::new(
+                output,
+                Box::new(move |value| formatter.format(value).into_bytes()),
+            )) as Box<dyn Processor>
+        }) as CreateProcessorFn<O>
+    })
 }
 
 fn quoted_inner<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> + Clone {
