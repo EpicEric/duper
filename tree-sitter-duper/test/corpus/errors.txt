@@ -1,0 +1,893 @@
+==================
+Line comment
+:error
+==================
+
+// Only a line comment
+
+---
+
+==================
+Block comment
+:error
+==================
+
+/*
+  Only a multiline comment
+*/
+
+---
+
+==================
+Unclosed string
+:error
+==================
+
+"unclosed
+
+---
+
+==================
+Unopened string
+:error
+==================
+
+unopened"
+
+---
+
+==================
+Unclosed bytes
+:error
+==================
+
+b"unclosed bytes
+
+---
+
+==================
+Unclosed raw string
+:error
+==================
+
+r"unclosed raw
+
+---
+
+==================
+Unclosed raw bytes
+:error
+==================
+
+br"unclosed raw bytes
+
+---
+
+==================
+Unknown escape sequence
+:error
+==================
+
+"\e"
+
+---
+
+==================
+Padding character in incorrect position
+:error
+==================
+
+b64"RHV=wZXI"
+
+---
+
+==================
+Invalid character
+:error
+==================
+
+b64"ABC-"
+
+---
+
+==================
+Plus sign
+:error
+==================
+
++
+
+---
+
+==================
+Minus sign
+:error
+==================
+
+-
+
+---
+
+==================
+No trailing zero
+:error
+==================
+
+01
+
+---
+
+==================
+Lone underscore
+:error
+==================
+
+_
+
+---
+
+==================
+Underscore at start
+:error
+==================
+
+_12
+
+---
+
+==================
+Underscore at end
+:error
+==================
+
+12_
+
+---
+
+==================
+Double underscore
+:error
+==================
+
+1__2
+
+---
+
+==================
+Invalid character in integer
+:error
+==================
+
+12f
+
+---
+
+==================
+Missing decimal
+:error
+==================
+
+12.
+
+---
+
+==================
+Missing exponent
+:error
+==================
+
+12e
+
+---
+
+==================
+Missing exponent with plus sign
+:error
+==================
+
+12e+
+
+---
+
+==================
+Missing exponent with minus sign
+:error
+==================
+
+12e-
+
+---
+
+==================
+Too many fractionals
+:error
+==================
+
+12.34.56
+
+---
+
+==================
+Too many exponents
+:error
+==================
+
+12e34e56
+
+---
+
+==================
+Invalid exponent character
+:error
+==================
+
+12.3a4
+
+---
+
+==================
+Missing integer part before exponent
+:error
+==================
+
+e10
+
+---
+
+==================
+Lone dot
+:error
+==================
+
+.
+
+---
+
+==================
+Missing integer part before negative fractional part
+:error
+==================
+
+-.5
+
+---
+
+==================
+Missing integer part before positive fractional part
+:error
+==================
+
++.5
+
+---
+
+==================
+Underscore before fractional dot
+:error
+==================
+
+_.123
+
+---
+
+==================
+Underscore after fractional dot
+:error
+==================
+
+12._34
+
+---
+
+==================
+Underscore after exponent character
+:error
+==================
+
+12e_34
+
+---
+
+==================
+Underscore after exponent sign
+:error
+==================
+
+12e+_34
+
+---
+
+==================
+Double underscore in integer part
+:error
+==================
+
+1__2.34
+
+---
+
+==================
+Double underscore in fractional part
+:error
+==================
+
+12.3__4
+
+---
+
+==================
+Double underscore in exponent
+:error
+==================
+
+12e3__4
+
+---
+
+==================
+Underscore after fractional part
+:error
+==================
+
+12.34_
+
+---
+
+==================
+Underscore after exponent
+:error
+==================
+
+12e34_
+
+---
+
+==================
+Missing exponent
+:error
+==================
+
+12e
+
+---
+
+==================
+Swapped fractional part and exponent
+:error
+==================
+
+12e3.4
+
+---
+
+==================
+Missing hexadecimal integer
+:error
+==================
+
+0x
+
+---
+
+==================
+Invalid hexadecimal digit
+:error
+==================
+
+0xg
+
+---
+
+==================
+Lone underscore in hexadecimal integer
+:error
+==================
+
+0x_
+
+---
+
+==================
+Underscore after hexadecimal integer
+:error
+==================
+
+0x1_
+
+---
+
+==================
+Underscore before hexadecimal integer
+:error
+==================
+
+0x_1
+
+---
+
+==================
+Fraction in hexadecimal integer
+:error
+==================
+
+0x1.2
+
+---
+
+==================
+Sign inside hexadecimal integer
+:error
+==================
+
+0x-1
+
+---
+
+==================
+Sign outside hexadecimal integer
+:error
+==================
+
+-0x1
+
+---
+
+==================
+Missing octal integer
+:error
+==================
+
+0o
+
+---
+
+==================
+Invalid octal digit
+:error
+==================
+
+0o8
+
+---
+
+==================
+Lone underscore in octal integer
+:error
+==================
+
+0o_
+
+---
+
+==================
+Underscore after octal integer
+:error
+==================
+
+0o1_
+
+---
+
+==================
+Underscore before octal integer
+:error
+==================
+
+0o_1
+
+---
+
+==================
+Fraction in octal integer
+:error
+==================
+
+0o1.2
+
+---
+
+==================
+Sign inside octal integer
+:error
+==================
+
+0o-1
+
+---
+
+==================
+Sign outside octal integer
+:error
+==================
+
+-0o1
+
+---
+
+
+==================
+Missing binary integer
+:error
+==================
+
+0b
+
+---
+
+==================
+Invalid binary digit
+:error
+==================
+
+0b2
+
+---
+
+==================
+Lone underscore in binary integer
+:error
+==================
+
+0b_
+
+---
+
+==================
+Underscore after binary integer
+:error
+==================
+
+0b1_
+
+---
+
+==================
+Underscore before binary integer
+:error
+==================
+
+0b_1
+
+---
+
+==================
+Fraction in binary integer
+:error
+==================
+
+0b1.1
+
+---
+
+==================
+Sign inside binary integer
+:error
+==================
+
+0b-1
+
+---
+
+==================
+Sign outside binary integer
+:error
+==================
+
+-0b1
+
+---
+
+==================
+Comma in empty object
+:error
+==================
+
+{,}
+
+---
+
+==================
+Double comma in empty object
+:error
+==================
+
+{,,}
+
+---
+
+==================
+Starting digit in plain key
+:error
+==================
+
+{1a: ""}
+
+---
+
+==================
+Starting hyphen in plain key
+:error
+==================
+
+{-a: ""}
+
+---
+
+==================
+Ending hyphen in plain key
+:error
+==================
+
+{a-: ""}
+
+---
+
+==================
+Ending underscore in plain key
+:error
+==================
+
+{a_: ""}
+
+---
+
+==================
+Consecutive hyphens in plain key
+:error
+==================
+
+{a--b: ""}
+
+---
+
+==================
+Consecutive underscores in plain key
+:error
+==================
+
+{a__b: ""}
+
+---
+
+==================
+Underscore followed by hyphen in plain key
+:error
+==================
+
+{a_-b: ""}
+
+---
+
+==================
+Hyphen followed by underscore in plain key
+:error
+==================
+
+{a-_b: ""}
+
+---
+
+==================
+Starting underscore followed by hyphen in plain key
+:error
+==================
+
+{_-a: ""}
+
+---
+
+==================
+Starting double underscored in plain key
+:error
+==================
+
+{__a: "no starting double underscore in key"}
+
+---
+
+==================
+Single underscore plain key
+:error
+==================
+
+{_: ""}
+
+---
+
+==================
+Byte string value as key
+:error
+==================
+
+{b"value as key": null}
+
+---
+
+==================
+Missing colon
+:error
+==================
+
+{"missing" "colon"}
+
+---
+
+==================
+Missing value
+:error
+==================
+
+{"missing_value"}
+
+---
+
+==================
+Double comma in empty array
+:error
+==================
+
+[,,]
+
+---
+
+==================
+Double comma in non-empty array
+:error
+==================
+
+[1,,2]
+
+---
+
+==================
+Double comma in empty tuple
+:error
+==================
+
+(,,)
+
+---
+
+==================
+Double comma in non-empty tuple
+:error
+==================
+
+(1,,2)
+
+---
+
+==================
+Unicode characters in identifier
+:error
+==================
+
+NoÜnicodeÇharacters({})
+
+---
+
+==================
+Starting number in identifier
+:error
+==================
+
+1NoStartingNumber({})
+
+---
+
+==================
+Starting lowercase in identifier
+:error
+==================
+
+noStartingLowercase({})
+
+---
+
+==================
+Space in identifier
+:error
+==================
+
+No Space({})
+
+---
+
+==================
+Starting hyphen in identifier
+:error
+==================
+
+-NoStartingHyphen({})
+
+---
+
+==================
+Starting underscore in identifier
+:error
+==================
+
+_NoStartingUnderscore({})
+
+---
+
+==================
+Ending hyphen in identifier
+:error
+==================
+
+NoEndingHyphen-({})
+
+---
+
+==================
+Ending underscore in identifier
+:error
+==================
+
+NoEndingUnderscore_({})
+
+---
+
+==================
+Hyphen then underscore in identifier
+:error
+==================
+
+No-_HyphenThenUnderscore({})
+
+---
+
+==================
+Underscore then hyphen in identifier
+:error
+==================
+
+No_-UnderscoreThenHyphen({})
+
+---
+
+==================
+Brackets for identifier
+:error
+==================
+
+NoParenthesis[]
+
+---
+
+==================
+Identifier without value
+:error
+==================
+
+NoValue()
+
+---
+
+==================
+Comma after value
+:error
+==================
+
+null,
+
+---
+
+==================
+Comma before value
+:error
+==================
+
+,null
+
+---
+
+==================
+Comma between values
+:error
+==================
+
+true,false
+
+---

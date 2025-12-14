@@ -1,0 +1,32 @@
+==================
+Only decimal
+==================
+
+3.14
+
+---
+
+(duper_value
+  (float))
+
+==================
+Only exponent
+==================
+
+12e-10
+
+---
+
+(duper_value
+  (float))
+
+==================
+Underscore separators
+==================
+
+1_2.3_4E5_6
+
+---
+
+(duper_value
+  (float))

@@ -1,0 +1,48 @@
+==================
+Decimal
+==================
+
++9001
+
+---
+
+(duper_value
+  (integer
+    (decimal_integer)))
+
+
+==================
+Hexadecimal
+==================
+
+0x2001
+
+---
+
+(duper_value
+  (integer
+    (hex_integer)))
+
+==================
+Octal
+==================
+
+0o755
+
+---
+
+(duper_value
+  (integer
+    (octal_integer)))
+
+==================
+Binary
+==================
+
+0b0101_0101
+
+---
+
+(duper_value
+  (integer
+    (binary_integer)))

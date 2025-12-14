@@ -1,0 +1,28 @@
+==================
+Empty
+==================
+
+[]
+
+---
+
+(duper_value
+  (array))
+
+==================
+Mixed values array
+==================
+
+[1, 2.2, []]
+
+---
+
+(duper_value
+  (array
+    (duper_value
+      (integer
+        (decimal_integer)))
+    (duper_value
+      (float))
+    (duper_value
+      (array))))

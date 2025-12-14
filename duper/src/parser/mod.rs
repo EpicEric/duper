@@ -714,6 +714,10 @@ mod duper_parser_tests {
         let duper = DuperParser::parse_duper_value(input).unwrap();
         assert!(matches!(duper, DuperValue::String { .. }));
 
+        let input = r#""//""#;
+        let duper = DuperParser::parse_duper_value(input).unwrap();
+        assert!(matches!(duper, DuperValue::String { .. }));
+
         let input = r#"
             b"\x1b\t\x00"
         "#;
@@ -1312,7 +1316,15 @@ mod duper_parser_tests {
         "#;
         assert!(DuperParser::parse_duper_value(input).is_err());
         let input = r#"
+            [1,,2]
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
             (,,)
+        "#;
+        assert!(DuperParser::parse_duper_value(input).is_err());
+        let input = r#"
+            (1,,2)
         "#;
         assert!(DuperParser::parse_duper_value(input).is_err());
 
