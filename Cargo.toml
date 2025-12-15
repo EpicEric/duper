@@ -11,6 +11,7 @@ members = [
   "duper_lsp",
   "duper_uniffi",
   "duper_website",
+  "godot_duper",
   "serde_duper",
   "serde_duper_macros",
   "tracing_duper",

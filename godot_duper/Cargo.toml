@@ -1,0 +1,19 @@
+[package]
+name = "godot_duper"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+repository = "https://github.com/EpicEric/duper"
+homepage = "https://duper.dev.br"
+readme = "README.md"
+categories = ["encoding", "parser-implementations"]
+keywords = ["duper", "serialization", "godot"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+duper = { path = "../duper", version = "0.6" }
+godot = { version = "0.4.5", features = ["api-4-2", "serde"] }
