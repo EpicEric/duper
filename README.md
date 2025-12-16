@@ -48,18 +48,18 @@ See [the specification](https://duper.dev.br/spec.html) for more details.
 
 - [`duper`](./duper/): Core implementation of the Duper parser and serializer in Rust, as well as Serde support. Used by Rust libraries and bindings in other languages.
   - Libraries
-    - [`serde_duper`](./serde_duper/): Adds Duper-specific support for extra types for use with Serde, including a proc-macro via [`serde_duper_macros`](./serde_duper_macros/).
     - [`axum_duper`](./axum_duper/): Axum support for Duper requests and responses.
+    - [`serde_duper`](./serde_duper/): Adds Duper-specific support for extra types for use with Serde, including a proc-macro via [`serde_duper_macros`](./serde_duper_macros/).
     - [`tracing_duper`](./tracing_duper/): A tracing layer for Duper.
   - Bindings
-    - [`duper-python`](./duper-python/): Python bindings using PyO3, including Pydantic and FastAPI support.
     - [`duper-js-node`](./duper-js-node/): Node.JS bindings using NAPI-RS.
+    - [`duper-python`](./duper-python/): Python bindings using PyO3, including Pydantic and FastAPI support.
     - [`duper_uniffi`](./duper_uniffi/): Multi-language bindings using UniFFI.
       - [`duper_uniffi/dotnet`](./duper_uniffi/dotnet/): C# / .NET bindings.
       - [`duper-js-wasm`](./duper-js-wasm/): WebAssembly bindings.
+- [`duperq`](./duperq): A fast Duper and JSON filter/processor. 
+- [`duper_lsp`](./duper_lsp/): Duper LSP.
+  - [`duper-vs-code`](./duper-vs-code/): Duper extension for Visual Studio Code with syntax highlighting and LSP.
+- [`duper_website`](./duper_website/): Official website for Duper, including the specification and WebAssembly-based playground.
 - [`tree-sitter-duper`](./tree-sitter-duper/): tree-sitter implementation of Duper.
   - [`duperfmt`](./duperfmt/): Duper formatter based on Topiary.
-    - [`duper_lsp`](./duper_lsp/): Duper LSP.
-      - [`duper-vs-code`](./duper-vs-code/): Duper extension for Visual Studio Code.
-- [`duperq`](./duperq): A fast Duper and JSON filter/processor. 
-- [`duper_website`](./duper_website/): Official website for Duper, including the specification and WebAssembly-based playground.
