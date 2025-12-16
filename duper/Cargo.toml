@@ -19,16 +19,16 @@ serde = ["dep:serde_core"]
 
 [dependencies]
 ariadne = { version = "0.6", features = ["auto-color"] }
-base64 = "0.22"
-chumsky = "0.11"
-decorum = "0.4.0"
+base64 = { workspace = true }
+chumsky = { workspace = true }
+decorum = "0.4"
 either = "1"
-indexmap = "2.12.1"
+indexmap = "2"
 owo-colors = { version = "4", optional = true }
 ryu = "1"
-serde_core = { version = "1", optional = true }
+serde_core = { workspace = true, optional = true }
 unicode-general-category = "1"
 
 [dev-dependencies]
-insta = "1.44.3"
-serde = { version = "1.0.228", features = ["derive"] }
+insta = { workspace = true }
+serde = { workspace = true }

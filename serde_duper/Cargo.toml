@@ -28,23 +28,23 @@ temporal = ["dep:temporal_rs"]
 uuid = ["dep:uuid"]
 
 [dependencies]
-# Core dependencies
-duper = { path = "../duper", version = "0.6", features = ["serde"] }
+# Main dependencies
+duper = { workspace = true }
+serde_core = { workspace = true }
 serde_bytes = "0.11"
-serde_core = "1"
+
+# Type dependencies
+bytes = { workspace = true, features = ["serde"], optional = true }
+chrono = { workspace = true, optional = true }
+ipnet = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
+rust_decimal = { workspace = true, features = ["serde-str"], optional = true }
+temporal_rs = { workspace = true, optional = true }
+uuid = { workspace = true, optional = true }
 
 # Macros
 serde_duper_macros = { path = "../serde_duper_macros", version = "0.1.1", optional = true }
 
-# Type dependencies
-bytes = { version = "1", features = ["serde"], optional = true }
-chrono = { version = "0.4", features = ["serde"], optional = true }
-ipnet = { version = "2", features = ["serde"], optional = true }
-regex = { version = "1", optional = true }
-rust_decimal = { version = "1", features = ["serde-str"], optional = true }
-temporal_rs = { version = "0.1.2", optional = true }
-uuid = { version = "1", features = ["serde"], optional = true }
-
 [dev-dependencies]
-serde = { version = "1.0.228", features = ["derive"] }
-rust_decimal = { version = "1", features = ["serde-str", "macros"] }
+rust_decimal = { workspace = true, features = ["macros", "serde-str"] }
+serde = { workspace = true }

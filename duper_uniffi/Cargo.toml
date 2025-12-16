@@ -17,8 +17,8 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-duper = { path = "../duper" }
-thiserror = "2.0.17"
+duper = { workspace = true, features = ["ansi", "serde"] }
+thiserror = { workspace = true }
 uniffi = { version = "0.29.4", features = ["cli"] }
 
 [build-dependencies]

@@ -79,9 +79,13 @@ jobs:
           rustup override set ${RUST_MSRV}-x86_64-unknown-linux-gnu
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@59679e24ffb0dbbbc136684eda7fcd21fe9eddea # v2.63.0
+        with:
+          tool: cargo-nextest@0.9.114
       - name: Test Rust (all features)
         run: |
-          cargo test --all-features
+          cargo nextest run --all-features
   test-rust-no-features:
     name: Run Rust tests (no features)
     runs-on: ubuntu-latest
@@ -96,9 +100,13 @@ jobs:
           rustup override set ${RUST_MSRV}-x86_64-unknown-linux-gnu
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@59679e24ffb0dbbbc136684eda7fcd21fe9eddea # v2.63.0
+        with:
+          tool: cargo-nextest@0.9.114
       - name: Test Rust (no features)
         run: |
-          cargo test --lib --bins --tests --no-default-features
+          cargo nextest run --lib --bins --tests --no-default-features
   test-python:
     name: Run Python tests
     runs-on: ubuntu-latest

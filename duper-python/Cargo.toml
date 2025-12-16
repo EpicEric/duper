@@ -18,7 +18,7 @@ name = "_duper"
 crate-type = ["cdylib"]
 
 [dependencies]
-duper = { path = "../duper" }
+duper = { workspace = true, features = ["ansi", "serde"] }
 pyo3 = { version = "0.27.1", features = [
   "extension-module",
   "generate-import-lib",

@@ -17,6 +17,34 @@ members = [
   "tree-sitter-duper",
 ]
 
+[workspace.package]
+rust-version = "1.88"
+
+[workspace.dependencies]
+base64 = "^0.22"
+bytes = { version = "1", features = ["serde"] }
+cc = "^1.2"
+chrono = { version = "^0.4", features = ["serde"] }
+chumsky = "^0.11"
+clap = { version = "^4", features = ["derive"] }
+duper = { path = "duper", version = "^0.6", features = ["ansi", "serde"] }
+duperfmt = { version = "^0.1", path = "duperfmt" }
+futures = "^0.3"
+insta = "^1"
+ipnet = { version = "^2", features = ["serde"] }
+regex = "^1"
+rust_decimal = { version = "^1", features = ["macros", "serde-str"] }
+serde = { version = "^1", features = ["derive"] }
+serde_core = "^1"
+serde_json = "^1"
+temporal_rs = "^0.1"
+thiserror = "^2"
+tracing = "^0.1"
+tree-sitter = { version = "^0.25", features = ["wasm"] }
+tree-sitter-duper = { version = "^0.1", path = "tree-sitter-duper" }
+uuid = { version = "^1", features = ["serde"] }
+wasm-bindgen = "=0.2.100"
+
 [profile.release]
 lto = true
 strip = "debuginfo"

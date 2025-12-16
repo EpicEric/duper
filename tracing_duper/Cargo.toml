@@ -17,8 +17,8 @@ default = ["chrono"]
 chrono = ["dep:chrono"]
 
 [dependencies]
-chrono = { version = "0.4", optional = true }
-duper = { version = "0.6", path = "../duper" }
+chrono = { workspace = true, optional = true, features = ["serde"] }
+duper = { workspace = true, features = ["ansi", "serde"] }
 tracing-core = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false, features = [
   "std",
@@ -27,5 +27,5 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
 ] }
 
 [dev-dependencies]
-tracing = "0.1"
 serde_duper = { version = "0.4", path = "../serde_duper" }
+tracing = { workspace = true }

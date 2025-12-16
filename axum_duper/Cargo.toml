@@ -14,9 +14,9 @@ keywords = ["duper", "serde", "axum"]
 
 [dependencies]
 axum = { version = "0.8", default-features = false }
-serde_core = "1"
-duper = { path = "../duper", version = "0.6", features = ["serde"] }
+duper = { workspace = true, features = ["ansi"] }
+serde_core = { workspace = true }
 
 [dev-dependencies]
-serde = { version = "1.0.228", features = ["derive"] }
-uuid = { version = "1.18.1", features = ["serde"] }
+serde = { workspace = true }
+uuid = { workspace = true }
