@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+import re
 from collections import deque
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
@@ -12,14 +13,12 @@ from ipaddress import (
     IPv6Network,
 )
 from pathlib import Path
-import re
 from typing import NamedTuple
-from typing_extensions import TypedDict
 from uuid import UUID
 
-from pydantic import ByteSize
-
 from duper import BaseModel, TemporalString
+from pydantic import ByteSize
+from typing_extensions import TypedDict
 
 
 def test_pydantic_simple():
@@ -135,29 +134,29 @@ def test_pydantic_complex():
 
 def test_pydantic_network():
     from pydantic import (
-        AnyUrl,
+        AmqpDsn,
         AnyHttpUrl,
-        HttpUrl,
+        AnyUrl,
         AnyWebsocketUrl,
-        WebsocketUrl,
+        ClickHouseDsn,
+        CockroachDsn,
+        EmailStr,
         FileUrl,
         FtpUrl,
-        PostgresDsn,
-        CockroachDsn,
-        AmqpDsn,
-        RedisDsn,
-        MongoDsn,
-        KafkaDsn,
-        NatsDsn,
-        MySQLDsn,
-        MariaDBDsn,
-        ClickHouseDsn,
-        SnowflakeDsn,
-        EmailStr,
-        NameEmail,
+        HttpUrl,
         IPvAnyAddress,
         IPvAnyInterface,
         IPvAnyNetwork,
+        KafkaDsn,
+        MariaDBDsn,
+        MongoDsn,
+        MySQLDsn,
+        NameEmail,
+        NatsDsn,
+        PostgresDsn,
+        RedisDsn,
+        SnowflakeDsn,
+        WebsocketUrl,
     )
 
     class Network(BaseModel):
@@ -232,17 +231,17 @@ def test_pydantic_extra():
         CountryShortName,
     )
     from pydantic_extra_types.cron import CronStr
-    from pydantic_extra_types.payment import PaymentCardNumber
-    from pydantic_extra_types.routing_number import ABARoutingNumber
-    from pydantic_extra_types.mongo_object_id import MongoObjectId
     from pydantic_extra_types.language_code import (
-        LanguageAlpha2,
-        LanguageName,
         ISO639_3,
         ISO639_5,
+        LanguageAlpha2,
+        LanguageName,
     )
-    from pydantic_extra_types.script_code import ISO_15924
+    from pydantic_extra_types.mongo_object_id import MongoObjectId
+    from pydantic_extra_types.payment import PaymentCardNumber
+    from pydantic_extra_types.routing_number import ABARoutingNumber
     from pydantic_extra_types.s3 import S3Path
+    from pydantic_extra_types.script_code import ISO_15924
     from pydantic_extra_types.semantic_version import SemanticVersion
     from pydantic_extra_types.timezone_name import TimeZoneName
     from pydantic_extra_types.ulid import ULID

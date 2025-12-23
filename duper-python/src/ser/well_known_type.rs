@@ -175,6 +175,22 @@ impl<'py> WellKnownType<'py> {
                 ("pathlib", "PureWindowsPath") => {
                     return Ok(Some(WellKnownType::PureWindowsPath(value.clone())));
                 }
+                ("pathlib._local", "Path") => return Ok(Some(WellKnownType::Path(value.clone()))),
+                ("pathlib._local", "PosixPath") => {
+                    return Ok(Some(WellKnownType::PosixPath(value.clone())));
+                }
+                ("pathlib._local", "WindowsPath") => {
+                    return Ok(Some(WellKnownType::WindowsPath(value.clone())));
+                }
+                ("pathlib._local", "PurePath") => {
+                    return Ok(Some(WellKnownType::PurePath(value.clone())));
+                }
+                ("pathlib._local", "PurePosixPath") => {
+                    return Ok(Some(WellKnownType::PurePosixPath(value.clone())));
+                }
+                ("pathlib._local", "PureWindowsPath") => {
+                    return Ok(Some(WellKnownType::PureWindowsPath(value.clone())));
+                }
                 // pydantic
                 ("pydantic.main", "BaseModel") => {
                     return Ok(Some(WellKnownType::BaseModel(value.clone())));

@@ -1,11 +1,13 @@
+import inspect
 from collections.abc import Mapping
 from typing import Any, TypeVar
-from typing_extensions import override
 
 from fastapi import Depends, HTTPException, Request, status
-from pydantic import BaseModel as PydanticBaseModel, TypeAdapter
+from pydantic import BaseModel as PydanticBaseModel
+from pydantic import TypeAdapter
 from starlette.background import BackgroundTask
 from starlette.responses import Response
+from typing_extensions import override
 
 from ._duper import dumps, loads
 
@@ -97,7 +99,7 @@ def DuperBody(model_type: type[T]) -> Any:  # pyright: ignore[reportExplicitAny,
             adapter = TypeAdapter(type(parsed))
             dumped = adapter.dump_python(parsed)  # pyright: ignore[reportAny]
 
-        if issubclass(model_type, PydanticBaseModel):
+        if inspect.isclass(model_type) and issubclass(model_type, PydanticBaseModel):
             return model_type.model_validate(dumped)
         try:
             adapter = TypeAdapter(model_type)

@@ -18,7 +18,7 @@ crate-type = ["cdylib", "rlib"]
 edition = "2018"
 name = "duper-js-wasm"
 publish = false
-version = "0.4.1"
+version = "0.4.3"
 
 [profile.release]
 opt-level = "s"

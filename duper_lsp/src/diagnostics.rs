@@ -991,17 +991,18 @@ pub(crate) fn get_diagnostics(source: &str, tree: &Tree, is_utf8: bool) -> Vec<D
                     ))
                 }
             } else if REGEX_IPNET.is_match(identifier)
-                && let Err(err) = IpNet::from_str(string.as_ref()) {
-                    diagnostics.push(Diagnostic::new(
-                        to_range(node.range(), &index, is_utf8),
-                        Some(DiagnosticSeverity::WARNING),
-                        None,
-                        None,
-                        format!("Invalid IP network: {err}"),
-                        None,
-                        None,
-                    ))
-                }
+                && let Err(err) = IpNet::from_str(string.as_ref())
+            {
+                diagnostics.push(Diagnostic::new(
+                    to_range(node.range(), &index, is_utf8),
+                    Some(DiagnosticSeverity::WARNING),
+                    None,
+                    None,
+                    format!("Invalid IP network: {err}"),
+                    None,
+                    None,
+                ))
+            }
         } else {
             warn!(
                 ?identifier,
