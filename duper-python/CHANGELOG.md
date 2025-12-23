@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.4.3 (2025-12-23)
+
+### Fixed
+
+- Handle Python 3.13 types better.
 
 ### Changed
 

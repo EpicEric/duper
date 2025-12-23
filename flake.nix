@@ -24,6 +24,18 @@
 
         craneLib = crane.mkLib pkgs;
 
+        cargo-rail = craneLib.buildPackage rec {
+          pname = "cargo-rail";
+          version = "0.8.1";
+          src = pkgs.fetchFromGitHub {
+            owner = "loadingalias";
+            repo = "cargo-rail";
+            tag = "v${version}";
+            hash = "sha256-GlApp4rJ/X5lSD2c3KJ5ll0ZBXEIY3DbWwMM1O/ryXw=";
+          };
+          doCheck = false;
+        };
+
         src = lib.fileset.toSource {
           root = ./.;
           fileset = lib.fileset.unions [
@@ -172,7 +184,7 @@
 
           packages = [
             pkgs.binaryen
-            pkgs.cargo-rail
+            cargo-rail
             pkgs.dotnet-sdk_8
             pkgs.jdk21_headless
             pkgs.just

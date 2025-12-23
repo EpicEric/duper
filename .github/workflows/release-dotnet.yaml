@@ -1,7 +1,8 @@
 description: Build and release the .NET package
 
 on:
-  workflow_dispatch:
+  push:
+    tags: ["EpicEric.Duper@*.*.*"]
 
 permissions:
   contents: read
@@ -33,6 +34,7 @@ jobs:
           - runner: ubuntu-24.04
             target: x86_64-pc-windows-msvc
             os: windows
+          # https://github.com/EpicEric/duper/issues/41
           # - runner: ubuntu-24.04
           #   target: aarch64-pc-windows-msvc
           #   os: windows
@@ -144,6 +146,7 @@ jobs:
         with:
           name: dist-x86_64-pc-windows-msvc
           path: dist
+      # https://github.com/EpicEric/duper/issues/41
       # - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
       #   with:
       #     name: dist-aarch64-pc-windows-msvc

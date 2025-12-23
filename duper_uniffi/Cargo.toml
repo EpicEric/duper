@@ -1,7 +1,6 @@
 [package]
 name = "duper_uniffi"
 description = "UniFFI bindings for Duper."
-version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"

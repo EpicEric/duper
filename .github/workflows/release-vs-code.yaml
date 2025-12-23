@@ -1,7 +1,8 @@
-description: Build duper_lsp and release package extensions
+description: Build duper_lsp and release VSCode package extensions
 
 on:
-  workflow_dispatch:
+  push:
+    tags: ["duper-vs-code@*.*.*"]
 
 permissions:
   contents: read

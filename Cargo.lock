@@ -1079,7 +1079,7 @@ dependencies = [
 
 [[package]]
 name = "duper_uniffi"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "duper",
  "thiserror 2.0.17",

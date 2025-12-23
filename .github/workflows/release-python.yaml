@@ -1,7 +1,8 @@
 description: Build and release duper-python
 
 on:
-  workflow_dispatch:
+  push:
+    tags: ["duper-python@*.*.*"]
 
 permissions:
   contents: read
