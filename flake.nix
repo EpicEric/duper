@@ -69,8 +69,12 @@
             (craneLib.fileset.commonCargoSources ./tracing_duper)
             (craneLib.fileset.commonCargoSources ./tree-sitter-duper)
             (lib.fileset.fileFilter (file: file.hasExt "md") ./.)
+            ./.config
             ./.cargo/config.toml
+            ./duper/src/visitor/snapshots
+            ./duper/src/serde/snapshots
             ./duperfmt/src/duper.scm
+            ./duperfmt/src/snapshots
             ./duperq/tests/data
             ./duper_uniffi/src/duper.udl
             ./tree-sitter-duper/src
@@ -134,7 +138,7 @@
             })
             // {
               meta = {
-                description = "The official Duper formatting library and CLI";
+                description = "Official Duper formatting library and CLI";
                 homepage = "https://duper.dev.br";
                 license = lib.licenses.mit;
                 mainProgram = "sandhole";
@@ -160,7 +164,7 @@
             })
             // {
               meta = {
-                description = "The official Duper language server, with auto-formatting and diagnostics";
+                description = "Official Duper language server, with auto-formatting and diagnostics";
                 homepage = "https://duper.dev.br";
                 license = lib.licenses.mit;
                 mainProgram = "sandhole";
@@ -190,6 +194,14 @@
               inherit cargoArtifacts;
             }
           );
+
+          duper-test = craneLib.cargoNextest (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              cargoNextestExtraArgs = "-P nix";
+            }
+          );
         };
 
         devShells.default = craneLib.devShell {
@@ -197,6 +209,7 @@
 
           packages = [
             pkgs.binaryen
+            pkgs.cargo-insta
             cargo-rail
             pkgs.dotnet-sdk_8
             pkgs.jdk21_headless
