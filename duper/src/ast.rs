@@ -21,6 +21,7 @@ pub type DuperFloat = decorum::R64<decorum::divergence::OrError>;
 pub struct DuperIdentifier<'a>(pub(crate) Cow<'a, str>);
 
 /// A Duper value.
+#[cfg_attr(feature = "yoke", derive(yoke::Yokeable))]
 #[derive(Debug, Clone)]
 pub enum DuperValue<'a> {
     /// An object: `{...}`

@@ -5,6 +5,7 @@ use duper::{
     parser::{identified_value, integer, object_key, quoted_string},
 };
 use smol::{channel, io::AsyncWrite};
+use yoke::Yoke;
 
 use crate::{
     accessor::{
@@ -28,7 +29,7 @@ pub fn query<'a, O>() -> impl Parser<
     'a,
     &'a str,
     (
-        Vec<CreateProcessorFn<channel::Sender<DuperValue<'static>>>>,
+        Vec<CreateProcessorFn<channel::Sender<Yoke<DuperValue<'static>, String>>>>,
         CreateProcessorFn<O>,
     ),
     extra::Err<Rich<'a, char>>,
@@ -43,7 +44,7 @@ where
                 let mut ansi = Ansi::default();
                 Box::new(OutputProcessor::new(
                     output,
-                    Box::new(move |value| ansi.to_ansi(&value).unwrap_or_default()),
+                    Box::new(move |value| ansi.to_ansi(value.get()).unwrap_or_default()),
                 )) as Box<dyn Processor>
             }) as CreateProcessorFn<O>
         }),
@@ -52,7 +53,7 @@ where
                 let mut pretty_printer = PrettyPrinter::default();
                 Box::new(OutputProcessor::new(
                     output,
-                    Box::new(move |value| pretty_printer.pretty_print(&value).into_bytes()),
+                    Box::new(move |value| pretty_printer.pretty_print(value.get()).into_bytes()),
                 )) as Box<dyn Processor>
             }) as CreateProcessorFn<O>
         }),
@@ -63,7 +64,7 @@ where
         just("filter").padded().ignore_then(filter()).map(|filter| {
             Box::new(move |sender| {
                 Box::new(FilterProcessor::new(sender, filter)) as Box<dyn Processor>
-            }) as CreateProcessorFn<channel::Sender<DuperValue<'static>>>
+            }) as CreateProcessorFn<channel::Sender<Yoke<DuperValue<'static>, String>>>
         }),
         just("take")
             .padded()
@@ -73,7 +74,9 @@ where
                     Ok(Box::new(move |sender| {
                         Box::new(TakeProcessor::new(sender, take as usize)) as Box<dyn Processor>
                     })
-                        as CreateProcessorFn<channel::Sender<DuperValue<'static>>>)
+                        as CreateProcessorFn<
+                            channel::Sender<Yoke<DuperValue<'static>, String>>,
+                        >)
                 } else {
                     Err(Rich::custom(
                         span,
@@ -89,7 +92,9 @@ where
                     Ok(Box::new(move |sender| {
                         Box::new(SkipProcessor::new(sender, skip as usize)) as Box<dyn Processor>
                     })
-                        as CreateProcessorFn<channel::Sender<DuperValue<'static>>>)
+                        as CreateProcessorFn<
+                            channel::Sender<Yoke<DuperValue<'static>, String>>,
+                        >)
                 } else {
                     Err(Rich::custom(span, "skip parameter must be positive"))
                 }
@@ -109,7 +114,7 @@ where
                         let mut serializer = Serializer::default();
                         Box::new(OutputProcessor::new(
                             output,
-                            Box::new(move |value| serializer.serialize(&value).into_bytes()),
+                            Box::new(move |value| serializer.serialize(value.get()).into_bytes()),
                         )) as Box<dyn Processor>
                     }) as CreateProcessorFn<O>
                 })

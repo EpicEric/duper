@@ -4,18 +4,25 @@ use piper::{Reader, pipe};
 use smol::LocalExecutor;
 
 use duperq::query;
+use yoke::Yoke;
 
-pub(crate) fn parse_duper_values(values: &[&'static str]) -> Vec<DuperValue<'static>> {
+pub(crate) fn parse_duper_values(
+    values: &[&'static str],
+) -> Vec<Yoke<DuperValue<'static>, String>> {
     values
         .into_iter()
-        .map(|input| DuperParser::parse_duper_trunk(input).unwrap())
+        .map(|input| {
+            Yoke::attach_to_cart(input.to_string(), |input| {
+                DuperParser::parse_duper_trunk(input).unwrap()
+            })
+        })
         .collect()
 }
 
 pub(crate) fn get_query_output_reader(
     executor: &LocalExecutor<'_>,
     duperq_query: &str,
-    values: Vec<DuperValue<'static>>,
+    values: Vec<Yoke<DuperValue<'static>, String>>,
 ) -> (Reader, impl Future<Output = ()>) {
     let (reader, writer) = pipe(32_768);
     let (pipeline_fns, output) = query().parse(duperq_query).unwrap();

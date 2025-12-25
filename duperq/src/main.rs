@@ -11,6 +11,7 @@ use smol::{
 };
 
 use duperq::query;
+use yoke::Yoke;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -68,12 +69,21 @@ fn main() -> color_eyre::Result<()> {
             let stdin = BufReader::new(Unblock::new(std::io::stdin()));
             let mut lines = stdin.lines();
             while let Some(Ok(line)) = lines.next().await {
-                match DuperParser::parse_duper_trunk(&line) {
-                    Ok(trunk) => sink.process(trunk.static_clone()).await,
-                    Err(errors) => {
+                match Yoke::try_attach_to_cart(line, |input| {
+                    DuperParser::parse_duper_trunk(input).map_err(move |err| {
+                        (
+                            err.into_iter()
+                                .map(|rich| rich.into_owned())
+                                .collect::<Vec<_>>(),
+                            input.to_string(),
+                        )
+                    })
+                }) {
+                    Ok(yoke) => sink.process(yoke).await,
+                    Err((errors, string)) => {
                         if !cli.disable_stderr
                             && let Ok(parse_error) =
-                                DuperParser::prettify_error(&line, &errors, None)
+                                DuperParser::prettify_error(&string, &errors, None)
                         {
                             let _ = stderr
                                 .write_all(eyre!(parse_error).to_string().as_bytes())
@@ -82,6 +92,15 @@ fn main() -> color_eyre::Result<()> {
                         }
                     }
                 }
+                // if !cli.disable_stderr
+                //     && let Ok(parse_error) =
+                //         DuperParser::prettify_error(&line, &errors, None)
+                // {
+                //     let _ = stderr
+                //         .write_all(eyre!(parse_error).to_string().as_bytes())
+                //         .await;
+                //     let _ = stderr.flush().await;
+                // }
             }
             sink.close().await;
         }));
@@ -124,9 +143,18 @@ fn main() -> color_eyre::Result<()> {
         tasks.push(executor.spawn(async move {
             while let Ok(input) = file_receiver.recv().await {
                 match input {
-                    Ok((pathbuf, string)) => match DuperParser::parse_duper_trunk(&string) {
-                        Ok(trunk) => sink.process(trunk.static_clone()).await,
-                        Err(errors) => {
+                    Ok((pathbuf, string)) => match Yoke::try_attach_to_cart(string, |input| {
+                        DuperParser::parse_duper_trunk(input).map_err(move |err| {
+                            (
+                                err.into_iter()
+                                    .map(|rich| rich.into_owned())
+                                    .collect::<Vec<_>>(),
+                                input.to_string(),
+                            )
+                        })
+                    }) {
+                        Ok(yoke) => sink.process(yoke).await,
+                        Err((errors, string)) => {
                             if !cli.disable_stderr
                                 && let Ok(parse_error) = DuperParser::prettify_error(
                                     &string,

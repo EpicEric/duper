@@ -8,6 +8,7 @@ use duper::{
     },
     visitor::DuperVisitor,
 };
+use yoke::Yoke;
 
 use crate::{accessor::DuperAccessor, types::DuperType};
 
@@ -35,13 +36,14 @@ impl Formatter {
         }
     }
 
-    pub(crate) fn format(&mut self, value: DuperValue<'static>) -> String {
+    pub(crate) fn format(&mut self, value: Yoke<DuperValue<'static>, String>) -> String {
         let mut buf = String::new();
+        let inner = value.get();
         for atom in &self.atoms {
             match atom {
                 FormatterAtom::Fixed(fixed) => buf.push_str(fixed),
                 FormatterAtom::Dynamic(duper_accessor, typ) => {
-                    match duper_accessor.access(&value).next() {
+                    match duper_accessor.access(inner).next() {
                         Some(value) => {
                             if let Some(typ) = typ {
                                 if let Some(value) = typ.cast(value) {

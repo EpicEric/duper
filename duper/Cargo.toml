@@ -1,7 +1,7 @@
 [package]
 name = "duper"
 description = "The format that's super!"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
@@ -16,6 +16,7 @@ keywords = ["duper", "parser", "serialization"]
 default = []
 ansi = ["dep:owo-colors"]
 serde = ["dep:serde_core"]
+yoke = ["dep:yoke"]
 
 [dependencies]
 ariadne = { version = "0.6", features = ["auto-color"] }
@@ -28,6 +29,7 @@ owo-colors = { version = "4", optional = true }
 ryu = "1"
 serde_core = { workspace = true, optional = true }
 unicode-general-category = "1"
+yoke = { workspace = true, optional = true }
 
 [dev-dependencies]
 insta = { workspace = true }

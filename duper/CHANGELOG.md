@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add `yoke::Yokeable` derive to `DuperValue` (gated behind the `yoke` feature).
+
 ## 0.6.0 (2025-12-23)
 
 ### Changed
