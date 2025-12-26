@@ -194,7 +194,7 @@ pub fn format_integer(integer: i64) -> String {
 
 /// Format a float for Duper.
 pub fn format_float(float: DuperFloat) -> String {
-    ryu::Buffer::new().format(float.into_inner()).into()
+    ryu::Buffer::new().format_finite(float.into_inner()).into()
 }
 
 /// Format a boolean for Duper.

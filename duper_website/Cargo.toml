@@ -14,10 +14,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 base64 = { workspace = true }
-duper = { workspace = true, features = ["ansi"] }
+duper = { workspace = true }
 js-sys = "0.3"
 saphyr = "0.0.6"
-serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
+serde_core = { workspace = true }
+serde_json = { workspace = true, features = ["preserve_order"] }
 toml = { version = "0.9", features = ["preserve_order"] }
 wasm-bindgen = { workspace = true }

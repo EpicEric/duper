@@ -34,7 +34,10 @@
         inherit (pkgs) lib;
 
         craneLib = (crane.mkLib pkgs).overrideToolchain (
-          pkgs: pkgs.rust-bin.${rustChannel}.${rustVersion}.default
+          pkgs:
+          pkgs.rust-bin.${rustChannel}.${rustVersion}.default.override {
+            targets = [ "wasm32-unknown-unknown" ];
+          }
         );
 
         cargo-rail = craneLib.buildPackage rec {
@@ -209,6 +212,7 @@
 
           packages = [
             pkgs.binaryen
+            pkgs.bun
             pkgs.cargo-insta
             cargo-rail
             pkgs.dotnet-sdk_8

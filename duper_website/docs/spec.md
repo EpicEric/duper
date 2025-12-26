@@ -533,7 +533,7 @@ Tuples are similar to arrays, but are surrounded by parenthesis `(` and `)` inst
 
 Any parenthesized expression must be interpreted as a tuple by parsers.
 
-Parsers may choose to handle them differently from arrays. For example, in most programming languages, tuples might be treated as fixed-size values, while  arrays equivalents are considered growable/shrinkable elements. On the other hand, it might make sense to index into an array freely, while tuples may get treated as a unit.
+Parsers may choose to handle them differently from arrays. For example, in most programming languages, tuples might be treated as fixed-size values, while  array equivalents are considered growable/shrinkable elements. On the other hand, it might make sense to index into an array freely, while tuples may get treated as a unit.
 
 ## Identifiers
 

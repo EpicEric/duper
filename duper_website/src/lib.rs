@@ -1,5 +1,5 @@
 use duper::DuperParser;
-use serde::Serialize;
+use serde_core::Serialize;
 use wasm_bindgen::prelude::*;
 
 mod temporal;
@@ -68,7 +68,7 @@ pub fn convert_duper(value: &str, to: Option<ConvertDuperTo>) -> Result<String, 
 
     match target {
         ConvertTo::Json => {
-            serde_json::to_string_pretty(&duper.accept(&mut visitor::SerdeVisitor {}))
+            serde_json::to_string_pretty(&duper.accept(&mut visitor::SerdeJsonVisitor {}))
                 .map_err(|err| JsError::new(&err.to_string()))
         }
         ConvertTo::Yaml => match duper.accept(&mut visitor::SaphyrVisitor {}) {
