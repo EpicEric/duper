@@ -11,6 +11,13 @@ on:
       - "tracing_duper@*.*.*"
       - "tree-sitter-duper@*.*.*"
 
+permissions: {}
+
+env:
+  RUST_VERSION: "1.92.0"
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+
 jobs:
   publish-to-crates-io:
     name: Publish to crates.io

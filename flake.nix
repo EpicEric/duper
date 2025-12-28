@@ -36,7 +36,10 @@
         craneLib = (crane.mkLib pkgs).overrideToolchain (
           pkgs:
           pkgs.rust-bin.${rustChannel}.${rustVersion}.default.override {
-            targets = [ "wasm32-unknown-unknown" ];
+            targets = [
+              "wasm32-unknown-unknown"
+              "wasm32-wasip2"
+            ];
           }
         );
 
@@ -65,6 +68,7 @@
             (craneLib.fileset.commonCargoSources ./duper_lsp)
             (craneLib.fileset.commonCargoSources ./duper_uniffi)
             (craneLib.fileset.commonCargoSources ./duper_website)
+            (craneLib.fileset.commonCargoSources ./duper_zed)
             (craneLib.fileset.commonCargoSources ./duperfmt)
             (craneLib.fileset.commonCargoSources ./duperq)
             (craneLib.fileset.commonCargoSources ./serde_duper)

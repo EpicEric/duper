@@ -6,7 +6,7 @@ permissions:
   contents: read
 
 env:
-  RUST_VERSION: "1.91.1"
+  RUST_VERSION: "1.92.0"
   CARGO_INCREMENTAL: "0"
   CARGO_PROFILE_TEST_DEBUG: "0"
   NODE_VERSION: "20"

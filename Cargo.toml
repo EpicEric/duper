@@ -11,6 +11,7 @@ members = [
   "duper_lsp",
   "duper_uniffi",
   "duper_website",
+  "duper_zed",
   "serde_duper",
   "serde_duper_macros",
   "tracing_duper",

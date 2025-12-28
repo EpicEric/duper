@@ -1,0 +1,16 @@
+id = "duper"
+name = "Duper"
+version = "0.0.1"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+description = "Duper support for Zed."
+repository = "https://github.com/EpicEric/duper"
+schema_version = 1
+
+[grammars.duper]
+repository = "https://github.com/EpicEric/duper"
+rev = "d16fee4ced27293cb80503544051c9b4442cc782"
+path = "tree-sitter-duper"
+
+[language_servers.duper_lsp]
+name = "duper_lsp"
+language = "Duper"

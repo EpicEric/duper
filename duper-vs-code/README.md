@@ -9,7 +9,7 @@
     <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
 </p>
 
-Full LSP support for Duper files, with syntax highlighting, validation, and auto-formatting.
+Full LSP support for Duper files in VSCode / VSCodium, with syntax highlighting, validation, and auto-formatting.
 
 ![An example of the Duper extension in Visual Studio Code.](https://duper.dev.br/images/vscode-example.png)
 

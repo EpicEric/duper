@@ -1,0 +1,110 @@
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RUST_VERSION: "1.92.0"
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.duper_lsp_version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+      - name: Get duper_lsp version
+        id: duper_lsp_version
+        run: |
+          echo "version=$(cargo metadata | jq -r '.packages[] | select(.name == "duper_lsp") | .version')" >> "$GITHUB_OUTPUT"
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            suffix: linux-x64
+            os: linux
+          - runner: ubuntu-24.04
+            target: aarch64-unknown-linux-gnu
+            suffix: linux-arm64
+            os: linux
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            suffix: win32-x64
+            os: windows
+          - runner: windows-latest
+            target: aarch64-pc-windows-msvc
+            suffix: win32-arm64
+            os: windows
+          - runner: macos-15
+            target: x86_64-apple-darwin
+            suffix: darwin-x64
+            os: macos
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            suffix: darwin-arm64
+            os: macos
+    name: Build and distribute duper_lsp_${{ matrix.suffix }}
+    runs-on: ${{ matrix.runner }}
+    needs:
+      - prepare
+    environment: codeberg
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: true
+      - name: Fetch MSRV and add target
+        run: |
+          rustup toolchain install ${RUST_VERSION}
+          rustup override set ${RUST_VERSION}
+          rustup target add ${{ matrix.target }}
+      - name: Install Zig
+        if: matrix.runner == 'ubuntu-24.04'
+        uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
+        with:
+          version: latest
+      - name: Install cargo-zigbuild (Linux)
+        if: matrix.runner == 'ubuntu-24.04'
+        uses: taiki-e/install-action@a24ba45235ed716ff76646268742990dc9458860 # v2.62.42
+        with:
+          tool: cargo-zigbuild
+      - name: Install lld (macOS)
+        if: matrix.os == 'macos'
+        run: |
+          brew install lld
+      - name: Install lld (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          choco install llvm
+      - name: Build with cargo-zigbuild (Linux)
+        if: matrix.runner == 'ubuntu-24.04'
+        run: |
+          cargo zigbuild --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_lsp/Cargo.toml
+      - name: Build with cargo (macOS / Windows)
+        if: matrix.runner != 'ubuntu-24.04'
+        run: |
+          cargo build --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_lsp/Cargo.toml
+      - name: Push binary to Codeberg (Linux / macOS)
+        if: matrix.os != 'windows'
+        run: |
+          curl --fail \
+            --header "Authorization: token ${{ secrets.CODEBERG_PACKAGE_WRITE_TOKEN }}" \
+            --upload-file target/${{ matrix.target }}/release/duper_lsp \
+            "https://codeberg.org/api/packages/EpicEric9/generic/duper_lsp/${{ needs.prepare.outputs.version }}/duper_lsp_${{ matrix.suffix }}"
+      - name: Push binary to Codeberg (Windows)
+        if: matrix.os == 'windows'
+        shell: bash
+        run: |
+          curl --fail \
+            --header "Authorization: token ${{ secrets.CODEBERG_PACKAGE_WRITE_TOKEN }}" \
+            --upload-file target/${{ matrix.target }}/release/duper_lsp.exe \
+            "https://codeberg.org/api/packages/EpicEric9/generic/duper_lsp/${{ needs.prepare.outputs.version }}/duper_lsp_${{ matrix.suffix }}.exe"
