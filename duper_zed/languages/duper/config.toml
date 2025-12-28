@@ -4,3 +4,16 @@ path_suffixes = ["duper"]
 line_comments = ["// "]
 tab_size = 2
 hard_tabs = false
+brackets = [
+    { start = "{", end = "}", close = true, newline = false },
+    { start = "[", end = "]", close = true, newline = false },
+    { start = "(", end = ")", close = true, newline = false },
+    { start = "r\"", end = "\"", close = true, newline = false, not_in = ["string", "bytes", "line_comment", "block_comment"] },
+    { start = "r#\"", end = "\"#", close = true, newline = false, not_in = ["string", "bytes", "line_comment", "block_comment"] },
+    { start = "r##\"", end = "\"##", close = true, newline = false, not_in = ["string", "bytes", "line_comment", "block_comment"] },
+    { start = "r###\"", end = "\"###", close = true, newline = false, not_in = ["string", "bytes", "line_comment", "block_comment"] },
+    { start = "r####\"", end = "\"####", close = true, newline = false, not_in = ["string", "bytes", "line_comment", "block_comment"] },
+    { start = "r#####\"", end = "\"#####", close = true, newline = false, not_in = ["string", "bytes", "line_comment", "block_comment"] },
+    { start = "\"", end = "\"", close = true, newline = false, not_in = ["string", "bytes", "line_comment", "block_comment"] },
+    { start = "'", end = "'", close = true, newline = false, not_in = ["string", "bytes", "line_comment", "block_comment"] },
+]
