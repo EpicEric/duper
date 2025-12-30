@@ -8,7 +8,7 @@ schema_version = 1
 
 [grammars.duper]
 repository = "https://github.com/EpicEric/duper"
-rev = "def2c6b9a9f0ffac7e03cdcd685c417677bf7624"
+rev = "46c21fc9b285a880f5690acb00bb8cbf3ae0708c"
 path = "tree-sitter-duper"
 
 [language_servers.duper_lsp]
