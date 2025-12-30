@@ -85,7 +85,10 @@ export default async () => {
             },
             {
               text: "Editor support",
-              items: [{ text: "Visual Studio Code", link: "/tools/vs-code" }],
+              items: [
+                { text: "Visual Studio Code", link: "/tools/vs-code" },
+                { text: "Zed", link: "/tools/zed" },
+              ],
             },
             {
               text: "Tools",
