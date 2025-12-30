@@ -4,6 +4,7 @@
 
 ### Changed
 
+- **Breaking:** Use `:raw` when formatting to return raw values whenever possible.
 - Use `yoke` to prevent unnecessary cloning of Duper values.
 
 ## 0.1.2 (2025-12-23)

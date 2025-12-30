@@ -50,11 +50,11 @@ jobs:
             os: linux
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
-            suffix: win32-x64
+            suffix: win32-x64.exe
             os: windows
           - runner: windows-latest
             target: aarch64-pc-windows-msvc
-            suffix: win32-arm64
+            suffix: win32-arm64.exe
             os: windows
           - runner: macos-15
             target: x86_64-apple-darwin
@@ -105,21 +105,13 @@ jobs:
         if: matrix.runner != 'ubuntu-24.04'
         run: |
           cargo build --locked --all-features --release --target ${{ matrix.target }} --manifest-path duper_lsp/Cargo.toml
-      - name: Push binary to Codeberg (Linux / macOS)
-        if: matrix.os != 'windows'
-        run: |
-          curl --fail \
-            --header "Authorization: token ${{ secrets.CODEBERG_PACKAGE_WRITE_TOKEN }}" \
-            --upload-file target/${{ matrix.target }}/release/duper_lsp \
-            "https://codeberg.org/api/packages/EpicEric9/generic/duper_lsp/${{ needs.prepare_duper_lsp.outputs.version }}/duper_lsp_${{ matrix.suffix }}"
-      - name: Push binary to Codeberg (Windows)
-        if: matrix.os == 'windows'
+      - name: Push binary to Codeberg
         shell: bash
         run: |
           curl --fail \
             --header "Authorization: token ${{ secrets.CODEBERG_PACKAGE_WRITE_TOKEN }}" \
-            --upload-file target/${{ matrix.target }}/release/duper_lsp.exe \
-            "https://codeberg.org/api/packages/EpicEric9/generic/duper_lsp/${{ needs.prepare_duper_lsp.outputs.version }}/duper_lsp_${{ matrix.suffix }}.exe"
+            --upload-file target/${{ matrix.target }}/release/duper_lsp${{ matrix.os == 'windows' && '.exe' || '' }} \
+            "https://codeberg.org/api/packages/EpicEric9/generic/duper_lsp/${{ needs.prepare_duper_lsp.outputs.version }}/duper_lsp_${{ matrix.suffix }}"
 
   publish-to-crates-io:
     name: Publish to crates.io

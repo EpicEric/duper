@@ -158,10 +158,10 @@ By default, `duperq` serializes output data into a single-line format. You can c
 
 - `| ansi`: Prints with ANSI colors.
 - `| pretty-print`: Pretty-prints values over multiple lines with indentation.
-- `| format`: Allows you to print arbitrary strings, replacing `${...}` blocks with the selector inside. String values will have their quotes stripped. Missing values will be printed as `<MISSING>`.
+- `| format`: Allows you to print arbitrary strings, replacing `${...}` blocks with the selector inside. To remove identifiers and strip quotes from string values, use `:raw` inside of the formatting block. Missing values will be printed as `<MISSING>`.
 
 ```bash
-duperq "filter . | format \"[\${.level}] \${.http.statusCode} - \${.http.method} \${.http.url}\"" log.duper
+duperq "filter . | format \"[\${.level:raw}] \${.http.statusCode} - \${.http.method:raw} \${.http.url:raw}\"" log.duper
 ```
 
-Formats must always be the last block in your query workflow.
+Outputs must always be the last block in your query workflow, and there can only be one of them.

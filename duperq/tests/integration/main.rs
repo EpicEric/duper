@@ -14,6 +14,7 @@ mod filter_negation;
 mod filter_range;
 mod filter_regex;
 mod filter_type;
+mod format;
 mod skip;
 mod skip_then_take;
 mod take;

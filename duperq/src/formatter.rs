@@ -14,12 +14,15 @@ use crate::{accessor::DuperAccessor, types::DuperType};
 
 pub(crate) enum FormatterAtom {
     Fixed(String),
-    Dynamic(Box<dyn DuperAccessor>, Option<DuperType>),
+    Dynamic {
+        accessor: Box<dyn DuperAccessor>,
+        cast_to: Option<DuperType>,
+        raw: bool,
+    },
 }
 
 pub(crate) struct Formatter {
     atoms: Vec<FormatterAtom>,
-    visitor: FormatterVisitor,
 }
 
 impl Formatter {
@@ -32,7 +35,6 @@ impl Formatter {
                     _ => Some(atom),
                 })
                 .collect(),
-            visitor: FormatterVisitor { buf: String::new() },
         }
     }
 
@@ -42,41 +44,50 @@ impl Formatter {
         for atom in &self.atoms {
             match atom {
                 FormatterAtom::Fixed(fixed) => buf.push_str(fixed),
-                FormatterAtom::Dynamic(duper_accessor, typ) => {
-                    match duper_accessor.access(inner).next() {
-                        Some(value) => {
-                            if let Some(typ) = typ {
-                                if let Some(value) = typ.cast(value) {
-                                    buf.push_str(&self.visitor.visit(&value))
-                                } else {
-                                    buf.push_str("<INVALID CAST>")
+                FormatterAtom::Dynamic {
+                    accessor,
+                    cast_to,
+                    raw,
+                } => match accessor.access(inner).next() {
+                    Some(value) => {
+                        if let Some(typ) = cast_to {
+                            if let Some(value) = typ.cast(value) {
+                                DynamicVisitor {
+                                    buf: &mut buf,
+                                    raw: *raw,
                                 }
+                                .visit(&value);
                             } else {
-                                buf.push_str(&self.visitor.visit(value))
+                                buf.push_str("<INVALID CAST>")
                             }
+                        } else {
+                            DynamicVisitor {
+                                buf: &mut buf,
+                                raw: *raw,
+                            }
+                            .visit(&value);
                         }
-                        None => buf.push_str("<MISSING>"),
                     }
-                }
+                    None => buf.push_str("<MISSING>"),
+                },
             }
         }
         buf
     }
 }
 
-struct FormatterVisitor {
-    buf: String,
+struct DynamicVisitor<'buf> {
+    buf: &'buf mut String,
+    raw: bool,
 }
 
-impl FormatterVisitor {
-    pub(crate) fn visit<'a>(&mut self, value: &'a DuperValue<'a>) -> String {
-        self.buf.clear();
-        value.accept(self);
-        std::mem::take(&mut self.buf)
+impl<'buf> DynamicVisitor<'buf> {
+    pub(crate) fn visit<'a>(mut self, value: &'a DuperValue<'a>) {
+        value.accept(&mut self);
     }
 }
 
-impl DuperVisitor for FormatterVisitor {
+impl<'buf> DuperVisitor for DynamicVisitor<'buf> {
     type Value = ();
 
     fn visit_object<'a>(
@@ -86,7 +97,9 @@ impl DuperVisitor for FormatterVisitor {
     ) -> Self::Value {
         let len = object.len();
 
-        if let Some(identifier) = identifier {
+        if !self.raw
+            && let Some(identifier) = identifier
+        {
             self.buf.push_str(identifier.as_ref());
             self.buf.push_str("({");
             for (i, (key, value)) in object.iter().enumerate() {
@@ -119,7 +132,9 @@ impl DuperVisitor for FormatterVisitor {
     ) -> Self::Value {
         let len = array.len();
 
-        if let Some(identifier) = identifier {
+        if !self.raw
+            && let Some(identifier) = identifier
+        {
             self.buf.push_str(identifier.as_ref());
             self.buf.push_str("([");
             for (i, value) in array.iter().enumerate() {
@@ -148,7 +163,9 @@ impl DuperVisitor for FormatterVisitor {
     ) -> Self::Value {
         let len = tuple.len();
 
-        if let Some(identifier) = identifier {
+        if !self.raw
+            && let Some(identifier) = identifier
+        {
             self.buf.push_str(identifier.as_ref());
             self.buf.push_str("((");
             for (i, value) in tuple.iter().enumerate() {
@@ -175,11 +192,13 @@ impl DuperVisitor for FormatterVisitor {
         identifier: Option<&DuperIdentifier<'a>>,
         value: &'a str,
     ) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if self.raw {
+            self.buf.push_str(value.as_ref());
+        } else if let Some(identifier) = identifier {
             let value = format_duper_string(value);
             self.buf.push_str(&format!("{identifier}({value})"));
         } else {
-            self.buf.push_str(value.as_ref());
+            self.buf.push_str(&format_duper_string(value));
         }
     }
 
@@ -188,7 +207,9 @@ impl DuperVisitor for FormatterVisitor {
         identifier: Option<&DuperIdentifier<'a>>,
         bytes: &'a [u8],
     ) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if !self.raw
+            && let Some(identifier) = identifier
+        {
             let bytes = format_duper_bytes(bytes);
             self.buf.push_str(&format!("{identifier}({bytes})"));
         } else {
@@ -198,7 +219,9 @@ impl DuperVisitor for FormatterVisitor {
 
     fn visit_temporal<'a>(&mut self, temporal: &DuperTemporal<'a>) -> Self::Value {
         let identifier = temporal.identifier();
-        if let Some(identifier) = identifier {
+        if self.raw {
+            self.buf.push_str(temporal.as_ref());
+        } else if let Some(identifier) = identifier {
             let value = format_temporal(temporal);
             self.buf.push_str(&format!("{identifier}({value})"));
         } else {
@@ -211,7 +234,9 @@ impl DuperVisitor for FormatterVisitor {
         identifier: Option<&DuperIdentifier<'_>>,
         integer: i64,
     ) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if !self.raw
+            && let Some(identifier) = identifier
+        {
             let value = format_integer(integer);
             self.buf.push_str(&format!("{identifier}({value})"));
         } else {
@@ -224,7 +249,9 @@ impl DuperVisitor for FormatterVisitor {
         identifier: Option<&DuperIdentifier<'_>>,
         float: DuperFloat,
     ) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if !self.raw
+            && let Some(identifier) = identifier
+        {
             let value = format_float(float);
             self.buf.push_str(&format!("{identifier}({value})"));
         } else {
@@ -237,7 +264,9 @@ impl DuperVisitor for FormatterVisitor {
         identifier: Option<&DuperIdentifier<'_>>,
         boolean: bool,
     ) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if !self.raw
+            && let Some(identifier) = identifier
+        {
             let value = format_boolean(boolean);
             self.buf.push_str(&format!("{identifier}({value})"));
         } else {
@@ -246,7 +275,9 @@ impl DuperVisitor for FormatterVisitor {
     }
 
     fn visit_null(&mut self, identifier: Option<&DuperIdentifier<'_>>) -> Self::Value {
-        if let Some(identifier) = identifier {
+        if !self.raw
+            && let Some(identifier) = identifier
+        {
             let value = format_null();
             self.buf.push_str(&format!("{identifier}({value})"));
         } else {

@@ -4,7 +4,7 @@ use crate::common::{get_query_output_reader, parse_duper_values};
 
 #[test]
 fn filter_basic_nested() {
-    let query = r#"filter .http.method == "GET" | format "${.id}""#;
+    let query = r#"filter .http.method == "GET" | format "${.id:raw}""#;
     let values = parse_duper_values(&[
         include_str!("../data/1.duper"),
         r#"{id:"2"}"#,

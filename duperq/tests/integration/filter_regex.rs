@@ -4,7 +4,7 @@ use crate::common::{get_query_output_reader, parse_duper_values};
 
 #[test]
 fn filter_regex() {
-    let query = r#"filter .http.history[. =~ "headphones"] | format "${.id}""#;
+    let query = r#"filter .http.history[. =~ "headphones"] | format "${.id:raw}""#;
     let values = parse_duper_values(&[
         include_str!("../data/1.duper"),
         r#"{id:"2",http:{}}"#,

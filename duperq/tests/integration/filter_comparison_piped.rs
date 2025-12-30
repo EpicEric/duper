@@ -4,7 +4,7 @@ use crate::common::{get_query_output_reader, parse_duper_values};
 
 #[test]
 fn filter_comparison_piped() {
-    let query = r#"filter .http.statusCode < 400 | filter len(.http.history) > 2 | filter .http.duration < Duration('PT1S') | format "${.id}""#;
+    let query = r#"filter .http.statusCode < 400 | filter len(.http.history) > 2 | filter .http.duration < Duration('PT1S') | format "${.id:raw}""#;
     let values = parse_duper_values(&[
         include_str!("../data/1.duper"),
         r#"{id:"2",http:{statusCode:400,duration:Duration('PT0.5S'),history:[1,2,3]}}"#,

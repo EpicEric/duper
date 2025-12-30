@@ -4,8 +4,7 @@ use crate::common::{get_query_output_reader, parse_duper_values};
 
 #[test]
 fn filter_combined() {
-    let query =
-        r#"filter (.http.url = "/admin" || .level = "INFO") && exists(.spanId) | format "${.id}""#;
+    let query = r#"filter (.http.url = "/admin" || .level = "INFO") && exists(.spanId) | format "${.id:raw}""#;
     let values = parse_duper_values(&[
         include_str!("../data/1.duper"),
         r#"{id:"2",http:{}}"#,

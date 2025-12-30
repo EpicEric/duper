@@ -505,20 +505,32 @@ where
     O: AsyncWrite + Unpin + 'static,
 {
     choice((
-        just('$').ignore_then(choice((
-            just("cast").padded().ignore_then(
+        just('$').ignore_then(
+            choice((
+                just("cast").padded().ignore_then(
+                    accessor()
+                        .padded()
+                        .then_ignore(just(','))
+                        .then(duper_type().padded())
+                        .delimited_by(just('('), just(')'))
+                        .then(just(":raw").padded().or_not())
+                        .map(|((accessor, typ), raw)| FormatterAtom::Dynamic {
+                            accessor,
+                            cast_to: Some(typ),
+                            raw: raw.is_some(),
+                        }),
+                ),
                 accessor()
-                    .padded()
-                    .then_ignore(just(','))
-                    .then(duper_type().padded())
-                    .map(|(accessor, typ)| FormatterAtom::Dynamic(accessor, Some(typ)))
-                    .delimited_by(just('('), just(')')),
-            ),
-            accessor()
-                .map(|accessor| FormatterAtom::Dynamic(accessor, None))
-                .padded()
-                .delimited_by(just('{'), just('}')),
-        ))),
+                    .then(just(":raw").padded().or_not())
+                    .map(|(accessor, raw)| FormatterAtom::Dynamic {
+                        accessor,
+                        cast_to: None,
+                        raw: raw.is_some(),
+                    })
+                    .padded(),
+            ))
+            .delimited_by(just('{'), just('}')),
+        ),
         quoted_inner().try_map(|slice: &str, span| match unescape_str(slice) {
             Ok(unescaped) => Ok(FormatterAtom::Fixed(unescaped.clone().into_owned())),
             Err(error) => Err(Rich::custom(span, error.to_string())),

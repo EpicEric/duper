@@ -4,7 +4,7 @@ use crate::common::{get_query_output_reader, parse_duper_values};
 
 #[test]
 fn take_then_skip() {
-    let query = r#"take 3 | skip 2 | format "${.id}""#;
+    let query = r#"take 3 | skip 2 | format "${.id:raw}""#;
     let values = parse_duper_values(&[
         r#"{id: "1"}"#,
         r#"{id: "2"}"#,
