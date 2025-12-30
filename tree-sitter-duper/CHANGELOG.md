@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Rule for escaped content in strings / byte strings.
+
 ## 0.1.2 (2025-12-23)
 
 ### Added

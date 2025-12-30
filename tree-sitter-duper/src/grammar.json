@@ -259,10 +259,6 @@
       "type": "CHOICE",
       "members": [
         {
-          "type": "STRING",
-          "value": "\"\""
-        },
-        {
           "type": "SYMBOL",
           "name": "quoted_string"
         },
@@ -390,20 +386,50 @@
       "type": "PATTERN",
       "value": "(_[a-zA-Z0-9]|[a-zA-Z])([_-]?[a-zA-Z0-9])*"
     },
+    "quoted_content": {
+      "type": "REPEAT1",
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "quoted_plain"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "quoted_escape"
+              }
+            ]
+          }
+        ]
+      }
+    },
     "quoted_string": {
-      "type": "SEQ",
+      "type": "CHOICE",
       "members": [
         {
           "type": "STRING",
-          "value": "\""
+          "value": "\"\""
         },
         {
-          "type": "SYMBOL",
-          "name": "quoted_content"
-        },
-        {
-          "type": "STRING",
-          "value": "\""
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "\""
+            },
+            {
+              "type": "SYMBOL",
+              "name": "quoted_content"
+            },
+            {
+              "type": "STRING",
+              "value": "\""
+            }
+          ]
         }
       ]
     },
@@ -429,19 +455,28 @@
       ]
     },
     "quoted_bytes": {
-      "type": "SEQ",
+      "type": "CHOICE",
       "members": [
         {
           "type": "STRING",
-          "value": "b\""
+          "value": "b\"\""
         },
         {
-          "type": "SYMBOL",
-          "name": "quoted_content"
-        },
-        {
-          "type": "STRING",
-          "value": "\""
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "b\""
+            },
+            {
+              "type": "SYMBOL",
+              "name": "quoted_content"
+            },
+            {
+              "type": "STRING",
+              "value": "\""
+            }
+          ]
         }
       ]
     },
@@ -575,7 +610,11 @@
     },
     {
       "type": "SYMBOL",
-      "name": "quoted_content"
+      "name": "quoted_plain"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "quoted_escape"
     }
   ],
   "inline": [],

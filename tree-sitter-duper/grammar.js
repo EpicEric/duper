@@ -10,13 +10,15 @@
 module.exports = grammar({
   name: "duper",
 
-  extras: ($) => [
-    /[ \t\r\n]/,
-    $.line_comment,
-    $.block_comment,
-  ],
+  extras: ($) => [/[ \t\r\n]/, $.line_comment, $.block_comment],
 
-  externals: ($) => [$.raw_start, $.raw_content, $.raw_end, $.quoted_content],
+  externals: ($) => [
+    $.raw_start,
+    $.raw_content,
+    $.raw_end,
+    $.quoted_plain,
+    $.quoted_escape,
+  ],
 
   rules: {
     duper_value: ($) => choice($.identified_value, $._value),
@@ -59,7 +61,7 @@ module.exports = grammar({
         optional(","),
         ")",
       ),
-    string: ($) => choice(`""`, $.quoted_string, $.raw_string),
+    string: ($) => choice($.quoted_string, $.raw_string),
     bytes: ($) => choice($.quoted_bytes, $.raw_bytes, $.base64_bytes),
     temporal: ($) => seq(`'`, $.temporal_content, `'`),
     integer: ($) =>
@@ -79,20 +81,20 @@ module.exports = grammar({
     object_entry: ($) => seq($.object_key, ":", $.duper_value),
 
     object_key: ($) => choice($.plain_key, $.quoted_string, $.raw_string),
-    plain_key: (_) =>
-      /(_[a-zA-Z0-9]|[a-zA-Z])([_-]?[a-zA-Z0-9])*/,
+    plain_key: (_) => /(_[a-zA-Z0-9]|[a-zA-Z])([_-]?[a-zA-Z0-9])*/,
 
-    quoted_string: ($) => seq(`"`, $.quoted_content, `"`),
+    quoted_content: ($) =>
+      repeat1(seq(choice($.quoted_plain, $.quoted_escape))),
+
+    quoted_string: ($) => choice(`""`, seq(`"`, $.quoted_content, `"`)),
     raw_string: ($) => seq("r", $.raw_start, $.raw_content, $.raw_end),
 
-    quoted_bytes: ($) => seq(`b"`, $.quoted_content, `"`),
+    quoted_bytes: ($) => choice(`b""`, seq(`b"`, $.quoted_content, `"`)),
     raw_bytes: ($) => seq("br", $.raw_start, $.raw_content, $.raw_end),
     base64_bytes: ($) => seq(`b64"`, $.base64_content, `"`),
 
-    base64_content: (_) =>
-      /[a-zA-Z0-9+/ \t\r\n]*(=[ \t\r\n]*){0,2}[ \t\r\n]*/,
-    temporal_content: (_) =>
-      /[ \t\r\n]*[^' \t\r\n][^']+[^' \t\r\n][ \t\r\n]*/,
+    base64_content: (_) => /[a-zA-Z0-9+/ \t\r\n]*(=[ \t\r\n]*){0,2}[ \t\r\n]*/,
+    temporal_content: (_) => /[ \t\r\n]*[^' \t\r\n][^']+[^' \t\r\n][ \t\r\n]*/,
 
     decimal_integer: (_) => /[+-]?([0-9]|[1-9](_?[0-9])+)/,
     hex_integer: (_) => /0x[0-9a-fA-F](_?[0-9a-fA-F])*/,
@@ -100,7 +102,6 @@ module.exports = grammar({
     binary_integer: (_) => /0b[01](_?[01])*/,
 
     line_comment: (_) => token(seq("//", /[^\r\n]*/)),
-    block_comment: (_) =>
-      token(seq("/*", /[^*]*\*+([^/*][^*]*\*+)*/, "/")),
+    block_comment: (_) => token(seq("/*", /[^*]*\*+([^/*][^*]*\*+)*/, "/")),
   },
 });

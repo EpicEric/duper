@@ -14,7 +14,8 @@ Compact with Temporal
       (duper_value
         (string
           (quoted_string
-            (quoted_content)))))
+            (quoted_content
+              (quoted_plain))))))
     (object_entry
       (object_key
         (plain_key))
@@ -48,7 +49,8 @@ Weird formatting
       (duper_value
         (bytes
           (quoted_bytes
-            (quoted_content)))))
+            (quoted_content
+              (quoted_plain))))))
     (object_entry
       (object_key
         (plain_key))
@@ -57,13 +59,13 @@ Weird formatting
     (object_entry
       (object_key
         (quoted_string
-          (quoted_content)))
+          (quoted_content
+            (quoted_plain))))
       (duper_value
         (boolean)))
     (object_entry
       (object_key
-        (quoted_string
-          (quoted_content)))
+        (quoted_string))
       (duper_value
         (null)))))
 
@@ -92,7 +94,8 @@ Commented entries
       (duper_value
         (string
           (quoted_string
-            (quoted_content)))))
+            (quoted_content
+              (quoted_plain))))))
     (object_entry
       (object_key
         (plain_key))
@@ -101,7 +104,8 @@ Commented entries
           (identifier)
           (string
             (quoted_string
-              (quoted_content))))))
+              (quoted_content
+                (quoted_plain)))))))
     (object_entry
       (object_key
         (plain_key))
@@ -110,7 +114,8 @@ Commented entries
           (identifier)
           (string
             (quoted_string
-              (quoted_content))))))
+              (quoted_content
+                (quoted_plain)))))))
     (line_comment)
     (line_comment)
     (line_comment)

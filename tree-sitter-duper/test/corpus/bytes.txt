@@ -9,7 +9,10 @@ b"\x1b\t\x00"
 (duper_value
   (bytes
     (quoted_bytes
-      (quoted_content))))
+      (quoted_content
+        (quoted_escape)
+        (quoted_escape)
+        (quoted_escape)))))
 
 ==================
 Raw bytes

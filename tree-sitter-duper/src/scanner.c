@@ -1,7 +1,13 @@
 #include "tree_sitter/alloc.h"
 #include "tree_sitter/parser.h"
 
-enum TokenType { RAW_START, RAW_CONTENT, RAW_END, QUOTED_CONTENT };
+enum TokenType {
+  RAW_START,
+  RAW_CONTENT,
+  RAW_END,
+  QUOTED_PLAIN,
+  QUOTED_ESCAPE,
+};
 
 typedef struct {
   uint8_t opening_hash_count;
@@ -93,57 +99,64 @@ bool tree_sitter_duper_external_scanner_scan(void *payload, TSLexer *lexer,
     return true;
   }
 
-  if (valid_symbols[QUOTED_CONTENT]) {
-    for (;;) {
-      if (lexer->lookahead == '"') {
-        lexer->result_symbol = QUOTED_CONTENT;
-        return true;
-      } else if (lexer->lookahead <= 0x09 ||
-                 (lexer->lookahead >= 0x0B && lexer->lookahead <= 0x1F) ||
-                 lexer->lookahead == 0x7F) {
-        return false;
-      } else if (lexer->lookahead == '\\') {
-        lexer->advance(lexer, false);
-        if (lexer->lookahead == 'x') {
-          for (int i = 0; i < 2; i++) {
-            lexer->advance(lexer, false);
-            if (lexer->lookahead < '0' ||
-                (lexer->lookahead > '9' && lexer->lookahead < 'A') ||
-                (lexer->lookahead > 'F' && lexer->lookahead < 'a') ||
-                lexer->lookahead > 'f') {
-              return false;
-            }
+  if (valid_symbols[QUOTED_PLAIN] & valid_symbols[QUOTED_ESCAPE]) {
+    if (lexer->lookahead == '"' || lexer->lookahead <= 0x09 ||
+        (lexer->lookahead >= 0x0B && lexer->lookahead <= 0x1F) ||
+        lexer->lookahead == 0x7F) {
+      return false;
+    } else if (lexer->lookahead == '\\') {
+      lexer->advance(lexer, false);
+      if (lexer->lookahead == 'x') {
+        for (int i = 0; i < 2; i++) {
+          lexer->advance(lexer, false);
+          if (lexer->lookahead < '0' ||
+              (lexer->lookahead > '9' && lexer->lookahead < 'A') ||
+              (lexer->lookahead > 'F' && lexer->lookahead < 'a') ||
+              lexer->lookahead > 'f') {
+            return false;
           }
-        } else if (lexer->lookahead == 'u') {
-          for (int i = 0; i < 4; i++) {
-            lexer->advance(lexer, false);
-            if (lexer->lookahead < '0' ||
-                (lexer->lookahead > '9' && lexer->lookahead < 'A') ||
-                (lexer->lookahead > 'F' && lexer->lookahead < 'a') ||
-                lexer->lookahead > 'f') {
-              return false;
-            }
-          }
-        } else if (lexer->lookahead == 'U') {
-          for (int i = 0; i < 8; i++) {
-            lexer->advance(lexer, false);
-            if (lexer->lookahead < '0' ||
-                (lexer->lookahead > '9' && lexer->lookahead < 'A') ||
-                (lexer->lookahead > 'F' && lexer->lookahead < 'a') ||
-                lexer->lookahead > 'f') {
-              return false;
-            }
-          }
-        } else if (lexer->lookahead != '"' && lexer->lookahead != '\\' &&
-                   lexer->lookahead != '/' && lexer->lookahead != 'b' &&
-                   lexer->lookahead != 'f' && lexer->lookahead != 'n' &&
-                   lexer->lookahead != 'r' && lexer->lookahead != 't' &&
-                   lexer->lookahead != '0') {
-          return false;
         }
+      } else if (lexer->lookahead == 'u') {
+        for (int i = 0; i < 4; i++) {
+          lexer->advance(lexer, false);
+          if (lexer->lookahead < '0' ||
+              (lexer->lookahead > '9' && lexer->lookahead < 'A') ||
+              (lexer->lookahead > 'F' && lexer->lookahead < 'a') ||
+              lexer->lookahead > 'f') {
+            return false;
+          }
+        }
+      } else if (lexer->lookahead == 'U') {
+        for (int i = 0; i < 8; i++) {
+          lexer->advance(lexer, false);
+          if (lexer->lookahead < '0' ||
+              (lexer->lookahead > '9' && lexer->lookahead < 'A') ||
+              (lexer->lookahead > 'F' && lexer->lookahead < 'a') ||
+              lexer->lookahead > 'f') {
+            return false;
+          }
+        }
+      } else if (lexer->lookahead != '"' && lexer->lookahead != '\\' &&
+                 lexer->lookahead != '/' && lexer->lookahead != 'b' &&
+                 lexer->lookahead != 'f' && lexer->lookahead != 'n' &&
+                 lexer->lookahead != 'r' && lexer->lookahead != 't' &&
+                 lexer->lookahead != '0') {
+        return false;
       }
       lexer->advance(lexer, false);
+      lexer->result_symbol = QUOTED_ESCAPE;
+      return true;
     }
+    lexer->advance(lexer, false);
+    while (lexer->lookahead != '"' &&
+           !(lexer->lookahead <= 0x09 ||
+             (lexer->lookahead >= 0x0B && lexer->lookahead <= 0x1F) ||
+             lexer->lookahead == 0x7F) &&
+           lexer->lookahead != '\\') {
+      lexer->advance(lexer, false);
+    }
+    lexer->result_symbol = QUOTED_PLAIN;
+    return true;
   }
 
   return false;

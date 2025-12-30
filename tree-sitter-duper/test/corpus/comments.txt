@@ -26,5 +26,6 @@ Block comment after
 (duper_value
   (string
     (quoted_string
-      (quoted_content)))
+      (quoted_content
+        (quoted_plain))))
   (block_comment))

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 project(tree-sitter-duper
-        VERSION "0.1.2"
+        VERSION "0.1.3"
         DESCRIPTION "The format that's super!"
         HOMEPAGE_URL "https://github.com/epiceric/duper"
         LANGUAGES C)

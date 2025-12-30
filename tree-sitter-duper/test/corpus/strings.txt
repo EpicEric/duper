@@ -9,7 +9,8 @@ Basic string
 (duper_value
   (string
     (quoted_string
-      (quoted_content))))
+      (quoted_content
+        (quoted_plain)))))
 
 ==================
 Raw string
@@ -38,4 +39,24 @@ Two slashes in string
 (duper_value
   (string
     (quoted_string
-      (quoted_content))))
+      (quoted_content
+        (quoted_plain)))))
+
+==================
+Mixed plain and escape
+==================
+
+"H\x61llo world!\u00f8\u0111."
+
+---
+
+(duper_value
+  (string
+    (quoted_string
+      (quoted_content
+        (quoted_plain)
+        (quoted_escape)
+        (quoted_plain)
+        (quoted_escape)
+        (quoted_escape)
+        (quoted_plain)))))
