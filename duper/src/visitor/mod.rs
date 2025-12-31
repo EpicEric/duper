@@ -4,6 +4,8 @@
 pub mod ansi;
 pub mod pretty_printer;
 pub mod serializer;
+#[cfg(feature = "json-compat")]
+pub mod to_json;
 
 use crate::{
     DuperIdentifier, DuperTemporal, DuperValue,

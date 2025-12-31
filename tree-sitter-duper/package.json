@@ -1,5 +1,5 @@
 {
-  "name": "tree-sitter-duper",
+  "name": "@duper-js/tree-sitter-duper",
   "version": "0.1.3",
   "description": "The format that's super!",
   "repository": "https://github.com/epiceric/duper",

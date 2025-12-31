@@ -1,4 +1,4 @@
-use duper::DuperParser;
+use duper::{DuperParser, ToJson};
 use serde_core::Serialize;
 use wasm_bindgen::prelude::*;
 
@@ -67,10 +67,8 @@ pub fn convert_duper(value: &str, to: Option<ConvertDuperTo>) -> Result<String, 
     })?;
 
     match target {
-        ConvertTo::Json => {
-            serde_json::to_string_pretty(&duper.accept(&mut visitor::SerdeJsonVisitor {}))
-                .map_err(|err| JsError::new(&err.to_string()))
-        }
+        ConvertTo::Json => serde_json::to_string_pretty(&duper.accept(&mut ToJson {}))
+            .map_err(|err| JsError::new(&err.to_string())),
         ConvertTo::Yaml => match duper.accept(&mut visitor::SaphyrVisitor {}) {
             Ok(yaml) => {
                 let yaml: saphyr::Yaml = (&yaml).into();

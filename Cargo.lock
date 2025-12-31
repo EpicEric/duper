@@ -1029,6 +1029,7 @@ dependencies = [
  "ryu",
  "serde",
  "serde_core",
+ "serde_json",
  "unicode-general-category",
  "yoke",
 ]
@@ -1115,7 +1116,7 @@ dependencies = [
 
 [[package]]
 name = "duper_zed"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "serde",
  "serde_json",

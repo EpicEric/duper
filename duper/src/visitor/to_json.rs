@@ -1,12 +1,25 @@
-use base64::{Engine, prelude::BASE64_STANDARD};
-use duper::{
+use crate::{
     DuperFloat, DuperIdentifier, DuperObject, DuperTemporal, DuperValue, visitor::DuperVisitor,
 };
+use base64::{Engine, prelude::BASE64_STANDARD};
 
-// A visitor that simplifies Duper values for Serde serializers.
-pub(crate) struct SerdeJsonVisitor;
+/// A visitor that converts Duper values into JSON values for compatibility.
+///
+/// Duper is a superset of JSON, so conversion *from* JSON is trivial.
+/// However, convertion *to* JSON requires converting unsupported types
+/// (eg. tuples and Temporal values) into JSON-compatible ones. This visitor
+/// returns a [`serde_json::Value`] following these rules:
+///
+/// - Identifiers, trailing commas, and comments are stripped.
+/// - Keys, raw strings, etc. are quoted following JSON rules.
+/// - Object ordering is maintained.
+/// - Tuples are converted into arrays.
+/// - Bytes are converted into Base64 and returned as strings.
+/// - Temporal values are converted into strings.
+/// - All other values are returned as-is.
+pub struct ToJson;
 
-impl DuperVisitor for SerdeJsonVisitor {
+impl DuperVisitor for ToJson {
     type Value = serde_json::Value;
 
     fn visit_object<'a>(

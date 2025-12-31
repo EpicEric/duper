@@ -57,4 +57,6 @@ pub use ast::{
 pub use parser::DuperParser;
 #[cfg(feature = "ansi")]
 pub use visitor::ansi::Ansi;
+#[cfg(feature = "json-compat")]
+pub use visitor::to_json::ToJson;
 pub use visitor::{pretty_printer::PrettyPrinter, serializer::Serializer};

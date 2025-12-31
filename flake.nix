@@ -43,17 +43,18 @@
           }
         );
 
-        cargo-rail = craneLib.buildPackage (finalAttrs: {
+        cargo-rail-version = "0.8.1";
+        cargo-rail = craneLib.buildPackage {
           pname = "cargo-rail";
-          version = "0.8.1";
+          version = cargo-rail-version;
           src = pkgs.fetchFromGitHub {
             owner = "loadingalias";
             repo = "cargo-rail";
-            tag = "v${finalAttrs.version}";
+            tag = "v${cargo-rail-version}";
             hash = "sha256-GlApp4rJ/X5lSD2c3KJ5ll0ZBXEIY3DbWwMM1O/ryXw=";
           };
           doCheck = false;
-        });
+        };
 
         src = lib.fileset.toSource {
           root = ./.;

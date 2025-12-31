@@ -74,43 +74,46 @@ impl DuperVisitor for TomlVisitor {
     fn visit_temporal<'a>(&mut self, temporal: &DuperTemporal<'a>) -> Self::Value {
         match temporal {
             DuperTemporal::Instant { inner } => {
-                let datetime_str = Instant::from(inner.as_ref()).to_string();
+                let datetime_str = Instant::from(super::clean_temporal(inner.as_ref())).to_string();
                 Ok(Some(Value::Datetime(
                     Datetime::from_str(&datetime_str).map_err(|err| err.to_string())?,
                 )))
             }
             DuperTemporal::PlainDateTime { inner } => {
-                let datetime_str = PlainDateTime::from(inner.as_ref()).to_string();
+                let datetime_str =
+                    PlainDateTime::from(super::clean_temporal(inner.as_ref())).to_string();
                 Ok(Some(Value::Datetime(
                     Datetime::from_str(&datetime_str).map_err(|err| err.to_string())?,
                 )))
             }
             DuperTemporal::PlainDate { inner } => {
-                let datetime_str = PlainDate::from(inner.as_ref()).to_string();
+                let datetime_str =
+                    PlainDate::from(super::clean_temporal(inner.as_ref())).to_string();
                 Ok(Some(Value::Datetime(
                     Datetime::from_str(&datetime_str).map_err(|err| err.to_string())?,
                 )))
             }
             DuperTemporal::PlainTime { inner } => {
-                let datetime_str = PlainTime::from(inner.as_ref()).to_string();
+                let datetime_str =
+                    PlainTime::from(super::clean_temporal(inner.as_ref())).to_string();
                 Ok(Some(Value::Datetime(
                     Datetime::from_str(&datetime_str).map_err(|err| err.to_string())?,
                 )))
             }
             DuperTemporal::ZonedDateTime { inner } => {
-                Ok(Some(Value::String(inner.as_ref().to_string())))
+                Ok(Some(Value::String(inner.as_ref().trim().to_string())))
             }
             DuperTemporal::PlainYearMonth { inner } => {
-                Ok(Some(Value::String(inner.as_ref().to_string())))
+                Ok(Some(Value::String(inner.as_ref().trim().to_string())))
             }
             DuperTemporal::PlainMonthDay { inner } => {
-                Ok(Some(Value::String(inner.as_ref().to_string())))
+                Ok(Some(Value::String(inner.as_ref().trim().to_string())))
             }
             DuperTemporal::Duration { inner } => {
-                Ok(Some(Value::String(inner.as_ref().to_string())))
+                Ok(Some(Value::String(inner.as_ref().trim().to_string())))
             }
             DuperTemporal::Unspecified { inner, .. } => {
-                Ok(Some(Value::String(inner.as_ref().to_string())))
+                Ok(Some(Value::String(inner.as_ref().trim().to_string())))
             }
         }
     }

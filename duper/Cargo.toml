@@ -15,6 +15,7 @@ keywords = ["duper", "parser", "serialization"]
 [features]
 default = []
 ansi = ["dep:owo-colors"]
+json-compat = ["dep:serde_json"]
 serde = ["dep:serde_core"]
 yoke = ["dep:yoke"]
 
@@ -28,6 +29,7 @@ indexmap = "2"
 owo-colors = { version = "4", optional = true }
 ryu = "1"
 serde_core = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true, features = ["preserve_order"] }
 unicode-general-category = "1"
 yoke = { workspace = true, optional = true }
 

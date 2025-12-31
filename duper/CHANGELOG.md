@@ -5,6 +5,7 @@
 ### Added
 
 - Add `yoke::Yokeable` derive to `DuperValue` (gated behind the `yoke` feature).
+- Add `ToJson` visitor (gated behind the `json-compat` feature).
 
 ## 0.6.0 (2025-12-23)
 

@@ -72,7 +72,7 @@ impl DuperVisitor for SaphyrVisitor {
 
     fn visit_temporal<'a>(&mut self, temporal: &DuperTemporal<'a>) -> Self::Value {
         Ok(YamlOwned::Representation(
-            temporal.as_ref().to_string(),
+            temporal.as_ref().trim().to_string(),
             ScalarStyle::Plain,
             None,
         ))

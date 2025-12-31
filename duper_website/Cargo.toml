@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 base64 = { workspace = true }
-duper = { workspace = true }
+duper = { workspace = true, features = ["json-compat"] }
 js-sys = "0.3"
 saphyr = "0.0.6"
 serde_core = { workspace = true }
