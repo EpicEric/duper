@@ -1,7 +1,7 @@
 <p align="center">
     <img src="https://duper.dev.br/logos/duper-400.png" alt="The Duper logo, with a confident spectacled mole wearing a flailing blue cape." /> <br>
 </p>
-<h1 align="center">Duper-RPC</h1>
+<h1 align="center">duper_rpc</h1>
 
 <p align="center">
     <a href="https://crates.io/crates/duper_rpc"><img alt="Crates.io version" src="https://img.shields.io/crates/v/duper_rpc?style=flat&logo=rust&logoColor=white&label=duper_rpc"></a>
@@ -32,7 +32,7 @@ struct Params {
 struct AppState(u64);
 
 async fn handle_only_state(duper_rpc::State(state): duper_rpc::State<AppState>) -> duper_rpc::Result<u64> {
-    Ok(state.data)
+    Ok(state.0)
 }
 
 async fn handle_params(params: Params, flag: bool) -> duper_rpc::Result<String> {
