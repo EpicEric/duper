@@ -1,0 +1,32 @@
+[package]
+name = "duper_rpc"
+description = "An RPC implementation for Duper."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
+repository = "https://github.com/EpicEric/duper"
+homepage = "https://duper.dev.br"
+readme = "README.md"
+categories = ["web-programming"]
+keywords = ["duper", "rpc", "http"]
+
+[features]
+default = ["tokio"]
+smol = ["dep:smol"]
+tokio = ["dep:tokio"]
+
+[dependencies]
+axum = { version = "^0.8", default-features = false }
+duper = { workspace = true, features = ["serde"] }
+futures.workspace = true
+serde_core = { workspace = true }
+smol = { version = "^2", optional = true }
+tokio = { version = "^1", optional = true, features = ["rt"] }
+tower = "^0.5"
+
+[dev-dependencies]
+serde = { workspace = true }
+tokio = { version = "^1", features = ["full"] }
+uuid = { workspace = true }
