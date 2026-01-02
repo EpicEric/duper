@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Replace `axum` dependency with `axum-core` + `http`.
+
 ## 0.4.3 (2025-12-23)
 
 ### Changed

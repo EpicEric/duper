@@ -8,12 +8,12 @@
 
 use std::ops::Deref;
 
-use axum::{
+use axum_core::{
     extract::{FromRequest, OptionalFromRequest, Request},
-    http::{HeaderValue, StatusCode, header::CONTENT_TYPE},
     response::{IntoResponse, Response},
 };
 use duper::serde::error::DuperSerdeErrorKind;
+use http::{HeaderValue, StatusCode, header::CONTENT_TYPE};
 use serde_core::{Serialize, de::DeserializeOwned};
 
 /// Default MIME type for Duper files.
