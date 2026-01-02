@@ -24,9 +24,9 @@ line-index = "0.1.2"
 lsp-types = "0.95.0"
 regex = { workspace = true }
 rust_decimal = { workspace = true, features = ["macros", "serde-str"] }
-tokio = { version = "1.48.0", features = ["full"] }
+tokio = { workspace = true }
 tokio-util = { version = "0.7.17", features = ["compat"] }
-tower = "0.5.2"
+tower = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["fmt", "registry"] }
 tree-sitter = { workspace = true }

@@ -18,15 +18,18 @@ smol = ["dep:smol"]
 tokio = ["dep:tokio"]
 
 [dependencies]
-axum = { version = "^0.8", default-features = false }
 duper = { workspace = true, features = ["serde"] }
 futures.workspace = true
 serde_core = { workspace = true }
-smol = { version = "^2", optional = true }
+smol = { workspace = true, optional = true }
 tokio = { version = "^1", optional = true, features = ["rt"] }
-tower = "^0.5"
+tower = { workspace = true }
 
 [dev-dependencies]
+axum = { version = "^0.8" }
+axum_duper = { workspace = true }
+http-body-util = "0.1.3"
+reqwest = "0.13.1"
 serde = { workspace = true }
-tokio = { version = "^1", features = ["full"] }
+tokio = { workspace = true }
 uuid = { workspace = true }

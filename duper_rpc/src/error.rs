@@ -1,9 +1,11 @@
-#[derive(Debug, PartialEq, Eq)]
+use duper::DuperValue;
+
+#[derive(Debug, PartialEq)]
 pub enum Error {
     ParseError,
     InvalidRequest,
     MethodNotFound,
     InvalidParams,
     InternalError,
-    Custom { code: i64, message: String },
+    Custom(DuperValue<'static>),
 }

@@ -1,7 +1,7 @@
 [package]
 name = "axum_duper"
 description = "Axum extractor/response for Duper."
-version = "0.4.3"
+version = "0.4.4"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
@@ -13,8 +13,9 @@ categories = ["encoding", "parser-implementations"]
 keywords = ["duper", "serde", "axum"]
 
 [dependencies]
-axum = { version = "0.8", default-features = false }
-duper = { workspace = true, features = ["ansi"] }
+axum-core = { version = "0.5", default-features = false }
+duper = { workspace = true }
+http = "1"
 serde_core = { workspace = true }
 
 [dev-dependencies]

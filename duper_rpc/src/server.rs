@@ -24,9 +24,11 @@ where
     }
 }
 
-pub fn server<S>() -> Server<S> {
-    Server {
-        _marker: Default::default(),
+impl<S> Server<S> {
+    pub fn new() -> Self {
+        Server {
+            _marker: Default::default(),
+        }
     }
 }
 
@@ -77,7 +79,7 @@ pub struct ServerService<I> {
 fn handle_call<I>(
     server: I,
     call: RequestCall,
-) -> Pin<Box<dyn Future<Output = Option<ResponseResult>>>>
+) -> Pin<Box<dyn Future<Output = Option<ResponseResult>> + Send + 'static>>
 where
     I: ServerPart<()> + Clone + Send + 'static,
 {
@@ -120,7 +122,9 @@ where
 {
     type Response = Option<Response>;
     type Error = Infallible;
-    type Future = Pin<Box<dyn Future<Output = std::result::Result<Self::Response, Self::Error>>>>;
+    type Future = Pin<
+        Box<dyn Future<Output = std::result::Result<Self::Response, Self::Error>> + Send + 'static>,
+    >;
 
     fn poll_ready(
         &mut self,
@@ -206,7 +210,11 @@ pub trait IntoService: ServerPart<()> + Clone + Send + Sized + 'static {
     fn handle(
         self,
         req: Request,
-    ) -> Pin<Box<dyn Future<Output = std::result::Result<Option<Response>, Infallible>> + 'static>>
+    ) -> Pin<
+        Box<
+            dyn Future<Output = std::result::Result<Option<Response>, Infallible>> + Send + 'static,
+        >,
+    >
     where
         Self: Sized + ServerPart<()> + Clone + Send + 'static,
     {
@@ -284,7 +292,7 @@ mod rpc_tests {
 
     #[tokio::test]
     async fn hello_world() {
-        let Ok(response) = server()
+        let Ok(response) = Server::new()
             .method("hello", async || Ok("Hello, world!"))
             .method("bye", async || Ok("Goodbye!"))
             .handle(Request::Single(RequestCall::Valid {
@@ -310,7 +318,7 @@ mod rpc_tests {
             Ok(base.powi(pow))
         }
 
-        let Ok(response) = server()
+        let Ok(response) = Server::new()
             .method("args", args)
             .handle(Request::Single(RequestCall::Valid {
                 id: Some(RequestId::String("some-id".into())),
@@ -356,7 +364,7 @@ mod rpc_tests {
             })
         }
 
-        let Ok(response) = server()
+        let Ok(response) = Server::new()
             .method("stateful", stateful)
             .with_state("hi".to_string())
             .handle(Request::Single(RequestCall::Valid {
@@ -400,7 +408,7 @@ mod rpc_tests {
         }
 
         let started = std::time::Instant::now();
-        let Ok(response) = server()
+        let Ok(response) = Server::new()
             .method("sleep", sleep_for_10_seconds)
             .handle(Request::Single(RequestCall::Valid {
                 id: None,
@@ -424,7 +432,9 @@ mod rpc_tests {
             Ok(params.data.is_some_and(|boolean| boolean))
         }
 
-        let mut service = server().method("unwrap_bool", unwrap_bool).into_service();
+        let mut service = Server::new()
+            .method("unwrap_bool", unwrap_bool)
+            .into_service();
 
         let result = service
             .call(Request::Batch(vec![
