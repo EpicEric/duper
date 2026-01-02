@@ -1,6 +1,6 @@
 use duper::DuperValue;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Error {
     ParseError,
     InvalidRequest,

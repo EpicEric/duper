@@ -3,7 +3,7 @@ use serde_core::{
     ser::{SerializeMap, SerializeSeq},
 };
 
-use crate::{Error, RequestId, Response, ResponseResult};
+use crate::{Error, Request, RequestCall, RequestId, Response, ResponseResult};
 
 impl Serialize for Error {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -37,7 +37,7 @@ impl Serialize for Error {
                 map.end()
             }
             Error::Custom(value) => {
-                let mut map = serializer.serialize_map(Some(1))?;
+                let mut map = serializer.serialize_map(Some(2))?;
                 map.serialize_entry("type", "Custom")?;
                 map.serialize_entry("value", value)?;
                 map.end()
@@ -77,19 +77,92 @@ impl Serialize for ResponseResult {
     }
 }
 
+struct ResponseBatch<'a>(&'a Vec<ResponseResult>);
+
+impl<'a> Serialize for ResponseBatch<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde_core::Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
+        for result in self.0 {
+            seq.serialize_element(result)?;
+        }
+        seq.end()
+    }
+}
+
 impl Serialize for Response {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde_core::Serializer,
     {
         match self {
-            Response::Single(result) => result.serialize(serializer),
+            Response::Single(result) => serializer.serialize_newtype_struct("RpcResponse", result),
             Response::Batch(result_vec) => {
-                let mut seq = serializer.serialize_seq(Some(result_vec.len()))?;
-                for result in result_vec {
-                    seq.serialize_element(result)?;
+                serializer.serialize_newtype_struct("RpcResponse", &ResponseBatch(result_vec))
+            }
+        }
+    }
+}
+
+impl Serialize for RequestCall {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde_core::Serializer,
+    {
+        match self {
+            RequestCall::Valid { id, method, params } => match id {
+                Some(id) => {
+                    let mut map = serializer.serialize_map(Some(4))?;
+                    map.serialize_entry("duper_rpc", "0.1")?;
+                    match id {
+                        RequestId::String(id) => map.serialize_entry("id", id)?,
+                        RequestId::I64(id) => map.serialize_entry("id", id)?,
+                    }
+                    map.serialize_entry("method", method)?;
+                    map.serialize_entry("params", params)?;
+                    map.end()
                 }
-                seq.end()
+                None => {
+                    let mut map = serializer.serialize_map(Some(3))?;
+                    map.serialize_entry("duper_rpc", "0.1")?;
+                    map.serialize_entry("method", method)?;
+                    map.serialize_entry("params", params)?;
+                    map.end()
+                }
+            },
+            RequestCall::Invalid { .. } => Err(serde_core::ser::Error::custom(
+                "cannot serialize invalid RPC request",
+            )),
+        }
+    }
+}
+
+struct RequestBatch<'a>(&'a Vec<RequestCall>);
+
+impl<'a> Serialize for RequestBatch<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde_core::Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
+        for result in self.0 {
+            seq.serialize_element(result)?;
+        }
+        seq.end()
+    }
+}
+
+impl Serialize for Request {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde_core::Serializer,
+    {
+        match self {
+            Request::Single(call) => serializer.serialize_newtype_struct("RpcRequest", call),
+            Request::Batch(call_vec) => {
+                serializer.serialize_newtype_struct("RpcRequest", &RequestBatch(call_vec))
             }
         }
     }

@@ -18,13 +18,13 @@ pub use crate::{
     server::{Server, State},
 };
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RequestId {
     String(String),
     I64(i64),
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DuperRpcVersion {
     DuperRpc01,
 }
