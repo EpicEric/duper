@@ -281,7 +281,7 @@ where
 }
 
 #[cfg(test)]
-mod rpc_tests {
+mod rpc_server_tests {
     use std::borrow::Cow;
 
     use duper::{DuperFloat, DuperKey, DuperObject};
