@@ -78,7 +78,7 @@ impl Request {
 impl RequestBuilder {
     /// Create a new RequestBuilder.
     pub fn new() -> RequestBuilder {
-        RequestBuilder::default()
+        RequestBuilder
     }
 
     /// Add a request with 0 parameters.
@@ -96,6 +96,7 @@ impl RequestBuilder {
     }
 
     /// Add a request with 1 parameter.
+    #[allow(clippy::too_many_arguments)]
     pub fn request1<T1>(
         self,
         method: String,
@@ -122,6 +123,7 @@ impl RequestBuilder {
     }
 
     /// Add a request with 2 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request2<T1, T2>(
         self,
         method: String,
@@ -154,6 +156,7 @@ impl RequestBuilder {
     }
 
     /// Add a request with 3 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request3<T1, T2, T3>(
         self,
         method: String,
@@ -192,6 +195,7 @@ impl RequestBuilder {
     }
 
     /// Add a request with 4 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request4<T1, T2, T3, T4>(
         self,
         method: String,
@@ -241,6 +245,7 @@ impl RequestBuilder {
     }
 
     /// Add a request with 5 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request5<T1, T2, T3, T4, T5>(
         self,
         method: String,
@@ -297,6 +302,7 @@ impl RequestBuilder {
     }
 
     /// Add a request with 6 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request6<T1, T2, T3, T4, T5, T6>(
         self,
         method: String,
@@ -360,6 +366,7 @@ impl RequestBuilder {
     }
 
     /// Add a request with 7 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request7<T1, T2, T3, T4, T5, T6, T7>(
         self,
         method: String,
@@ -430,6 +437,7 @@ impl RequestBuilder {
     }
 
     /// Add a request with 8 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request8<T1, T2, T3, T4, T5, T6, T7, T8>(
         self,
         method: String,
@@ -534,6 +542,7 @@ impl RequestBuilderSingle {
     }
 
     /// Add a request with 1 parameter.
+    #[allow(clippy::too_many_arguments)]
     pub fn request1<T1>(self, method: String, id: Option<RequestId>, t1: &T1) -> RequestBuilderBatch
     where
         T1: Serialize,
@@ -563,6 +572,7 @@ impl RequestBuilderSingle {
     }
 
     /// Add a request with 2 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request2<T1, T2>(
         self,
         method: String,
@@ -603,6 +613,7 @@ impl RequestBuilderSingle {
     }
 
     /// Add a request with 3 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request3<T1, T2, T3>(
         self,
         method: String,
@@ -653,6 +664,7 @@ impl RequestBuilderSingle {
     }
 
     /// Add a request with 4 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request4<T1, T2, T3, T4>(
         self,
         method: String,
@@ -710,6 +722,7 @@ impl RequestBuilderSingle {
     }
 
     /// Add a request with 5 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request5<T1, T2, T3, T4, T5>(
         self,
         method: String,
@@ -774,6 +787,7 @@ impl RequestBuilderSingle {
     }
 
     /// Add a request with 6 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request6<T1, T2, T3, T4, T5, T6>(
         self,
         method: String,
@@ -845,6 +859,7 @@ impl RequestBuilderSingle {
     }
 
     /// Add a request with 7 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request7<T1, T2, T3, T4, T5, T6, T7>(
         self,
         method: String,
@@ -923,6 +938,7 @@ impl RequestBuilderSingle {
     }
 
     /// Add a request with 8 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request8<T1, T2, T3, T4, T5, T6, T7, T8>(
         self,
         method: String,
@@ -1032,6 +1048,7 @@ impl RequestBuilderBatch {
     }
 
     /// Add a request with 1 parameter.
+    #[allow(clippy::too_many_arguments)]
     pub fn request1<T1>(self, method: String, id: Option<RequestId>, t1: &T1) -> RequestBuilderBatch
     where
         T1: Serialize,
@@ -1057,6 +1074,7 @@ impl RequestBuilderBatch {
     }
 
     /// Add a request with 2 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request2<T1, T2>(
         self,
         method: String,
@@ -1093,6 +1111,7 @@ impl RequestBuilderBatch {
     }
 
     /// Add a request with 3 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request3<T1, T2, T3>(
         self,
         method: String,
@@ -1135,6 +1154,7 @@ impl RequestBuilderBatch {
     }
 
     /// Add a request with 4 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request4<T1, T2, T3, T4>(
         self,
         method: String,
@@ -1188,6 +1208,7 @@ impl RequestBuilderBatch {
     }
 
     /// Add a request with 5 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request5<T1, T2, T3, T4, T5>(
         self,
         method: String,
@@ -1248,6 +1269,7 @@ impl RequestBuilderBatch {
     }
 
     /// Add a request with 6 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request6<T1, T2, T3, T4, T5, T6>(
         self,
         method: String,
@@ -1315,6 +1337,7 @@ impl RequestBuilderBatch {
     }
 
     /// Add a request with 7 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request7<T1, T2, T3, T4, T5, T6, T7>(
         self,
         method: String,
@@ -1389,6 +1412,7 @@ impl RequestBuilderBatch {
     }
 
     /// Add a request with 8 parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn request8<T1, T2, T3, T4, T5, T6, T7, T8>(
         self,
         method: String,

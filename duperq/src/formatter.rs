@@ -65,7 +65,7 @@ impl Formatter {
                                 buf: &mut buf,
                                 raw: *raw,
                             }
-                            .visit(&value);
+                            .visit(value);
                         }
                     }
                     None => buf.push_str("<MISSING>"),

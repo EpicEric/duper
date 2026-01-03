@@ -24,16 +24,11 @@ use crate::{
 
 pub(crate) type CreateProcessorFn<P> = Box<dyn FnOnce(P) -> Box<dyn Processor>>;
 
+type ProcessorPipeline = Vec<CreateProcessorFn<channel::Sender<Yoke<DuperValue<'static>, String>>>>;
+
 /// Parses a `duperq` query.
-pub fn query<'a, O>() -> impl Parser<
-    'a,
-    &'a str,
-    (
-        Vec<CreateProcessorFn<channel::Sender<Yoke<DuperValue<'static>, String>>>>,
-        CreateProcessorFn<O>,
-    ),
-    extra::Err<Rich<'a, char>>,
->
+pub fn query<'a, O>()
+-> impl Parser<'a, &'a str, (ProcessorPipeline, CreateProcessorFn<O>), extra::Err<Rich<'a, char>>>
 where
     O: AsyncWrite + Unpin + 'static,
 {

@@ -87,10 +87,8 @@ impl DuperExtension {
 
         // Remove old versions
         if let Ok(duper_path) = fs::read_dir("duper_lsp") {
-            for entry in duper_path {
-                if let Ok(entry) = entry {
-                    fs::remove_dir_all(entry.path()).map_err(|error| error.to_string())?;
-                }
+            for entry in duper_path.flatten() {
+                fs::remove_dir_all(entry.path()).map_err(|error| error.to_string())?;
             }
         }
         fs::create_dir_all(format!("duper_lsp/{}", version)).map_err(|error| error.to_string())?;
@@ -104,7 +102,7 @@ impl DuperExtension {
         zed::make_file_executable(&current_version_path)?;
 
         self.cached_binary_path = Some(current_version_path.clone());
-        return Ok(current_version_path);
+        Ok(current_version_path)
     }
 }
 
