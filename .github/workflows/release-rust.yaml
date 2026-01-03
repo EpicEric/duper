@@ -3,6 +3,7 @@ on:
     tags:
       - "axum_duper@*.*.*"
       - "duper@*.*.*"
+      - "duper_rpc@*.*.*"
       - "duperfmt@*.*.*"
       - "duperq@*.*.*"
       - "serde_duper@*.*.*"
@@ -11,11 +12,6 @@ on:
       - "tree-sitter-duper@*.*.*"
 
 permissions: {}
-
-env:
-  RUST_VERSION: "1.92.0"
-  CARGO_INCREMENTAL: "0"
-  CARGO_PROFILE_TEST_DEBUG: "0"
 
 jobs:
   publish-to-crates-io:
@@ -39,6 +35,11 @@ jobs:
       - name: Publish duper
         if: startsWith(github.ref_name, 'duper@')
         run: cargo publish -p duper
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+      - name: Publish duper_rpc
+        if: startsWith(github.ref_name, 'duper_rpc@')
+        run: cargo publish -p duper_rpc
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
       - name: Publish duperfmt
