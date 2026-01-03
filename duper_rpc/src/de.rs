@@ -558,6 +558,6 @@ impl<'de> Deserialize<'de> for Response {
     where
         D: serde_core::Deserializer<'de>,
     {
-        Ok(deserializer.deserialize_any(ResponseVisitor {})?)
+        deserializer.deserialize_any(ResponseVisitor {})
     }
 }

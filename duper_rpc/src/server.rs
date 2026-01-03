@@ -98,12 +98,18 @@ where
     }
 }
 
+impl<S> Default for Server<S> {
+    fn default() -> Self {
+        Self {
+            _marker: Default::default(),
+        }
+    }
+}
+
 impl<S> Server<S> {
     /// Create a new Duper RPC server.
     pub fn new() -> Self {
-        Server {
-            _marker: Default::default(),
-        }
+        Server::default()
     }
 }
 
@@ -227,7 +233,7 @@ where
                         }))
                         .await
                         .into_iter()
-                        .filter_map(|elem| elem)
+                        .flatten()
                         .collect();
                     if resp.is_empty() {
                         Ok(None)

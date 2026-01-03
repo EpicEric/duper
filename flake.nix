@@ -67,6 +67,7 @@
             (craneLib.fileset.commonCargoSources ./duper-js-wasm/rust)
             (craneLib.fileset.commonCargoSources ./duper-python)
             (craneLib.fileset.commonCargoSources ./duper_lsp)
+            (craneLib.fileset.commonCargoSources ./duper_rpc)
             (craneLib.fileset.commonCargoSources ./duper_uniffi)
             (craneLib.fileset.commonCargoSources ./duper_website)
             (craneLib.fileset.commonCargoSources ./duper_zed)

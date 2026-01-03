@@ -104,7 +104,7 @@ jobs:
           tool: cargo-nextest@0.9.114
       - name: Test Rust (no features)
         run: |
-          cargo nextest run --lib --bins --tests --no-default-features --exclude duper_rpc
+          cargo nextest run --workspace --lib --bins --tests --no-default-features --exclude duper_rpc
   test-python:
     name: Run Python tests
     runs-on: ubuntu-latest
