@@ -49,6 +49,18 @@ impl Serialize for Error {
     }
 }
 
+impl Serialize for RequestId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde_core::Serializer,
+    {
+        match self {
+            RequestId::String { inner, .. } => serializer.serialize_str(inner),
+            RequestId::Integer { inner, .. } => serializer.serialize_i64(*inner),
+        }
+    }
+}
+
 struct SerializableResponseResult<'a>(&'a ResponseResult);
 
 impl<'a> Serialize for SerializableResponseResult<'a> {
@@ -60,10 +72,7 @@ impl<'a> Serialize for SerializableResponseResult<'a> {
             ResponseResult::Ok(ResponseSuccess { id, result }) => {
                 let mut map = serializer.serialize_map(Some(3))?;
                 map.serialize_entry("duper_rpc", "0.1")?;
-                match id {
-                    RequestId::String(id) => map.serialize_entry("id", id)?,
-                    RequestId::I64(id) => map.serialize_entry("id", id)?,
-                }
+                map.serialize_entry("id", id)?;
                 map.serialize_entry("result", result)?;
                 map.end()
             }
@@ -71,8 +80,7 @@ impl<'a> Serialize for SerializableResponseResult<'a> {
                 let mut map = serializer.serialize_map(Some(3))?;
                 map.serialize_entry("duper_rpc", "0.1")?;
                 match id {
-                    Some(RequestId::String(id)) => map.serialize_entry("id", id)?,
-                    Some(RequestId::I64(id)) => map.serialize_entry("id", id)?,
+                    Some(id) => map.serialize_entry("id", id)?,
                     None => map.serialize_entry("id", &Option::<&str>::None)?,
                 }
                 map.serialize_entry("error", error)?;
@@ -122,10 +130,7 @@ impl Serialize for RequestCall {
                 Some(id) => {
                     let mut map = serializer.serialize_map(Some(4))?;
                     map.serialize_entry("duper_rpc", "0.1")?;
-                    match id {
-                        RequestId::String(id) => map.serialize_entry("id", id)?,
-                        RequestId::I64(id) => map.serialize_entry("id", id)?,
-                    }
+                    map.serialize_entry("id", id)?;
                     map.serialize_entry("method", method)?;
                     map.serialize_entry("params", params)?;
                     map.end()

@@ -94,6 +94,10 @@ export default async () => {
                 { text: "duperfmt", link: "/tools/duperfmt" },
               ],
             },
+            {
+              text: "Ecosystem",
+              items: [{ text: "Duper RPC", link: "/ecosystem/duper-rpc" }],
+            },
             { text: "Specification", link: "/spec" },
           ],
         },

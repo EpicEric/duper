@@ -4,7 +4,7 @@
 <h1 align="center">Serde Duper</h1>
 
 <p align="center">
-    <a href="https://crates.io/crates/serde_duper"><img alt="Crates.io version" src="https://img.shields.io/crates/v/serde_duper?style=flat&logo=rust&logoColor=white&label=serde_duper"></a>
+    <a href="https://crates.io/crates/serde_duper"><img alt="crates.io version" src="https://img.shields.io/crates/v/serde_duper?style=flat&logo=rust&logoColor=white&label=serde_duper"></a>
     <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
 </p>
 

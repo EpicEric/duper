@@ -4,7 +4,7 @@
 <h1 align="center">Duper: The format that's super!</h1>
 
 <p align="center">
-    <a href="https://crates.io/crates/duper"><img alt="Crates.io version" src="https://img.shields.io/crates/v/duper?style=flat&logo=rust&logoColor=white&label=duper"></a>
+    <a href="https://crates.io/crates/duper"><img alt="crates.io version" src="https://img.shields.io/crates/v/duper?style=flat&logo=rust&logoColor=white&label=duper"></a>
     <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
 </p>
 

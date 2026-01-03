@@ -381,7 +381,10 @@ mod rpc_server_tests {
             .method("hello", async || Ok("Hello, world!"))
             .method("bye", async || Ok("Goodbye!"))
             .handle(Request::Single(RequestCall::Valid {
-                id: Some(RequestId::I64(1)),
+                id: Some(RequestId::Integer {
+                    identifier: None,
+                    inner: 1,
+                }),
                 method: "hello".into(),
                 params: DuperValue::Null { identifier: None },
             }))
@@ -391,7 +394,13 @@ mod rpc_server_tests {
         else {
             panic!("Invalid response {:?}", response);
         };
-        assert_eq!(id, RequestId::I64(1));
+        assert_eq!(
+            id,
+            RequestId::Integer {
+                identifier: None,
+                inner: 1,
+            }
+        );
         let DuperValue::String { inner, .. } = result else {
             panic!("Invalid result {:?}", result);
         };
@@ -407,7 +416,10 @@ mod rpc_server_tests {
         let Ok(response) = Server::new()
             .method("args", args)
             .handle(Request::Single(RequestCall::Valid {
-                id: Some(RequestId::String("some-id".into())),
+                id: Some(RequestId::String {
+                    identifier: None,
+                    inner: "some-id".into(),
+                }),
                 method: "args".into(),
                 params: DuperValue::Tuple {
                     identifier: None,
@@ -429,7 +441,13 @@ mod rpc_server_tests {
         else {
             panic!("Invalid response {:?}", response);
         };
-        assert_eq!(id, RequestId::String("some-id".into()));
+        assert_eq!(
+            id,
+            RequestId::String {
+                identifier: None,
+                inner: "some-id".into(),
+            }
+        );
         let DuperValue::Float { inner, .. } = result else {
             panic!("Invalid result {:?}", result);
         };
@@ -455,7 +473,10 @@ mod rpc_server_tests {
             .method("stateful", stateful)
             .with_state("hi".to_string())
             .handle(Request::Single(RequestCall::Valid {
-                id: Some(RequestId::String("aaa".into())),
+                id: Some(RequestId::String {
+                    identifier: None,
+                    inner: "aaa".into(),
+                }),
                 method: "stateful".into(),
                 params: DuperValue::Integer {
                     identifier: None,
@@ -468,7 +489,13 @@ mod rpc_server_tests {
         else {
             panic!("Invalid response {:?}", response);
         };
-        assert_eq!(id, RequestId::String("aaa".into()));
+        assert_eq!(
+            id,
+            RequestId::String {
+                identifier: None,
+                inner: "aaa".into(),
+            }
+        );
         let DuperValue::Object { inner, .. } = result else {
             panic!("Invalid result {:?}", result);
         };
@@ -527,7 +554,10 @@ mod rpc_server_tests {
         let result = service
             .call(Request::Batch(vec![
                 RequestCall::Valid {
-                    id: Some(RequestId::String("ok".into())),
+                    id: Some(RequestId::String {
+                        identifier: None,
+                        inner: "ok".into(),
+                    }),
                     method: "unwrap_bool".into(),
                     params: DuperValue::Object {
                         identifier: None,
@@ -551,7 +581,10 @@ mod rpc_server_tests {
                     },
                 },
                 RequestCall::Valid {
-                    id: Some(RequestId::String("inexistent".into())),
+                    id: Some(RequestId::String {
+                        identifier: None,
+                        inner: "inexistent".into(),
+                    }),
                     method: "".into(),
                     params: DuperValue::Object {
                         identifier: None,
@@ -575,7 +608,10 @@ mod rpc_server_tests {
                     },
                 },
                 RequestCall::Valid {
-                    id: Some(RequestId::String("invalid_params".into())),
+                    id: Some(RequestId::String {
+                        identifier: None,
+                        inner: "invalid_params".into(),
+                    }),
                     method: "unwrap_bool".into(),
                     params: DuperValue::Boolean {
                         identifier: None,
@@ -597,7 +633,13 @@ mod rpc_server_tests {
         let ResponseResult::Ok(ResponseSuccess { id, result }) = responses.remove(0) else {
             panic!("Invalid response result");
         };
-        assert_eq!(id, RequestId::String("ok".into()));
+        assert_eq!(
+            id,
+            RequestId::String {
+                identifier: None,
+                inner: "ok".into(),
+            }
+        );
         let DuperValue::Boolean { inner, .. } = result else {
             panic!("Invalid result {:?}", result);
         };
@@ -606,13 +648,25 @@ mod rpc_server_tests {
         let ResponseResult::Err(ResponseError { id, error }) = responses.remove(0) else {
             panic!("Invalid response result");
         };
-        assert_eq!(id, Some(RequestId::String("inexistent".into())));
+        assert_eq!(
+            id,
+            Some(RequestId::String {
+                identifier: None,
+                inner: "inexistent".into(),
+            })
+        );
         assert!(matches!(error, Error::MethodNotFound));
 
         let ResponseResult::Err(ResponseError { id, error }) = responses.remove(0) else {
             panic!("Invalid response result");
         };
-        assert_eq!(id, Some(RequestId::String("invalid_params".into())));
+        assert_eq!(
+            id,
+            Some(RequestId::String {
+                identifier: None,
+                inner: "invalid_params".into(),
+            })
+        );
         assert!(matches!(error, Error::InvalidParams));
 
         let ResponseResult::Err(ResponseError { id, error }) = responses.remove(0) else {
