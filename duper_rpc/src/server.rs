@@ -1,3 +1,69 @@
+//! Duper RPC server implementation.
+//!
+//! This exposes a [`Server`] type, which can be built up
+//! with a familiar builder-like interface via the [`ServerPart`] trait.
+//!
+//! ```
+//! use duper::DuperValue;
+//! use duper_rpc::server::{Server, ServerPart, State};
+//! # use duper_rpc::server::IntoService;
+//! use serde::Deserialize;
+//!
+//! #[derive(Deserialize)]
+//! struct Params {
+//!     text: String,
+//! }
+//!
+//! async fn handle_only_state(
+//!     State(state): State<AppState>
+//! ) -> duper_rpc::Result<u64> {
+//!     Ok(state.0)
+//! }
+//!
+//! async fn handle_params(
+//!     params: Params,
+//!     flag: bool
+//! ) -> duper_rpc::Result<String> {
+//!     if flag {
+//!         Ok(params.text)
+//!     } else {
+//!         Err(duper_rpc::Error::Custom(DuperValue::String {
+//!             identifier: None,
+//!             inner: "Flag is false".into()
+//!         }))
+//!     }
+//! }
+//!
+//! #[derive(Clone)]
+//! struct AppState(u64);
+//!
+//! Server::new()
+//!     .method("foo", handle_only_state)
+//!     .method("bar", handle_params)
+//!     .method("healthy", async || Ok(true))
+//!     .with_state(AppState(42))
+//! #   .into_service();
+//! ```
+//!
+//! In order to actually turn it into a proper handler
+//! (and make the compiler happy), we must use the [`IntoService`] trait.
+//! This will turn it into a [`tower`] service, which can be immediately
+//! consumed with `.handle(request: duper_rpc::Request)`, or returned via `.into_service()`.
+//!
+//! ```
+//! use duper_rpc::server::{IntoService, Server, ServerPart};
+//!
+//! async fn handle_rpc_request(request: duper_rpc::Request) -> Option<duper_rpc::Response> {
+//!     Server::new()
+//!         // ... your methods here ...
+//!         .handle(request)
+//!         .await
+//!         // Service returns `Result<Option<duper_rpc::Response>, Infallible>`
+//!         // - therefore, unwrapping the response is safe.
+//!         .unwrap()
+//! }
+//! ```
+
 use std::{convert::Infallible, marker::PhantomData, pin::Pin, task::Poll};
 
 use duper::{DuperValue, serde::ser::Serializer};
@@ -5,10 +71,18 @@ use futures::future::join_all;
 use serde_core::Serialize;
 use tower::Service;
 
-use crate::{Error, Request, RequestCall, Response, ResponseResult, Result, handler::Handler};
+use crate::{
+    Error, Request, RequestCall, Response, ResponseError, ResponseResult, ResponseSuccess, Result,
+    handler::Handler,
+};
 
+/// A wrapper around a shared state.
+///
+/// Used in handlers to signal that it must receive a clone
+/// of the current state (specified via [`ServerPart::with_state`]).
 pub struct State<S>(pub S);
 
+/// The basis of the Duper RPC server, instatiated via [`Server::new`].
 pub struct Server<S> {
     _marker: PhantomData<S>,
 }
@@ -25,6 +99,7 @@ where
 }
 
 impl<S> Server<S> {
+    /// Create a new Duper RPC server.
     pub fn new() -> Self {
         Server {
             _marker: Default::default(),
@@ -32,6 +107,7 @@ impl<S> Server<S> {
     }
 }
 
+/// A method in a Duper RPC server.
 pub struct Method<H, R, T, N> {
     name: String,
     handler: H,
@@ -54,6 +130,7 @@ where
     }
 }
 
+/// A stateful layer in a Duper RPC server.
 pub struct WithState<S, N> {
     state: S,
     next: N,
@@ -72,6 +149,7 @@ where
     }
 }
 
+/// A [`tower`] service created from a layered [`Server`].
 pub struct ServerService<I> {
     inner: I,
 }
@@ -87,11 +165,11 @@ where
         RequestCall::Valid { id, method, params } => match id {
             Some(id) => Box::pin(async move {
                 match server.serve((), method, params).await {
-                    Ok(resp) => Some(ResponseResult::Valid { id, result: resp }),
-                    Err(error) => Some(ResponseResult::Invalid {
+                    Ok(resp) => Some(ResponseResult::Ok(ResponseSuccess { id, result: resp })),
+                    Err(error) => Some(ResponseResult::Err(ResponseError {
                         id: Some(id),
                         error,
-                    }),
+                    })),
                 }
             }),
             None => {
@@ -111,7 +189,7 @@ where
             }
         },
         RequestCall::Invalid { id, error } => {
-            Box::pin(async { Some(ResponseResult::Invalid { id, error }) })
+            Box::pin(async { Some(ResponseResult::Err(ResponseError { id, error })) })
         }
     }
 }
@@ -162,6 +240,7 @@ where
     }
 }
 
+/// A trait to allow composing layers on a [`Server`].
 pub trait ServerPart<S>: private::Sealed {
     fn serve(
         &self,
@@ -170,6 +249,7 @@ pub trait ServerPart<S>: private::Sealed {
         params: DuperValue<'static>,
     ) -> Pin<Box<dyn Future<Output = Result<DuperValue<'static>>> + Send + 'static>>;
 
+    /// Add a method to the server.
     fn method<H, R, T>(self, name: impl AsRef<str>, handler: H) -> Method<H, R, T, Self>
     where
         Self: Sized,
@@ -182,6 +262,8 @@ pub trait ServerPart<S>: private::Sealed {
         }
     }
 
+    /// Add a stateful layer to the server, which is applied
+    /// to all methods defined before it.
     fn with_state<S2>(self, state: S2) -> WithState<S2, Self>
     where
         Self: Sized,
@@ -199,7 +281,9 @@ mod private {
     impl<S, N> Sealed for super::WithState<S, N> {}
 }
 
+/// A trait to use a composed [`Server`] as a service or a one-shot handler.
 pub trait IntoService: ServerPart<()> + Clone + Send + Sized + 'static {
+    /// Convert this server into a [`tower`] service.
     fn into_service(self) -> ServerService<Self>
     where
         Self: Sized + ServerPart<()> + Clone + Send + 'static,
@@ -207,6 +291,7 @@ pub trait IntoService: ServerPart<()> + Clone + Send + Sized + 'static {
         ServerService { inner: self }
     }
 
+    /// Handle a single RPC [`Request`].
     fn handle(
         self,
         req: Request,
@@ -302,7 +387,8 @@ mod rpc_server_tests {
             }))
             .await;
 
-        let Some(Response::Single(ResponseResult::Valid { id, result })) = response else {
+        let Some(Response::Single(ResponseResult::Ok(ResponseSuccess { id, result }))) = response
+        else {
             panic!("Invalid response {:?}", response);
         };
         assert_eq!(id, RequestId::I64(1));
@@ -339,7 +425,8 @@ mod rpc_server_tests {
             }))
             .await;
 
-        let Some(Response::Single(ResponseResult::Valid { id, result })) = response else {
+        let Some(Response::Single(ResponseResult::Ok(ResponseSuccess { id, result }))) = response
+        else {
             panic!("Invalid response {:?}", response);
         };
         assert_eq!(id, RequestId::String("some-id".into()));
@@ -377,7 +464,8 @@ mod rpc_server_tests {
             }))
             .await;
 
-        let Some(Response::Single(ResponseResult::Valid { id, result })) = response else {
+        let Some(Response::Single(ResponseResult::Ok(ResponseSuccess { id, result }))) = response
+        else {
             panic!("Invalid response {:?}", response);
         };
         assert_eq!(id, RequestId::String("aaa".into()));
@@ -506,7 +594,7 @@ mod rpc_server_tests {
         };
         assert_eq!(responses.len(), 4);
 
-        let ResponseResult::Valid { id, result } = responses.remove(0) else {
+        let ResponseResult::Ok(ResponseSuccess { id, result }) = responses.remove(0) else {
             panic!("Invalid response result");
         };
         assert_eq!(id, RequestId::String("ok".into()));
@@ -515,19 +603,19 @@ mod rpc_server_tests {
         };
         assert!(inner);
 
-        let ResponseResult::Invalid { id, error } = responses.remove(0) else {
+        let ResponseResult::Err(ResponseError { id, error }) = responses.remove(0) else {
             panic!("Invalid response result");
         };
         assert_eq!(id, Some(RequestId::String("inexistent".into())));
         assert!(matches!(error, Error::MethodNotFound));
 
-        let ResponseResult::Invalid { id, error } = responses.remove(0) else {
+        let ResponseResult::Err(ResponseError { id, error }) = responses.remove(0) else {
             panic!("Invalid response result");
         };
         assert_eq!(id, Some(RequestId::String("invalid_params".into())));
         assert!(matches!(error, Error::InvalidParams));
 
-        let ResponseResult::Invalid { id, error } = responses.remove(0) else {
+        let ResponseResult::Err(ResponseError { id, error }) = responses.remove(0) else {
             panic!("Invalid response result");
         };
         assert_eq!(id, None);

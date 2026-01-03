@@ -2,9 +2,13 @@
 //! # duper_rpc
 //!
 //! An RPC implementation for Duper.
+//!
+//! This crate contains definitions of the base parts of the Duper RPC
+//! (including requests, responses, and errors), as well as an implementation
+//! of a [`tower`] based server (see [`server`]) and a [`RequestBuilder`].
 
 mod de;
-pub mod error;
+mod error;
 mod handler;
 pub mod request;
 pub mod response;
@@ -13,8 +17,8 @@ pub mod server;
 
 pub use crate::{
     error::Error,
-    request::{Request, RequestCall},
-    response::{Response, ResponseResult},
+    request::{Request, RequestBuilder, RequestCall},
+    response::{Response, ResponseError, ResponseResult, ResponseSuccess},
     server::{Server, State},
 };
 

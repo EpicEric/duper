@@ -1,7 +1,10 @@
 use duper::DuperValue;
 use serde_core::{Deserialize, de::Visitor};
 
-use crate::{DuperRpcVersion, Error, Request, RequestCall, RequestId, Response, ResponseResult};
+use crate::{
+    DuperRpcVersion, Error, Request, RequestCall, RequestId, Response, ResponseError,
+    ResponseResult, ResponseSuccess,
+};
 
 struct ErrorVisitor {}
 
@@ -9,7 +12,7 @@ impl<'de> Visitor<'de> for ErrorVisitor {
     type Value = Error;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a duper_rpc error")
+        formatter.write_str("a Duper RPC error")
     }
 
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
@@ -124,7 +127,7 @@ impl<'de> Visitor<'de> for RequestIdVisitor {
     type Value = RequestId;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a duper_rpc request ID")
+        formatter.write_str("a Duper RPC request ID")
     }
 
     fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E>
@@ -224,7 +227,7 @@ impl<'de> Visitor<'de> for RequestCallVisitor {
     type Value = RequestCall;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a single duper_rpc request call")
+        formatter.write_str("a single Duper RPC request call")
     }
 
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
@@ -327,7 +330,7 @@ impl<'de> Visitor<'de> for RequestVisitor {
     type Value = Request;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a duper_rpc request")
+        formatter.write_str("a Duper RPC request")
     }
 
     fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
@@ -372,13 +375,15 @@ impl<'de> Deserialize<'de> for Request {
     }
 }
 
-struct ResponseResultVisitor {}
+struct DeserializableResponseResult(ResponseResult);
 
-impl<'de> Visitor<'de> for ResponseResultVisitor {
-    type Value = ResponseResult;
+struct DeserializableResponseResultVisitor {}
+
+impl<'de> Visitor<'de> for DeserializableResponseResultVisitor {
+    type Value = DeserializableResponseResult;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a single duper_rpc response result")
+        formatter.write_str("a single Duper RPC response result")
     }
 
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
@@ -443,12 +448,16 @@ impl<'de> Visitor<'de> for ResponseResultVisitor {
                     let Some(id) = id else {
                         return Err(serde_core::de::Error::missing_field("id"));
                     };
-                    Ok(ResponseResult::Valid {
-                        id,
-                        result: result.static_clone(),
-                    })
+                    Ok(DeserializableResponseResult(ResponseResult::Ok(
+                        ResponseSuccess {
+                            id,
+                            result: result.static_clone(),
+                        },
+                    )))
                 }
-                (None, Some(error)) => Ok(ResponseResult::Invalid { id, error }),
+                (None, Some(error)) => Ok(DeserializableResponseResult(ResponseResult::Err(
+                    ResponseError { id, error },
+                ))),
                 (None, None) => Err(serde_core::de::Error::missing_field("result")),
                 (Some(_), Some(_)) => Err(serde_core::de::Error::custom(
                     "cannot have both result and error in response",
@@ -459,12 +468,12 @@ impl<'de> Visitor<'de> for ResponseResultVisitor {
     }
 }
 
-impl<'de> Deserialize<'de> for ResponseResult {
+impl<'de> Deserialize<'de> for DeserializableResponseResult {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde_core::Deserializer<'de>,
     {
-        deserializer.deserialize_map(ResponseResultVisitor {})
+        deserializer.deserialize_any(DeserializableResponseResultVisitor {})
     }
 }
 
@@ -474,14 +483,16 @@ impl<'de> Visitor<'de> for ResponseVisitor {
     type Value = Response;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a duper_rpc response")
+        formatter.write_str("a Duper RPC response")
     }
 
     fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
     where
         A: serde_core::de::MapAccess<'de>,
     {
-        Ok(Response::Single(ResponseResultVisitor {}.visit_map(map)?))
+        Ok(Response::Single(
+            DeserializableResponseResultVisitor {}.visit_map(map)?.0,
+        ))
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -489,8 +500,8 @@ impl<'de> Visitor<'de> for ResponseVisitor {
         A: serde_core::de::SeqAccess<'de>,
     {
         let mut vec = seq.size_hint().map(Vec::with_capacity).unwrap_or_default();
-        while let Some(elem) = seq.next_element()? {
-            vec.push(elem);
+        while let Some(elem) = seq.next_element::<DeserializableResponseResult>()? {
+            vec.push(elem.0);
         }
         Ok(Response::Batch(vec))
     }

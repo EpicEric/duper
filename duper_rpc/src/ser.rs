@@ -3,7 +3,10 @@ use serde_core::{
     ser::{SerializeMap, SerializeSeq},
 };
 
-use crate::{Error, Request, RequestCall, RequestId, Response, ResponseResult};
+use crate::{
+    Error, Request, RequestCall, RequestId, Response, ResponseError, ResponseResult,
+    ResponseSuccess,
+};
 
 impl Serialize for Error {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -46,13 +49,15 @@ impl Serialize for Error {
     }
 }
 
-impl Serialize for ResponseResult {
+struct SerializableResponseResult<'a>(&'a ResponseResult);
+
+impl<'a> Serialize for SerializableResponseResult<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde_core::Serializer,
     {
-        match self {
-            ResponseResult::Valid { id, result } => {
+        match self.0 {
+            ResponseResult::Ok(ResponseSuccess { id, result }) => {
                 let mut map = serializer.serialize_map(Some(3))?;
                 map.serialize_entry("duper_rpc", "0.1")?;
                 match id {
@@ -62,7 +67,7 @@ impl Serialize for ResponseResult {
                 map.serialize_entry("result", result)?;
                 map.end()
             }
-            ResponseResult::Invalid { id, error } => {
+            ResponseResult::Err(ResponseError { id, error }) => {
                 let mut map = serializer.serialize_map(Some(3))?;
                 map.serialize_entry("duper_rpc", "0.1")?;
                 match id {
@@ -86,7 +91,7 @@ impl<'a> Serialize for ResponseBatch<'a> {
     {
         let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
         for result in self.0 {
-            seq.serialize_element(result)?;
+            seq.serialize_element(&SerializableResponseResult(result))?;
         }
         seq.end()
     }
@@ -98,7 +103,8 @@ impl Serialize for Response {
         S: serde_core::Serializer,
     {
         match self {
-            Response::Single(result) => serializer.serialize_newtype_struct("RpcResponse", result),
+            Response::Single(result) => serializer
+                .serialize_newtype_struct("RpcResponse", &SerializableResponseResult(result)),
             Response::Batch(result_vec) => {
                 serializer.serialize_newtype_struct("RpcResponse", &ResponseBatch(result_vec))
             }
