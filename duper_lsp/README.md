@@ -4,7 +4,7 @@
 <h1 align="center">duper_lsp</h1>
 
 <p align="center">
-    <a href="https://crates.io/crates/duper_lsp"><img alt="Crates.io version" src="https://img.shields.io/crates/v/duper_lsp?style=flat&logo=rust&logoColor=white&label=duper_lsp"></a>
+    <a href="https://crates.io/crates/duper_lsp"><img alt="crates.io version" src="https://img.shields.io/crates/v/duper_lsp?style=flat&logo=rust&logoColor=white&label=duper_lsp"></a>
     <a href="https://github.com/EpicEric/duper"><img alt="GitHub license" src="https://img.shields.io/github/license/EpicEric/duper"></a>
 </p>
 

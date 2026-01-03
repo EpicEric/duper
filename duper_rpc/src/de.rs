@@ -121,10 +121,12 @@ impl<'de> Deserialize<'de> for Error {
     }
 }
 
-struct RequestIdVisitor {}
+struct DeserializableRequestId(Option<RequestId>);
 
-impl<'de> Visitor<'de> for RequestIdVisitor {
-    type Value = RequestId;
+struct DeserializableRequestIdVisitor {}
+
+impl<'de> Visitor<'de> for DeserializableRequestIdVisitor {
+    type Value = DeserializableRequestId;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("a Duper RPC request ID")
@@ -155,7 +157,10 @@ impl<'de> Visitor<'de> for RequestIdVisitor {
     where
         E: serde_core::de::Error,
     {
-        Ok(RequestId::I64(v))
+        Ok(DeserializableRequestId(Some(RequestId::Integer {
+            identifier: None,
+            inner: v,
+        })))
     }
 
     fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E>
@@ -194,7 +199,10 @@ impl<'de> Visitor<'de> for RequestIdVisitor {
     where
         E: serde_core::de::Error,
     {
-        Ok(RequestId::String(v))
+        Ok(DeserializableRequestId(Some(RequestId::String {
+            identifier: None,
+            inner: v,
+        })))
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
@@ -210,14 +218,43 @@ impl<'de> Visitor<'de> for RequestIdVisitor {
     {
         self.visit_string(v.to_string())
     }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: serde_core::de::Error,
+    {
+        Ok(DeserializableRequestId(None))
+    }
+
+    fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: serde_core::Deserializer<'de>,
+    {
+        match DuperValue::deserialize(deserializer)? {
+            DuperValue::String { identifier, inner } => {
+                Ok(DeserializableRequestId(Some(RequestId::String {
+                    identifier: identifier.map(|identifier| identifier.static_clone()),
+                    inner: inner.into_owned(),
+                })))
+            }
+            DuperValue::Integer { identifier, inner } => {
+                Ok(DeserializableRequestId(Some(RequestId::Integer {
+                    identifier: identifier.map(|identifier| identifier.static_clone()),
+                    inner,
+                })))
+            }
+            DuperValue::Null { .. } => Ok(DeserializableRequestId(None)),
+            _ => Err(serde_core::de::Error::custom("Invalid ID")),
+        }
+    }
 }
 
-impl<'de> Deserialize<'de> for RequestId {
+impl<'de> Deserialize<'de> for DeserializableRequestId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde_core::Deserializer<'de>,
     {
-        deserializer.deserialize_any(RequestIdVisitor {})
+        deserializer.deserialize_any(DeserializableRequestIdVisitor {})
     }
 }
 
@@ -235,7 +272,7 @@ impl<'de> Visitor<'de> for RequestCallVisitor {
         A: serde_core::de::MapAccess<'de>,
     {
         let mut duper_rpc: Option<DuperRpcVersion> = None;
-        let mut id: Option<RequestId> = None;
+        let mut id: Option<DeserializableRequestId> = None;
         let mut method: Option<String> = None;
         let mut params: Option<DuperValue<'de>> = None;
         let mut invalid_request = false;
@@ -283,7 +320,7 @@ impl<'de> Visitor<'de> for RequestCallVisitor {
 
         if invalid_request {
             Ok(RequestCall::Invalid {
-                id,
+                id: id.and_then(|id| id.0),
                 error: Error::InvalidRequest,
             })
         } else {
@@ -291,12 +328,12 @@ impl<'de> Visitor<'de> for RequestCallVisitor {
                 Some(DuperRpcVersion::DuperRpc01) => {
                     let Some(method) = method else {
                         return Ok(RequestCall::Invalid {
-                            id,
+                            id: id.and_then(|id| id.0),
                             error: Error::InvalidRequest,
                         });
                     };
                     Ok(RequestCall::Valid {
-                        id,
+                        id: id.and_then(|id| id.0),
                         method,
                         params: params.map(|value| value.static_clone()).unwrap_or(
                             DuperValue::Tuple {
@@ -307,7 +344,7 @@ impl<'de> Visitor<'de> for RequestCallVisitor {
                     })
                 }
                 None => Ok(RequestCall::Invalid {
-                    id,
+                    id: id.and_then(|id| id.0),
                     error: Error::InvalidRequest,
                 }),
             }
@@ -391,7 +428,7 @@ impl<'de> Visitor<'de> for DeserializableResponseResultVisitor {
         A: serde_core::de::MapAccess<'de>,
     {
         let mut duper_rpc: Option<DuperRpcVersion> = None;
-        let mut id: Option<RequestId> = None;
+        let mut id: Option<DeserializableRequestId> = None;
         let mut result: Option<DuperValue<'de>> = None;
         let mut error: Option<Error> = None;
 
@@ -448,6 +485,12 @@ impl<'de> Visitor<'de> for DeserializableResponseResultVisitor {
                     let Some(id) = id else {
                         return Err(serde_core::de::Error::missing_field("id"));
                     };
+                    let Some(id) = id.0 else {
+                        return Err(serde_core::de::Error::invalid_value(
+                            serde_core::de::Unexpected::Option,
+                            &"integer or string",
+                        ));
+                    };
                     Ok(DeserializableResponseResult(ResponseResult::Ok(
                         ResponseSuccess {
                             id,
@@ -456,7 +499,10 @@ impl<'de> Visitor<'de> for DeserializableResponseResultVisitor {
                     )))
                 }
                 (None, Some(error)) => Ok(DeserializableResponseResult(ResponseResult::Err(
-                    ResponseError { id, error },
+                    ResponseError {
+                        id: id.and_then(|id| id.0),
+                        error,
+                    },
                 ))),
                 (None, None) => Err(serde_core::de::Error::missing_field("result")),
                 (Some(_), Some(_)) => Err(serde_core::de::Error::custom(

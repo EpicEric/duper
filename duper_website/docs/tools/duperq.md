@@ -4,7 +4,7 @@
 
 ## Installation
 
-`duperq` is currently only available as a Crates.IO binary. To compile from source:
+`duperq` is currently only available as a crates.io binary. To compile from source:
 
 ```bash
 cargo install --locked duperq

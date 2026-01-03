@@ -130,7 +130,7 @@ async fn axum_handle() {
                         RpcRequest({
                             duper_rpc: "0.1",
                             method: "increment",
-                            id: 2,
+                            id: SomeIdentifier(2),
                         })
                     "#
                     .to_string(),
@@ -155,7 +155,7 @@ async fn axum_handle() {
     assert_eq!(
         inner.get(&DuperKey::from("result")),
         Some(&DuperValue::Integer {
-            identifier: None,
+            identifier: None, // Identifier is lost due to serde
             inner: 2
         })
     );
