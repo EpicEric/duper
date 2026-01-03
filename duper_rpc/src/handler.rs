@@ -1,5 +1,3 @@
-// TO-DO: Use declarative macros to avoid code repetition.
-
 use std::pin::Pin;
 
 use duper::{DuperValue, serde::de::from_value};

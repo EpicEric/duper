@@ -21,6 +21,7 @@ cargo add axum_duper duper_rpc
 ```rust
 use axum::{extract::State, Router, routing::post};
 use axum_duper::Duper;
+use duper::DuperValue;
 use duper_rpc::server::{IntoService, ServerPart};
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +38,14 @@ async fn handle_only_state(duper_rpc::State(state): duper_rpc::State<AppState>) 
 }
 
 async fn handle_params(params: Params, flag: bool) -> duper_rpc::Result<String> {
-    Ok(if flag { params.text } else { "flag is false".into() })
+    if flag {
+        Ok(params.text)
+    } else {
+        Err(duper_rpc::Error::Custom(DuperValue::String {
+            identifier: None,
+            inner: "Flag is false".into()
+        }))
+    }
 }
 
 async fn rpc_handler(State(state): State<AppState>, request: Duper(duper_rpc::Request)) -> impl IntoResponse {

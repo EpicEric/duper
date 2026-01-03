@@ -1,3 +1,5 @@
+//! Definitions and builder for Duper RPC requests.
+
 use duper::{
     DuperValue,
     serde::{error::DuperSerdeError, ser::to_duper},
@@ -6,47 +8,80 @@ use serde_core::Serialize;
 
 use crate::{Error, RequestId};
 
+/// Representation of an RPC request.
 #[derive(Debug, Clone)]
 pub enum Request {
+    /// An RPC request containing a single call.
     Single(RequestCall),
+    /// An RPC request containing a batch of calls.
     Batch(Vec<RequestCall>),
 }
 
+/// A call within an RPC request.
 #[derive(Debug, Clone)]
 pub enum RequestCall {
+    /// A valid request.
     Valid {
+        /// The ID for this request.
+        ///
+        /// If None, then the request is a notification, which will be
+        /// resolved asynchronously, and the server will reply without
+        /// a response.
         id: Option<RequestId>,
+        /// The method for the RPC call.
         method: String,
+        /// Parameters for the RPC call.
+        ///
+        /// For single-parameter calls, any non-tuple value can be used.
+        /// For n-ary-parameter calls, an n-sized tuple must be used.
         params: DuperValue<'static>,
     },
+    /// An invalid request.
+    ///
+    /// This should only be constructed by deserializers or
+    /// proxies.
     Invalid {
+        /// The ID for this request.
+        ///
+        /// If None, then the request is either a notification,
+        /// or the ID couldn't be parsed.
         id: Option<RequestId>,
+        /// The error associated with the request.
         error: Error,
     },
 }
 
+/// A request builder for client applications.
+///
+/// It automatically handles call creation in the
+/// expected format.
 #[derive(Default)]
 pub struct RequestBuilder;
 
+/// A request builder containing a single call.
 pub struct RequestBuilderSingle {
     call: Result<RequestCall, DuperSerdeError>,
 }
 
+/// A request builder containing multiple calls.
 pub struct RequestBuilderBatch {
     calls: Result<Vec<RequestCall>, DuperSerdeError>,
 }
 
 impl Request {
+    /// Create a new [`RequestBuilder`].
     pub fn builder() -> RequestBuilder {
         RequestBuilder::new()
     }
 }
 
 impl RequestBuilder {
+    /// Create a new RequestBuilder.
     pub fn new() -> RequestBuilder {
         RequestBuilder::default()
     }
 
+    /// Add a request with 0 parameters.
     pub fn request0(self, method: String, id: Option<RequestId>) -> RequestBuilderSingle {
         RequestBuilderSingle {
             call: Ok(RequestCall::Valid {
@@ -60,6 +95,7 @@ impl RequestBuilder {
         }
     }
 
+    /// Add a request with 1 parameter.
     pub fn request1<T1>(
         self,
         method: String,
@@ -85,6 +121,7 @@ impl RequestBuilder {
         }
     }
 
+    /// Add a request with 2 parameters.
     pub fn request2<T1, T2>(
         self,
         method: String,
@@ -116,6 +153,7 @@ impl RequestBuilder {
         }
     }
 
+    /// Add a request with 3 parameters.
     pub fn request3<T1, T2, T3>(
         self,
         method: String,
@@ -153,6 +191,7 @@ impl RequestBuilder {
         }
     }
 
+    /// Add a request with 4 parameters.
     pub fn request4<T1, T2, T3, T4>(
         self,
         method: String,
@@ -201,6 +240,7 @@ impl RequestBuilder {
         }
     }
 
+    /// Add a request with 5 parameters.
     pub fn request5<T1, T2, T3, T4, T5>(
         self,
         method: String,
@@ -256,6 +296,7 @@ impl RequestBuilder {
         }
     }
 
+    /// Add a request with 6 parameters.
     pub fn request6<T1, T2, T3, T4, T5, T6>(
         self,
         method: String,
@@ -318,6 +359,7 @@ impl RequestBuilder {
         }
     }
 
+    /// Add a request with 7 parameters.
     pub fn request7<T1, T2, T3, T4, T5, T6, T7>(
         self,
         method: String,
@@ -387,6 +429,7 @@ impl RequestBuilder {
         }
     }
 
+    /// Add a request with 8 parameters.
     pub fn request8<T1, T2, T3, T4, T5, T6, T7, T8>(
         self,
         method: String,
@@ -465,10 +508,12 @@ impl RequestBuilder {
 }
 
 impl RequestBuilderSingle {
+    /// Build the request containing a single call.
     pub fn build(self) -> Result<Request, DuperSerdeError> {
         self.call.map(Request::Single)
     }
 
+    /// Add a request with 0 parameters.
     pub fn request0(self, method: String, id: Option<RequestId>) -> RequestBuilderBatch {
         match self.call {
             Ok(call) => RequestBuilderBatch {
@@ -488,6 +533,7 @@ impl RequestBuilderSingle {
         }
     }
 
+    /// Add a request with 1 parameter.
     pub fn request1<T1>(self, method: String, id: Option<RequestId>, t1: &T1) -> RequestBuilderBatch
     where
         T1: Serialize,
@@ -516,6 +562,7 @@ impl RequestBuilderSingle {
         }
     }
 
+    /// Add a request with 2 parameters.
     pub fn request2<T1, T2>(
         self,
         method: String,
@@ -555,6 +602,7 @@ impl RequestBuilderSingle {
         }
     }
 
+    /// Add a request with 3 parameters.
     pub fn request3<T1, T2, T3>(
         self,
         method: String,
@@ -604,6 +652,7 @@ impl RequestBuilderSingle {
         }
     }
 
+    /// Add a request with 4 parameters.
     pub fn request4<T1, T2, T3, T4>(
         self,
         method: String,
@@ -660,6 +709,7 @@ impl RequestBuilderSingle {
         }
     }
 
+    /// Add a request with 5 parameters.
     pub fn request5<T1, T2, T3, T4, T5>(
         self,
         method: String,
@@ -723,6 +773,7 @@ impl RequestBuilderSingle {
         }
     }
 
+    /// Add a request with 6 parameters.
     pub fn request6<T1, T2, T3, T4, T5, T6>(
         self,
         method: String,
@@ -793,6 +844,7 @@ impl RequestBuilderSingle {
         }
     }
 
+    /// Add a request with 7 parameters.
     pub fn request7<T1, T2, T3, T4, T5, T6, T7>(
         self,
         method: String,
@@ -870,6 +922,7 @@ impl RequestBuilderSingle {
         }
     }
 
+    /// Add a request with 8 parameters.
     pub fn request8<T1, T2, T3, T4, T5, T6, T7, T8>(
         self,
         method: String,
@@ -955,10 +1008,12 @@ impl RequestBuilderSingle {
     }
 }
 impl RequestBuilderBatch {
+    /// Build the request containing batch calls.
     pub fn build(self) -> Result<Request, DuperSerdeError> {
         self.calls.map(Request::Batch)
     }
 
+    /// Add a request with 0 parameters.
     pub fn request0(self, method: String, id: Option<RequestId>) -> RequestBuilderBatch {
         match self.calls {
             Ok(mut calls) => {
@@ -976,6 +1031,7 @@ impl RequestBuilderBatch {
         }
     }
 
+    /// Add a request with 1 parameter.
     pub fn request1<T1>(self, method: String, id: Option<RequestId>, t1: &T1) -> RequestBuilderBatch
     where
         T1: Serialize,
@@ -1000,6 +1056,7 @@ impl RequestBuilderBatch {
         }
     }
 
+    /// Add a request with 2 parameters.
     pub fn request2<T1, T2>(
         self,
         method: String,
@@ -1035,6 +1092,7 @@ impl RequestBuilderBatch {
         }
     }
 
+    /// Add a request with 3 parameters.
     pub fn request3<T1, T2, T3>(
         self,
         method: String,
@@ -1076,6 +1134,7 @@ impl RequestBuilderBatch {
         }
     }
 
+    /// Add a request with 4 parameters.
     pub fn request4<T1, T2, T3, T4>(
         self,
         method: String,
@@ -1128,6 +1187,7 @@ impl RequestBuilderBatch {
         }
     }
 
+    /// Add a request with 5 parameters.
     pub fn request5<T1, T2, T3, T4, T5>(
         self,
         method: String,
@@ -1187,6 +1247,7 @@ impl RequestBuilderBatch {
         }
     }
 
+    /// Add a request with 6 parameters.
     pub fn request6<T1, T2, T3, T4, T5, T6>(
         self,
         method: String,
@@ -1253,6 +1314,7 @@ impl RequestBuilderBatch {
         }
     }
 
+    /// Add a request with 7 parameters.
     pub fn request7<T1, T2, T3, T4, T5, T6, T7>(
         self,
         method: String,
@@ -1326,6 +1388,7 @@ impl RequestBuilderBatch {
         }
     }
 
+    /// Add a request with 8 parameters.
     pub fn request8<T1, T2, T3, T4, T5, T6, T7, T8>(
         self,
         method: String,
