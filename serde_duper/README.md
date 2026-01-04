@@ -10,7 +10,7 @@
 
 Adds `serde` support for Duper.
 
-[See the main project on GitHub.](https://github.com/EpicEric/duper)
+[Check out the official website for Duper.](https://duper.dev.br)
 
 ## Installation
 

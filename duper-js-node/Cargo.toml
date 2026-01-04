@@ -2,7 +2,7 @@
 name = "duper-js-node"
 description = "Node.JS bindings for Duper, the format that's super!"
 edition = "2024"
-rust-version = "1.88"
+rust-version.workspace = true
 license = "MIT"
 authors = ["Eric Rodrigues Pires <eric@eric.dev.br>"]
 repository = "https://github.com/EpicEric/duper"

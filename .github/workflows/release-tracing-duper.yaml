@@ -1,0 +1,25 @@
+on:
+  push:
+    tags:
+      - "tracing_duper@*.*.*"
+
+permissions: {}
+
+jobs:
+  publish-to-crates-io:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: true
+      - name: Authenticate
+        uses: rust-lang/crates-io-auth-action@b7e9a28eded4986ec6b1fa40eeee8f8f165559ec # v1.0.3
+        id: auth
+      - name: Publish tracing_duper
+        run: cargo publish -p tracing_duper
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
