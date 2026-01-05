@@ -6,7 +6,6 @@
 //! ```
 //! use duper::DuperValue;
 //! use duper_rpc::server::{Server, ServerPart, State};
-//! # use duper_rpc::server::IntoService;
 //! use serde::Deserialize;
 //!
 //! #[derive(Deserialize)]
@@ -45,17 +44,18 @@
 //! #   .into_service();
 //! ```
 //!
-//! In order to actually turn it into a proper handler
-//! (and make the compiler happy), we must use the [`IntoService`] trait.
-//! This will turn it into a [`tower`] service, which can be immediately
-//! consumed with `.handle(request: duper_rpc::Request)`, or returned via `.into_service()`.
+//! In order to actually turn it into a proper handler (and make the compiler
+//! happy), we must turn it into a [`tower`] service, which can be done
+//! with [`Method::handle`] for immediate consumption, or returned via
+//! [`Method::into_service`].
 //!
 //! ```
-//! use duper_rpc::server::{IntoService, Server, ServerPart};
+//! use duper_rpc::server::Server;
 //!
 //! async fn handle_rpc_request(request: duper_rpc::Request) -> Option<duper_rpc::Response> {
 //!     Server::new()
 //!         // ... your methods here ...
+//! # .method("h", async || Ok("h"))
 //!         .handle(request)
 //!         .await
 //!         // Service returns `Result<Option<duper_rpc::Response>, Infallible>`
@@ -111,6 +111,19 @@ impl<S> Server<S> {
     pub fn new() -> Self {
         Server::default()
     }
+
+    /// Add a method to the server.
+    pub fn method<H, R, T>(self, name: impl AsRef<str>, handler: H) -> Method<H, R, T, Self>
+    where
+        Self: Sized,
+    {
+        Method {
+            name: name.as_ref().to_string(),
+            handler,
+            next: self,
+            _marker: Default::default(),
+        }
+    }
 }
 
 /// A method in a Duper RPC server.
@@ -136,6 +149,54 @@ where
     }
 }
 
+impl<H, R, T, N> Method<H, R, T, N> {
+    /// Add a method to the server.
+    pub fn method<H2, R2, T2>(self, name: impl AsRef<str>, handler: H2) -> Method<H2, R2, T2, Self>
+    where
+        Self: Sized,
+    {
+        Method {
+            name: name.as_ref().to_string(),
+            handler,
+            next: self,
+            _marker: Default::default(),
+        }
+    }
+
+    /// Add a stateful layer to the server, which is applied
+    /// to all methods defined before it.
+    pub fn with_state<S2>(self, state: S2) -> WithState<S2, Self>
+    where
+        Self: Sized,
+        S2: Clone + Send + 'static,
+    {
+        WithState { state, next: self }
+    }
+
+    /// Convert this server into a [`tower`] service.
+    pub fn into_service(self) -> ServerService<Self>
+    where
+        Self: Sized + ServerPart<()> + Clone + Send + 'static,
+    {
+        ServerService { inner: self }
+    }
+
+    /// Handle a single RPC [`Request`].
+    pub fn handle(
+        self,
+        req: Request,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = std::result::Result<Option<Response>, Infallible>> + Send + 'static,
+        >,
+    >
+    where
+        Self: Sized + ServerPart<()> + Clone + Send + 'static,
+    {
+        self.into_service().call(req)
+    }
+}
+
 /// A stateful layer in a Duper RPC server.
 pub struct WithState<S, N> {
     state: S,
@@ -152,6 +213,44 @@ where
             state: self.state.clone(),
             next: self.next.clone(),
         }
+    }
+}
+
+impl<S, N> WithState<S, N> {
+    /// Add a method to the server.
+    pub fn method<H, R, T>(self, name: impl AsRef<str>, handler: H) -> Method<H, R, T, Self>
+    where
+        Self: Sized,
+    {
+        Method {
+            name: name.as_ref().to_string(),
+            handler,
+            next: self,
+            _marker: Default::default(),
+        }
+    }
+
+    /// Convert this server into a [`tower`] service.
+    pub fn into_service(self) -> ServerService<Self>
+    where
+        Self: Sized + ServerPart<()> + Clone + Send + 'static,
+    {
+        ServerService { inner: self }
+    }
+
+    /// Handle a single RPC [`Request`].
+    pub fn handle(
+        self,
+        req: Request,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = std::result::Result<Option<Response>, Infallible>> + Send + 'static,
+        >,
+    >
+    where
+        Self: Sized + ServerPart<()> + Clone + Send + 'static,
+    {
+        self.into_service().call(req)
     }
 }
 
@@ -254,29 +353,6 @@ pub trait ServerPart<S>: private::Sealed {
         name: String,
         params: DuperValue<'static>,
     ) -> Pin<Box<dyn Future<Output = Result<DuperValue<'static>>> + Send + 'static>>;
-
-    /// Add a method to the server.
-    fn method<H, R, T>(self, name: impl AsRef<str>, handler: H) -> Method<H, R, T, Self>
-    where
-        Self: Sized,
-    {
-        Method {
-            name: name.as_ref().to_string(),
-            handler,
-            next: self,
-            _marker: Default::default(),
-        }
-    }
-
-    /// Add a stateful layer to the server, which is applied
-    /// to all methods defined before it.
-    fn with_state<S2>(self, state: S2) -> WithState<S2, Self>
-    where
-        Self: Sized,
-        S2: Clone + Send + 'static,
-    {
-        WithState { state, next: self }
-    }
 }
 
 mod private {
@@ -286,34 +362,6 @@ mod private {
     impl<H, R, T, N> Sealed for super::Method<H, R, T, N> {}
     impl<S, N> Sealed for super::WithState<S, N> {}
 }
-
-/// A trait to use a composed [`Server`] as a service or a one-shot handler.
-pub trait IntoService: ServerPart<()> + Clone + Send + Sized + 'static {
-    /// Convert this server into a [`tower`] service.
-    fn into_service(self) -> ServerService<Self>
-    where
-        Self: Sized + ServerPart<()> + Clone + Send + 'static,
-    {
-        ServerService { inner: self }
-    }
-
-    /// Handle a single RPC [`Request`].
-    fn handle(
-        self,
-        req: Request,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = std::result::Result<Option<Response>, Infallible>> + Send + 'static,
-        >,
-    >
-    where
-        Self: Sized + ServerPart<()> + Clone + Send + 'static,
-    {
-        self.into_service().call(req)
-    }
-}
-
-impl<T> IntoService for T where T: ServerPart<()> + Clone + Send + Sized + 'static {}
 
 impl<S> ServerPart<S> for Server<S> {
     fn serve(

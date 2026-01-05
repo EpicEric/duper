@@ -19,5 +19,6 @@ http = "1"
 serde_core = { workspace = true }
 
 [dev-dependencies]
+axum = "0.8"
 serde = { workspace = true }
 uuid = { workspace = true }

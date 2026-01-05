@@ -63,6 +63,23 @@ jobs:
       - name: Build
         run: |
           cargo build --locked --all-features
+  test-doc:
+    name: Check doctests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+      - name: Fetch MSRV
+        run: |
+          rustup toolchain install ${RUST_MSRV}-x86_64-unknown-linux-gnu
+          rustup override set ${RUST_MSRV}-x86_64-unknown-linux-gnu
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - name: Test docs
+        run: |
+          cargo test --doc --all-features
   test-rust-all-features:
     name: Run Rust tests (all features)
     runs-on: ubuntu-latest

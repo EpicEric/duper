@@ -449,6 +449,7 @@ dependencies = [
 name = "axum_duper"
 version = "0.4.4"
 dependencies = [
+ "axum",
  "axum-core",
  "duper",
  "http",
@@ -1156,7 +1157,7 @@ dependencies = [
 
 [[package]]
 name = "duper_rpc"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "axum",
  "axum_duper",

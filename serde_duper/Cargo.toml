@@ -46,5 +46,7 @@ uuid = { workspace = true, optional = true }
 serde_duper_macros = { path = "../serde_duper_macros", version = "0.1.1", optional = true }
 
 [dev-dependencies]
+chrono = { workspace = true }
 rust_decimal = { workspace = true, features = ["macros", "serde-str"] }
 serde = { workspace = true }
+uuid = { workspace = true }
