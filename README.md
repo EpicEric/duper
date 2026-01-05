@@ -49,6 +49,7 @@ See [the specification](https://duper.dev.br/spec.html) for more details.
 - [`duper`](./duper/): Core implementation of the Duper parser and serializer in Rust, as well as Serde support. Used by Rust libraries and bindings in other languages.
   - Libraries
     - [`axum_duper`](./axum_duper/): Axum support for Duper requests and responses.
+    - [`duper_rpc`](./duper_rpc/): Duper RPC implementation in Rust.
     - [`serde_duper`](./serde_duper/): Adds Duper-specific support for extra types for use with Serde, including a proc-macro via [`serde_duper_macros`](./serde_duper_macros/).
     - [`tracing_duper`](./tracing_duper/): A tracing layer for Duper.
   - Bindings
@@ -59,7 +60,8 @@ See [the specification](https://duper.dev.br/spec.html) for more details.
       - [`duper-js-wasm`](./duper-js-wasm/): WebAssembly bindings.
 - [`duperq`](./duperq): A fast Duper and JSON filter/processor. 
 - [`duper_lsp`](./duper_lsp/): Duper LSP.
-  - [`duper-vs-code`](./duper-vs-code/): Duper extension for Visual Studio Code with syntax highlighting and LSP.
+  - [`duper-vs-code`](./duper-vs-code/): Duper extension for Visual Studio Code.
+  - [`duper_zed`](./duper_zed/): Duper extension for Zed.
 - [`duper_website`](./duper_website/): Official website for Duper, including the specification and WebAssembly-based playground.
 - [`tree-sitter-duper`](./tree-sitter-duper/): tree-sitter implementation of Duper.
   - [`duperfmt`](./duperfmt/): Duper formatter based on Topiary.
