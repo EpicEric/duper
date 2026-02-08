@@ -4,7 +4,6 @@
   inputs = {
     nixpkgs.url = "nixpkgs/nixpkgs-unstable";
     crane.url = "github:ipetkov/crane";
-    flake-utils.url = "github:numtide/flake-utils";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -16,11 +15,34 @@
       self,
       nixpkgs,
       crane,
-      flake-utils,
       rust-overlay,
       ...
     }:
-    flake-utils.lib.eachDefaultSystem (
+    let
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
+
+      eachSystem =
+        f:
+        (builtins.foldl' (
+          acc: system:
+          let
+            fSystem = f system;
+          in
+          builtins.foldl' (
+            acc': attr:
+            acc'
+            // {
+              ${attr} = (acc'.${attr} or { }) // fSystem.${attr};
+            }
+          ) acc (builtins.attrNames fSystem)
+        ) { } systems);
+    in
+    eachSystem (
       system:
       let
         rustChannel = "stable";
@@ -123,53 +145,47 @@
         );
       in
       {
-        packages = {
+        packages.${system} = {
           inherit duperfmt duperq duper_lsp;
         };
 
-        apps = {
-          duperfmt =
-            (flake-utils.lib.mkApp {
-              drv = duperfmt;
-            })
-            // {
-              meta = {
-                description = "Official Duper formatting library and CLI";
-                homepage = "https://duper.dev.br";
-                license = lib.licenses.mit;
-                mainProgram = "sandhole";
-                platforms = lib.platforms.linux ++ lib.platforms.darwin;
-              };
+        apps.${system} = {
+          duperfmt = {
+            name = "duperfmt";
+            drv = duperfmt;
+            meta = {
+              description = "Official Duper formatting library and CLI";
+              homepage = "https://duper.dev.br";
+              license = lib.licenses.mit;
+              mainProgram = "sandhole";
+              platforms = lib.platforms.linux ++ lib.platforms.darwin;
             };
-          duperq =
-            (flake-utils.lib.mkApp {
-              drv = duperq;
-            })
-            // {
-              meta = {
-                description = "A fast Duper and JSON filter/processor";
-                homepage = "https://duper.dev.br";
-                license = lib.licenses.mit;
-                mainProgram = "sandhole";
-                platforms = lib.platforms.linux ++ lib.platforms.darwin;
-              };
+          };
+          duperq = {
+            name = "duperq";
+            drv = duperq;
+            meta = {
+              description = "A fast Duper and JSON filter/processor";
+              homepage = "https://duper.dev.br";
+              license = lib.licenses.mit;
+              mainProgram = "sandhole";
+              platforms = lib.platforms.linux ++ lib.platforms.darwin;
             };
-          duper_lsp =
-            (flake-utils.lib.mkApp {
-              drv = duper_lsp;
-            })
-            // {
-              meta = {
-                description = "Official Duper language server, with auto-formatting and diagnostics";
-                homepage = "https://duper.dev.br";
-                license = lib.licenses.mit;
-                mainProgram = "sandhole";
-                platforms = lib.platforms.linux ++ lib.platforms.darwin;
-              };
+          };
+          duper_lsp = {
+            name = "duper_lsp";
+            drv = duper_lsp;
+            meta = {
+              description = "Official Duper language server, with auto-formatting and diagnostics";
+              homepage = "https://duper.dev.br";
+              license = lib.licenses.mit;
+              mainProgram = "sandhole";
+              platforms = lib.platforms.linux ++ lib.platforms.darwin;
             };
+          };
         };
 
-        checks = {
+        checks.${system} = {
           duper-clippy = craneLib.cargoClippy (
             commonArgs
             // {
@@ -200,7 +216,7 @@
           );
         };
 
-        devShells.default = craneLib.devShell {
+        devShells.${system}.default = craneLib.devShell {
           checks = self.checks.${system};
 
           packages =
