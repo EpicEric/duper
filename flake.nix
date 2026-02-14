@@ -1,23 +1,8 @@
 {
   description = "The format that's super!";
 
-  inputs = {
-    nixpkgs.url = "nixpkgs/nixpkgs-unstable";
-    crane.url = "github:ipetkov/crane";
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
-
   outputs =
-    {
-      self,
-      nixpkgs,
-      crane,
-      rust-overlay,
-      ...
-    }:
+    { ... }:
     let
       systems = [
         "x86_64-linux"
@@ -45,104 +30,13 @@
     eachSystem (
       system:
       let
-        rustChannel = "stable";
-        rustVersion = "latest";
-
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [ (import rust-overlay) ];
-        };
-
-        inherit (pkgs) lib;
-
-        craneLib = (crane.mkLib pkgs).overrideToolchain (
-          pkgs:
-          pkgs.rust-bin.${rustChannel}.${rustVersion}.default.override {
-            targets = [
-              "wasm32-unknown-unknown"
-              "wasm32-wasip2"
-            ];
-          }
-        );
-
-        src = lib.fileset.toSource {
-          root = ./.;
-          fileset = lib.fileset.unions [
-            ./Cargo.toml
-            ./Cargo.lock
-            (craneLib.fileset.commonCargoSources ./axum_duper)
-            (craneLib.fileset.commonCargoSources ./duper)
-            (craneLib.fileset.commonCargoSources ./duper-js-node)
-            (craneLib.fileset.commonCargoSources ./duper-js-wasm/rust)
-            (craneLib.fileset.commonCargoSources ./duper-python)
-            (craneLib.fileset.commonCargoSources ./duper_lsp)
-            (craneLib.fileset.commonCargoSources ./duper_rpc)
-            (craneLib.fileset.commonCargoSources ./duper_uniffi)
-            (craneLib.fileset.commonCargoSources ./duper_website)
-            (craneLib.fileset.commonCargoSources ./duper_zed)
-            (craneLib.fileset.commonCargoSources ./duperfmt)
-            (craneLib.fileset.commonCargoSources ./duperq)
-            (craneLib.fileset.commonCargoSources ./serde_duper)
-            (craneLib.fileset.commonCargoSources ./serde_duper_macros)
-            (craneLib.fileset.commonCargoSources ./tracing_duper)
-            (craneLib.fileset.commonCargoSources ./tree-sitter-duper)
-            (lib.fileset.fileFilter (file: file.hasExt "md") ./.)
-            ./.config
-            ./.cargo/config.toml
-            ./duper/src/visitor/snapshots
-            ./duper/src/serde/snapshots
-            ./duperfmt/src/duper.scm
-            ./duperfmt/src/snapshots
-            ./duperq/tests/data
-            ./duper_uniffi/src/duper.udl
-            ./tree-sitter-duper/src
-            ./tree-sitter-duper/queries
-          ];
-        };
-
-        commonArgs = {
-          inherit src;
-          strictDeps = true;
-          version = "0";
-          pname = "duper";
-
-          nativeBuildInputs = with pkgs; [
-            cmake
-            llvmPackages.bintools
-            python3
-          ];
-        };
-
-        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-
-        individualCrateArgs = commonArgs // {
-          inherit cargoArtifacts;
-          doCheck = false;
-        };
-
-        duperfmt = craneLib.buildPackage (
-          individualCrateArgs
-          // {
-            inherit (craneLib.crateNameFromCargoToml { cargoToml = ./duperfmt/Cargo.toml; }) pname version;
-            cargoExtraArgs = "-p duperfmt";
-          }
-        );
-
-        duperq = craneLib.buildPackage (
-          individualCrateArgs
-          // {
-            inherit (craneLib.crateNameFromCargoToml { cargoToml = ./duperq/Cargo.toml; }) pname version;
-            cargoExtraArgs = "-p duperq";
-          }
-        );
-
-        duper_lsp = craneLib.buildPackage (
-          individualCrateArgs
-          // {
-            inherit (craneLib.crateNameFromCargoToml { cargoToml = ./duper_lsp/Cargo.toml; }) pname version;
-            cargoExtraArgs = "-p duper_lsp";
-          }
-        );
+        inherit (import ./lib.nix { inherit system; })
+          duperfmt
+          duperq
+          duper_lsp
+          lib
+          checks
+          ;
       in
       {
         packages.${system} = {
@@ -151,104 +45,43 @@
 
         apps.${system} = {
           duperfmt = {
-            name = "duperfmt";
-            drv = duperfmt;
+            type = "app";
+            program = lib.getExe duperfmt;
             meta = {
               description = "Official Duper formatting library and CLI";
               homepage = "https://duper.dev.br";
               license = lib.licenses.mit;
-              mainProgram = "sandhole";
+              mainProgram = "duperfmt";
               platforms = lib.platforms.linux ++ lib.platforms.darwin;
             };
           };
           duperq = {
-            name = "duperq";
-            drv = duperq;
+            type = "app";
+            program = lib.getExe duperq;
             meta = {
               description = "A fast Duper and JSON filter/processor";
               homepage = "https://duper.dev.br";
               license = lib.licenses.mit;
-              mainProgram = "sandhole";
+              mainProgram = "duperq";
               platforms = lib.platforms.linux ++ lib.platforms.darwin;
             };
           };
           duper_lsp = {
-            name = "duper_lsp";
-            drv = duper_lsp;
+            type = "app";
+            program = lib.getExe duper_lsp;
             meta = {
               description = "Official Duper language server, with auto-formatting and diagnostics";
               homepage = "https://duper.dev.br";
               license = lib.licenses.mit;
-              mainProgram = "sandhole";
+              mainProgram = "duper_lsp";
               platforms = lib.platforms.linux ++ lib.platforms.darwin;
             };
           };
         };
 
-        checks.${system} = {
-          duper-clippy = craneLib.cargoClippy (
-            commonArgs
-            // {
-              inherit cargoArtifacts;
-            }
-          );
+        checks.${system} = checks;
 
-          duper-doc = craneLib.cargoDoc (
-            commonArgs
-            // {
-              inherit cargoArtifacts;
-            }
-          );
-
-          duper-fmt = craneLib.cargoFmt (
-            commonArgs
-            // {
-              inherit cargoArtifacts;
-            }
-          );
-
-          duper-test = craneLib.cargoNextest (
-            commonArgs
-            // {
-              inherit cargoArtifacts;
-              cargoNextestExtraArgs = "-P nix";
-            }
-          );
-        };
-
-        devShells.${system}.default = craneLib.devShell {
-          checks = self.checks.${system};
-
-          packages =
-            let
-              cargo-rail-version = "0.8.1";
-              cargo-rail = craneLib.buildPackage {
-                pname = "cargo-rail";
-                version = cargo-rail-version;
-                src = pkgs.fetchFromGitHub {
-                  owner = "loadingalias";
-                  repo = "cargo-rail";
-                  tag = "v${cargo-rail-version}";
-                  hash = "sha256-GlApp4rJ/X5lSD2c3KJ5ll0ZBXEIY3DbWwMM1O/ryXw=";
-                };
-                doCheck = false;
-              };
-            in
-            [
-              pkgs.binaryen
-              pkgs.bun
-              pkgs.cargo-insta
-              cargo-rail
-              pkgs.dotnet-sdk_8
-              pkgs.jdk21_headless
-              pkgs.just
-              pkgs.llvmPackages.bintools
-              pkgs.nodejs_24
-              pkgs.tree-sitter
-              pkgs.uv
-              pkgs.wasm-bindgen-cli_0_2_100
-            ];
-        };
+        devShells.${system}.default = import ./shell.nix { inherit system; };
       }
     );
 }

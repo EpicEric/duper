@@ -1,6 +1,6 @@
 [package]
 name = "duperq"
-description = "LSP implementation for Duper."
+description = "A fast Duper and JSON filter/processor."
 version = "0.2.0"
 edition = "2024"
 rust-version.workspace = true
