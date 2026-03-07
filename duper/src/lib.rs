@@ -12,13 +12,13 @@
 //!   username: "admin",
 //!   password: SecureString("encrypted_data"),
 //!   pool_size: 10,
-//!   timeout: Duration("30s"),
+//!   timeout: Duration('PT30S'),
 //!   ssl: SSLConfig({
 //!     enabled: true,
 //!     cert: Path("/etc/ssl/cert.pem"),
 //!     verify: true,
 //!   }),
-//!   created_at: Timestamp(1704067200),
+//!   created_at: Instant('2023-11-17T21:50:43+00:00'),
 //! })
 //! ```
 //!

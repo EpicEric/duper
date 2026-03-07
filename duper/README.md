@@ -24,7 +24,7 @@ Product({
   weight: Kilograms(0.285),
   in_stock: true,
   specifications: {
-    battery_life: Duration("30h"),
+    battery_life: Duration('PT30H'),
     noise_cancellation: true,
     connectivity: ["Bluetooth 5.0", "3.5mm Jack"],
   },
@@ -43,7 +43,7 @@ Product({
 ```
 
 - Similar to JSON, but with support for unquoted keys, trailing commas, and comments.
-- It includes support for extra types: integers, tuples, bytes, raw strings, raw bytes, and Temporal.
+- Extended with extra types: integers, tuples, bytes, raw strings, raw bytes, and Temporal values.
 - Finally, Duper has the notion of _identifiers_: optional type-like annotations (`MyIdentifier(...)`) to help with readability, or to suggest that the parser handles/validates the data in a specific manner.
 
 ## See also:
