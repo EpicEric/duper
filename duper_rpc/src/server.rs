@@ -519,7 +519,7 @@ mod rpc_server_tests {
         async fn stateful(State(state): State<String>, times: usize) -> Result<StateResponse> {
             Ok(StateResponse {
                 output: state.repeat(times),
-                state: state,
+                state,
             })
         }
 

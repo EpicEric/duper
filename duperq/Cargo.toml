@@ -22,6 +22,7 @@ duper = { workspace = true, features = ["serde", "yoke"] }
 futures = { workspace = true }
 num_cpus = "1.17.0"
 regex = { workspace = true }
+serde_json.workspace = true
 smol = { workspace = true }
 temporal_rs = { workspace = true }
 yoke = { workspace = true }

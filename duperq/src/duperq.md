@@ -157,6 +157,7 @@ By default, `duperq` serializes output data into a single-line format. You can c
 - `| ansi`: Prints with ANSI colors.
 - `| pretty-print`: Pretty-prints values over multiple lines with indentation.
 - `| format`: Allows you to print arbitrary strings, replacing `${...}` blocks with the selector inside. String values will have their quotes stripped. Missing values will be printed as `<MISSING>`.
+- `| json`: Converts to JSON using Serde's data model.
 
 ```bash
 duperq "filter . | format \"[\${.level}] \${.http.statusCode} - \${.http.method} \${.http.url}\"" log.duper

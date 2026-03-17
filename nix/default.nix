@@ -1,27 +1,22 @@
 {
   system ? builtins.currentSystem,
-  rustChannel ? "stable",
-  rustVersion ? "latest",
-}:
-let
-  sources = import ../npins;
-
-  pkgs = import sources.nixpkgs {
+  sources ? import ../npins,
+  pkgs ? import sources.nixpkgs {
     inherit system;
     overlays = [ (import sources.rust-overlay) ];
-  };
-
-  inherit (pkgs) lib;
-
-  craneLib = (import sources.crane { inherit pkgs; }).overrideToolchain (
+  },
+  craneLib ? (import sources.crane { inherit pkgs; }).overrideToolchain (
     p:
-    p.rust-bin.${rustChannel}.${rustVersion}.default.override {
+    p.rust-bin.stable.latest.default.override {
       targets = [
         "wasm32-unknown-unknown"
         "wasm32-wasip2"
       ];
     }
-  );
+  ),
+}:
+let
+  inherit (pkgs) lib;
 
   src = lib.fileset.toSource {
     root = ../.;
@@ -83,34 +78,7 @@ let
     ];
   };
 
-  cargoArtifacts =
-    (craneLib.buildDepsOnly.override {
-      mkDummySrc = craneLib.mkDummySrc.override {
-        findCargoFiles = _: {
-          cargoTomls = [
-            ../Cargo.toml
-            ../axum_duper/Cargo.toml
-            ../duper/Cargo.toml
-            ../duper-js-node/Cargo.toml
-            ../duper-js-wasm/rust/Cargo.toml
-            ../duper-python/Cargo.toml
-            ../duper_lsp/Cargo.toml
-            ../duper_rpc/Cargo.toml
-            ../duper_uniffi/Cargo.toml
-            ../duper_website/Cargo.toml
-            ../duper_zed/Cargo.toml
-            ../duperfmt/Cargo.toml
-            ../duperq/Cargo.toml
-            ../serde_duper/Cargo.toml
-            ../serde_duper_macros/Cargo.toml
-            ../tracing_duper/Cargo.toml
-            ../tree-sitter-duper/Cargo.toml
-          ];
-          cargoConfigs = [ ./.cargo/config.toml ];
-        };
-      };
-    })
-      commonArgs;
+  cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
   individualCrateArgs = commonArgs // {
     inherit cargoArtifacts;
@@ -176,13 +144,6 @@ in
       }
     );
 
-    duper-fmt = craneLib.cargoFmt (
-      commonArgs
-      // {
-        inherit cargoArtifacts;
-      }
-    );
-
     duper-test = craneLib.cargoNextest (
       commonArgs
       // {
@@ -202,6 +163,7 @@ in
       pkgs.just
       pkgs.llvmPackages.bintools
       pkgs.nodejs_24
+      pkgs.python3
       pkgs.tree-sitter
       pkgs.uv
       pkgs.wasm-bindgen-cli_0_2_100

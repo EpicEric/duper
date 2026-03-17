@@ -48,8 +48,7 @@ mod format_duper_tests {
         parser
             .set_language(&tree_sitter_duper::LANGUAGE.into())
             .unwrap();
-        let tree = parser.parse(input, None).expect("parser was initialized");
-        tree
+        parser.parse(input, None).expect("parser was initialized")
     }
 
     #[test]
@@ -78,7 +77,7 @@ mod format_duper_tests {
                     connectivity: ["Bluetooth 5.0","3.5mm Jack"],
                 },
                 image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
-                tags:   
+                tags:
                    [ "electronics" , "audio"  , "wireless" ],
                 release_date: PlainDate('2023-11-15'),
                 /* Warranty is optional */
@@ -123,7 +122,7 @@ mod format_duper_tests {
                     connectivity: ["Bluetooth 5.0","3.5mm Jack"],
                 },
                 image_thumbnail: Png(b64"iVBORw0KGgoAAAANSUhEUgAAAGQ="),
-                tags:   
+                tags:
                    [ "electronics" , "audio"  , "wireless" ],
                 release_date: PlainDate('2023-11-15'),
                 /* Warranty is optional */

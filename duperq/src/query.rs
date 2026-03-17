@@ -4,6 +4,7 @@ use duper::{
     escape::unescape_str,
     parser::{identified_value, integer, object_key, quoted_string},
 };
+use serde_json::json;
 use smol::{channel, io::AsyncWrite};
 use yoke::Yoke;
 
@@ -49,6 +50,20 @@ where
                 Box::new(OutputProcessor::new(
                     output,
                     Box::new(move |value| pretty_printer.pretty_print(value.get()).into_bytes()),
+                )) as Box<dyn Processor>
+            }) as CreateProcessorFn<O>
+        }),
+        just("json").padded().map(|_| {
+            Box::new(|output| {
+                Box::new(OutputProcessor::new(
+                    output,
+                    Box::new(|value| {
+                        serde_json::to_string(value.get())
+                            .unwrap_or_else(|error| {
+                                json!({"serde_json_error": format!("{:?}", error)}).to_string()
+                            })
+                            .into_bytes()
+                    }),
                 )) as Box<dyn Processor>
             }) as CreateProcessorFn<O>
         }),

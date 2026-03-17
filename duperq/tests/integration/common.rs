@@ -10,7 +10,7 @@ pub(crate) fn parse_duper_values(
     values: &[&'static str],
 ) -> Vec<Yoke<DuperValue<'static>, String>> {
     values
-        .into_iter()
+        .iter()
         .map(|input| {
             Yoke::attach_to_cart(input.to_string(), |input| {
                 DuperParser::parse_duper_trunk(input).unwrap()

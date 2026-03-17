@@ -1234,6 +1234,7 @@ dependencies = [
  "num_cpus",
  "piper",
  "regex",
+ "serde_json",
  "smol",
  "temporal_rs",
  "yoke",

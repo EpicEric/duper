@@ -1,20 +1,17 @@
 {
   "pins": {
     "crane": {
-      "type": "GitRelease",
+      "type": "Git",
       "repository": {
         "type": "GitHub",
         "owner": "ipetkov",
         "repo": "crane"
       },
-      "pre_releases": false,
-      "version_upper_bound": null,
-      "release_prefix": null,
+      "branch": "master",
       "submodules": false,
-      "version": "v0.23.1",
-      "revision": "fe2df77bce0b8c492a09e34d281f0fb62d1bea43",
-      "url": "https://api.github.com/repos/ipetkov/crane/tarball/refs/tags/v0.23.1",
-      "hash": "sha256-aIlv7FRXF9q70DNJPI237dEDAznSKaXmL5lfK/Id/bI="
+      "revision": "27711550d109bf6236478dc9f53b9e29c1a374c5",
+      "url": "https://github.com/ipetkov/crane/archive/27711550d109bf6236478dc9f53b9e29c1a374c5.tar.gz",
+      "hash": "sha256-5fDkKTYEgue2klksd52WvcXfZdY1EIlbk0QggAwpFog="
     },
     "nixpkgs": {
       "type": "Channel",

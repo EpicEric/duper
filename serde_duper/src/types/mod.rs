@@ -388,19 +388,18 @@ pub mod DuperDuration {
             0,
             0,
             0,
-            i64::try_from(value.as_secs())
-                .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?,
+            i64::try_from(value.as_secs()).map_err(<S::Error as serde_core::ser::Error>::custom)?,
             0,
             0,
             value.subsec_nanos().into(),
         )
-        .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?;
+        .map_err(<S::Error as serde_core::ser::Error>::custom)?;
         let duration = duper::DuperTemporal::try_duration_from(std::borrow::Cow::Owned(
             value
                 .as_temporal_string(Default::default())
-                .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?,
+                .map_err(<S::Error as serde_core::ser::Error>::custom)?,
         ))
-        .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?;
+        .map_err(<S::Error as serde_core::ser::Error>::custom)?;
         duper::serde::temporal::TemporalString::from(duration).serialize(serializer)
     }
 
@@ -477,18 +476,18 @@ pub mod DuperOptionDuration {
                     0,
                     0,
                     i64::try_from(value.as_secs())
-                        .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?,
+                        .map_err(<S::Error as serde_core::ser::Error>::custom)?,
                     0,
                     0,
                     value.subsec_nanos().into(),
                 )
-                .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?;
+                .map_err(<S::Error as serde_core::ser::Error>::custom)?;
                 let duration = duper::DuperTemporal::try_duration_from(std::borrow::Cow::Owned(
                     value
                         .as_temporal_string(Default::default())
-                        .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?,
+                        .map_err(<S::Error as serde_core::ser::Error>::custom)?,
                 ))
-                .map_err(|error| <S::Error as serde_core::ser::Error>::custom(error))?;
+                .map_err(<S::Error as serde_core::ser::Error>::custom)?;
                 duper::serde::temporal::TemporalString::from(duration).serialize(serializer)
             }
             None => serializer.serialize_newtype_struct("Duration", &Option::<()>::None),

@@ -6,10 +6,10 @@ permissions:
   contents: read
 
 env:
-  RUST_VERSION: "1.92.0"
+  RUST_VERSION: "1.94.0"
   CARGO_INCREMENTAL: "0"
   CARGO_PROFILE_TEST_DEBUG: "0"
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 jobs:
   build:
