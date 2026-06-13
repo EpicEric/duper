@@ -29,6 +29,7 @@ pub fn temporal_specified<'a>()
         temporal_plain_month_day(),
         temporal_duration(),
     ))
+    .boxed()
     .padded_by(whitespace_and_comments())
 }
 

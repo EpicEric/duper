@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2 (2026-06-13)
+
+### Added
+
+- Add more boxing for parser types.
+
 ## 0.6.1 (2026-01-03)
 
 ### Added

@@ -213,8 +213,8 @@ pub fn identified_value<'a>()
             }),
             null().map(|_| DuperValue::Null { identifier: None }),
         ))
-        .padded_by(whitespace_and_comments())
-        .boxed();
+        .boxed()
+        .padded_by(whitespace_and_comments());
 
         choice((
             temporal_specified(),
@@ -235,6 +235,7 @@ pub fn identified_value<'a>()
             temporal_unspecified(),
             inner_value,
         ))
+        .boxed()
         .padded_by(whitespace_and_comments())
     })
 }
