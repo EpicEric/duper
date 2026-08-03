@@ -727,6 +727,64 @@ fn some_ipnet() {
 }
 
 #[test]
+#[cfg(feature = "jiff")]
+fn some_jiff() {
+    use jiff::{
+        Span, Timestamp, Zoned,
+        civil::{Date, DateTime, Time},
+    };
+    use serde_duper::types::jiff::{
+        DuperOptionDate, DuperOptionDateTime, DuperOptionSpan, DuperOptionTime,
+        DuperOptionTimestamp, DuperOptionZoned,
+    };
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperOptionDate")]
+        date: Option<Date>,
+        #[serde(with = "DuperOptionTime")]
+        time: Option<Time>,
+        #[serde(with = "DuperOptionDateTime")]
+        dt: Option<DateTime>,
+        #[serde(with = "DuperOptionTimestamp")]
+        ts: Option<Timestamp>,
+        #[serde(with = "DuperOptionZoned")]
+        zoned: Option<Zoned>,
+        #[serde(with = "DuperOptionSpan")]
+        span: Option<Span>,
+    }
+
+    let value = Test {
+        date: Some("1995-11-03".parse().unwrap()),
+        time: Some("01:33:00".parse().unwrap()),
+        dt: Some("2026-08-03T03:37:32".parse().unwrap()),
+        ts: Some("2024-06-19 15:22:45-04".parse().unwrap()),
+        zoned: Some(
+            "2024-08-10T23:14:00-04:00[America/New_York]"
+                .parse()
+                .unwrap(),
+        ),
+        span: Some("P1MT1M".parse().unwrap()),
+    };
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({date: PlainDate('1995-11-03'), time: PlainTime('01:33:00'), dt: PlainDateTime('2026-08-03T03:37:32'), ts: Instant('2024-06-19T19:22:45Z'), zoned: ZonedDateTime('2024-08-10T23:14:00-04:00[America/New_York]'), span: Duration('P1MT1M')})"#
+    );
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(value.date, deserialized.date);
+    assert_eq!(value.time, deserialized.time);
+    assert_eq!(value.dt, deserialized.dt);
+    assert_eq!(value.ts, deserialized.ts);
+    assert_eq!(value.zoned, deserialized.zoned);
+    assert_eq!(
+        value.span.map(|span| span.fieldwise()),
+        deserialized.span.map(|span| span.fieldwise())
+    );
+}
+
+#[test]
 #[cfg(feature = "regex")]
 fn some_regex() {
     use regex::{Regex, bytes::Regex as BytesRegex};

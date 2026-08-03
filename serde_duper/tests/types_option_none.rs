@@ -551,6 +551,60 @@ fn none_ipnet() {
 }
 
 #[test]
+#[cfg(feature = "jiff")]
+fn none_jiff() {
+    use jiff::{
+        Span, Timestamp, Zoned,
+        civil::{Date, DateTime, Time},
+    };
+    use serde_duper::types::jiff::{
+        DuperOptionDate, DuperOptionDateTime, DuperOptionSpan, DuperOptionTime,
+        DuperOptionTimestamp, DuperOptionZoned,
+    };
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Test {
+        #[serde(with = "DuperOptionDate")]
+        date: Option<Date>,
+        #[serde(with = "DuperOptionTime")]
+        time: Option<Time>,
+        #[serde(with = "DuperOptionDateTime")]
+        dt: Option<DateTime>,
+        #[serde(with = "DuperOptionTimestamp")]
+        ts: Option<Timestamp>,
+        #[serde(with = "DuperOptionZoned")]
+        zoned: Option<Zoned>,
+        #[serde(with = "DuperOptionSpan")]
+        span: Option<Span>,
+    }
+
+    let value = Test {
+        date: None,
+        time: None,
+        dt: None,
+        ts: None,
+        zoned: None,
+        span: None,
+    };
+    let serialized = serde_duper::to_string(&value).unwrap();
+    assert_eq!(
+        serialized,
+        r#"Test({date: PlainDate(null), time: PlainTime(null), dt: PlainDateTime(null), ts: Instant(null), zoned: ZonedDateTime(null), span: Duration(null)})"#
+    );
+
+    let deserialized: Test = serde_duper::from_string(&serialized).unwrap();
+    assert_eq!(value.date, deserialized.date);
+    assert_eq!(value.time, deserialized.time);
+    assert_eq!(value.dt, deserialized.dt);
+    assert_eq!(value.ts, deserialized.ts);
+    assert_eq!(value.zoned, deserialized.zoned);
+    assert_eq!(
+        value.span.map(|span| span.fieldwise()),
+        deserialized.span.map(|span| span.fieldwise())
+    );
+}
+
+#[test]
 #[cfg(feature = "regex")]
 fn none_regex() {
     use regex::{Regex, bytes::Regex as BytesRegex};

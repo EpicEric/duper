@@ -13,12 +13,12 @@ categories = ["development-tools::debugging"]
 keywords = ["duper", "tracing"]
 
 [features]
-default = ["chrono"]
-chrono = ["dep:chrono"]
+default = ["jiff"]
+jiff = ["dep:jiff"]
 
 [dependencies]
-chrono = { workspace = true, optional = true, features = ["serde"] }
 duper = { workspace = true, features = ["ansi", "serde"] }
+jiff = { workspace = true, optional = true, features = ["serde"] }
 tracing-core = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false, features = [
   "std",

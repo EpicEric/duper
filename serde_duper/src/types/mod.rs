@@ -767,6 +767,9 @@ duper_serde_module!(
     "Ipv6Net"
 );
 
+#[cfg(feature = "jiff")]
+pub mod jiff;
+
 #[cfg(feature = "regex")]
 pub mod DuperRegex {
     use super::*;

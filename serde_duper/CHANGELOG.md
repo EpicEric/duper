@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Support Temporal values for `jiff` types.
+
 ## 0.4.3 (2025-12-23)
 
 ### Changed

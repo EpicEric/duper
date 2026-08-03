@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Use `jiff` instead of `chrono`.
+
 ## 0.1.1 (2025-12-23)
 
 ### Changed

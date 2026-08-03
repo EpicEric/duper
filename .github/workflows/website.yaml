@@ -28,8 +28,10 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: true
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Fetch Rust and add target
         run: |
           rustup toolchain install ${RUST_VERSION}-x86_64-unknown-linux-gnu
@@ -52,11 +54,11 @@ jobs:
       - name: Install Node dependencies and build
         working-directory: ./duper_website
         run: |
-          bun install
-          bun wasm:build
-          bun wasm:bindgen
+          npm install
+          npm run wasm:build
+          npm run wasm:bindgen
           ../binaryen/bin/wasm-opt -Os ./pkg/duper_website_bg.wasm -o ./pkg/duper_website_bg.wasm
-          bun run build
+          npm run build
       - name: Deploy to Sandhole
         if: github.ref == 'refs/heads/main'
         uses: up9cloud/action-rsync@e5f52e6a78755fa0ddbfd2d52f61de0490661665 # master

@@ -103,25 +103,27 @@ let output = serde_duper::to_string_pretty(&item)?;
 
 ### Working with Temporal values
 
-You can use `chrono`, or directly manipulate values with `TemporalString`:
+You can use `jiff`, or directly manipulate values with `TemporalString`:
 
 ```rust
-use chrono::{DateTime, Utc};
+use std::borrow::Cow;
+
+use jiff::Timestamp;
 use duper::DuperTemporal;
 use serde::{Deserialize, Serialize};
 use serde_duper::TemporalString;
 
 #[derive(Serialize, Deserialize)]
 struct DateValidator<'a> {
-    #[serde(with = "serde_duper::types::chrono::DuperDateTime")]
-    instant: DateTime<Utc>,
+    #[serde(with = "serde_duper::types::jiff::DuperTimestamp")]
+    instant: Timestamp,
     matches: TemporalString<'a>,
 }
 
 let item = DateValidator {
     instant: "2023-10-05T14:30:00Z".parse().unwrap(),
     matches: TemporalString(DuperTemporal::try_plain_year_month_from(
-        std::borrow::Cow::Borrowed("2023-10")
+        Cow::Borrowed("2023-10")
     ).unwrap()),
 };
 
@@ -240,6 +242,7 @@ fn main() {
     send_gifts(&mut gifts);
 }
 ```
+
 ---
 
 See the [docs](https://docs.rs/tracing_duper/latest/tracing_duper/) for more information.

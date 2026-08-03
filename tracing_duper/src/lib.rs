@@ -64,9 +64,9 @@ use std::{
     time::Instant,
 };
 
-#[cfg(feature = "chrono")]
-use chrono::{Local, Utc};
 use duper::{DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperValue, Serializer};
+#[cfg(feature = "jiff")]
+use jiff::{Timestamp, Zoned};
 use tracing_core::{Event, Subscriber, field};
 use tracing_subscriber::{Layer, field::VisitOutput, registry::LookupSpan};
 
@@ -83,41 +83,41 @@ impl DuperTimer for () {
     }
 }
 
-#[cfg(feature = "chrono")]
-/// An Instant timestamp generator that uses [`chrono`] and includes the UTC timezone.
-pub struct ChronoUtcTimer;
+#[cfg(feature = "jiff")]
+/// An Instant timestamp generator that uses [`jiff`] and includes the UTC timezone.
+pub struct JiffTimestampTimer;
 
-#[cfg(feature = "chrono")]
-impl DuperTimer for ChronoUtcTimer {
+#[cfg(feature = "jiff")]
+impl DuperTimer for JiffTimestampTimer {
     fn get_timestamp(&self) -> Option<DuperValue<'static>> {
         Some(
-            DuperValue::try_instant_from(Cow::Owned(Utc::now().to_rfc3339()))
+            DuperValue::try_instant_from(Cow::Owned(Timestamp::now().to_string()))
                 .expect("valid ISO-8601 Instant"),
         )
     }
 }
 
-#[cfg(feature = "chrono")]
-/// An Instant timestamp generator that uses [`chrono`] and includes the local timezone.
-pub struct ChronoLocalTimer;
+#[cfg(feature = "jiff")]
+/// An Instant timestamp generator that uses [`jiff`] and includes the local timezone.
+pub struct JiffZonedTimer;
 
-#[cfg(feature = "chrono")]
-impl DuperTimer for ChronoLocalTimer {
+#[cfg(feature = "jiff")]
+impl DuperTimer for JiffZonedTimer {
     fn get_timestamp(&self) -> Option<DuperValue<'static>> {
         Some(
-            DuperValue::try_instant_from(Cow::Owned(Local::now().to_rfc3339()))
-                .expect("valid ISO-8601 Instant"),
+            DuperValue::try_zoned_date_time_from(Cow::Owned(Zoned::now().to_string()))
+                .expect("valid RFC-9557 ZonedDateTime"),
         )
     }
 }
 
-#[cfg(feature = "chrono")]
+#[cfg(feature = "jiff")]
 /// A [`tracing_subscriber::Layer`] that generates Duper-formatted logs to the
 /// specified writer.
 ///
-/// By default, logs will be written to stdout, using [`ChronoLocalTimer`] as
+/// By default, logs will be written to stdout, using [`JiffTimestampTimer`] as
 /// the timestamp generator.
-pub struct DuperLayer<S, W = fn() -> io::Stdout, Timer = ChronoLocalTimer> {
+pub struct DuperLayer<S, W = fn() -> io::Stdout, Timer = JiffTimestampTimer> {
     make_writer: W,
     timer: Timer,
     flatten_event: bool,
@@ -132,7 +132,7 @@ pub struct DuperLayer<S, W = fn() -> io::Stdout, Timer = ChronoLocalTimer> {
     _subscriber: PhantomData<S>,
 }
 
-#[cfg(not(feature = "chrono"))]
+#[cfg(not(feature = "jiff"))]
 /// A [`tracing_subscriber::Layer`] that generates Duper-formatted logs to the
 /// specified writer.
 ///
@@ -154,11 +154,11 @@ pub struct DuperLayer<S, W = fn() -> io::Stdout, Timer = ()> {
 
 impl<S> Default for DuperLayer<S> {
     fn default() -> Self {
-        #[cfg(feature = "chrono")]
+        #[cfg(feature = "jiff")]
         {
             Self {
                 make_writer: io::stdout,
-                timer: ChronoLocalTimer,
+                timer: JiffTimestampTimer,
                 flatten_event: false,
                 display_timestamp: true,
                 display_level: true,
@@ -171,7 +171,7 @@ impl<S> Default for DuperLayer<S> {
                 _subscriber: Default::default(),
             }
         }
-        #[cfg(not(feature = "chrono"))]
+        #[cfg(not(feature = "jiff"))]
         {
             Self {
                 make_writer: io::stdout,

@@ -122,28 +122,30 @@
 //! }
 //! ```
 //!
-//! For [`chrono`] support, use the types provided by [`types::chrono`] with the
+//! For [`jiff`] support, use the types provided by [`types::jiff`] with the
 //! `#[serde(with = "...")]` attribute. For example:
 //!
 //! ```
-//! use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+//! use jiff::{Zoned, Timestamp, Span, civil::{Date, Time, DateTime}};
 //! use serde::{Deserialize, Serialize};
-//! use serde_duper::types::chrono::{
-//!     DuperDateTime, DuperNaiveDateTime, DuperOptionNaiveDate, DuperOptionNaiveTime,
+//! use serde_duper::types::jiff::{
+//!     DuperZoned, DuperTimestamp, DuperSpan, DuperOptionDate, DuperOptionTime, DuperOptionDateTime
 //! };
 //!
 //! #[derive(Serialize, Deserialize)]
-//! struct ChronoStuff {
-//!     #[serde(with = "DuperDateTime")]
-//!     utc: DateTime<Utc>,
-//!     #[serde(with = "DuperDateTime")]
-//!     fo: DateTime<FixedOffset>,
-//!     #[serde(with = "DuperNaiveDateTime")]
-//!     ndt: NaiveDateTime,
-//!     #[serde(with = "DuperOptionNaiveDate")]
-//!     nd: Option<NaiveDate>,
-//!     #[serde(with = "DuperOptionNaiveTime")]
-//!     nt: Option<NaiveTime>,
+//! struct JiffStuff {
+//!     #[serde(with = "DuperZoned")]
+//!     zoned: Zoned,
+//!     #[serde(with = "DuperTimestamp")]
+//!     ts: Timestamp,
+//!     #[serde(with = "DuperSpan")]
+//!     span: Span,
+//!     #[serde(with = "DuperOptionDate")]
+//!     date: Option<Date>,
+//!     #[serde(with = "DuperOptionTime")]
+//!     time: Option<Time>,
+//!     #[serde(with = "DuperOptionDateTime")]
+//!     dt: Option<DateTime>,
 //! }
 //! ```
 //!

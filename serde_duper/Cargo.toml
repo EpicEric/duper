@@ -23,6 +23,7 @@ bytes = ["dep:bytes"]
 chrono = ["dep:chrono"]
 decimal = ["dep:rust_decimal"]
 ipnet = ["dep:ipnet"]
+jiff = ["dep:jiff"]
 regex = ["dep:regex"]
 temporal = ["dep:temporal_rs"]
 uuid = ["dep:uuid"]
@@ -37,6 +38,7 @@ serde_bytes = "0.11"
 bytes = { workspace = true, features = ["serde"], optional = true }
 chrono = { workspace = true, optional = true }
 ipnet = { workspace = true, optional = true }
+jiff = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 rust_decimal = { workspace = true, features = ["serde-str"], optional = true }
 temporal_rs = { workspace = true, optional = true }
@@ -47,6 +49,7 @@ serde_duper_macros = { path = "../serde_duper_macros", version = "0.1.1", option
 
 [dev-dependencies]
 chrono = { workspace = true }
+jiff = { workspace = true }
 rust_decimal = { workspace = true, features = ["macros", "serde-str"] }
 serde = { workspace = true }
 uuid = { workspace = true }

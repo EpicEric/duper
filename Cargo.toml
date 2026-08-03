@@ -35,6 +35,7 @@ duperfmt = { version = "^0.1", path = "duperfmt" }
 futures = "^0.3"
 insta = "^1"
 ipnet = { version = "^2", features = ["serde"] }
+jiff = { version = "^0.2", features = ["serde"] }
 regex = "^1"
 rust_decimal = { version = "^1", features = ["macros", "serde-str"] }
 serde = { version = "^1", features = ["derive"] }
