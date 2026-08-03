@@ -1,11 +1,11 @@
 {
   description = "The format that's super!";
 
-  inputs = { };
-
   outputs =
-    { self, ... }:
+    { self, ... }@args:
     let
+      inputs = import ./.tack { overrides = args.tackOverrides or { }; };
+
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -32,8 +32,21 @@
     eachSystem (
       system:
       let
-        inherit (import ./nix { inherit system; })
-          pkgs
+        pkgs = import inputs.nixpkgs {
+          inherit system;
+          overlays = [ (import inputs.rust-overlay) ];
+        };
+        craneLib = (import inputs.crane { inherit pkgs; }).overrideToolchain (
+          p:
+          p.rust-bin.stable.latest.default.override {
+            targets = [
+              "wasm32-unknown-unknown"
+              "wasm32-wasip2"
+            ];
+          }
+        );
+
+        inherit (import ./nix { inherit system pkgs craneLib; })
           packages
           checks
           shell

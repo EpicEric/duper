@@ -1,0 +1,11 @@
+[inputs.nixpkgs]
+url = "github:NixOS/nixpkgs/nixpkgs-unstable"
+type = "fetch"
+
+[inputs.crane]
+url = "github:ipetkov/crane/master"
+type = "fetch"
+
+[inputs.rust-overlay]
+url = "github:oxalica/rust-overlay/master"
+type = "fetch"

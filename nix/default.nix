@@ -1,11 +1,11 @@
 {
   system ? builtins.currentSystem,
-  sources ? import ../npins,
-  pkgs ? import sources.nixpkgs {
+  inputs ? import ../.tack,
+  pkgs ? import inputs.nixpkgs {
     inherit system;
-    overlays = [ (import sources.rust-overlay) ];
+    overlays = [ (import inputs.rust-overlay) ];
   },
-  craneLib ? (import sources.crane { inherit pkgs; }).overrideToolchain (
+  craneLib ? (import inputs.crane { inherit pkgs; }).overrideToolchain (
     p:
     p.rust-bin.stable.latest.default.override {
       targets = [
@@ -156,7 +156,6 @@ in
   shell = craneLib.devShell {
     packages = [
       pkgs.binaryen
-      pkgs.bun
       pkgs.cargo-insta
       pkgs.dotnet-sdk_8
       pkgs.jdk21_headless
@@ -164,6 +163,7 @@ in
       pkgs.llvmPackages.bintools
       pkgs.nodejs_24
       pkgs.python3
+      pkgs.tack
       pkgs.tree-sitter
       pkgs.uv
       pkgs.wasm-bindgen-cli_0_2_100
