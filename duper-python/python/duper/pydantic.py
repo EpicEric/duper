@@ -1,17 +1,22 @@
 import sys
-from typing import Any, Callable, TypeVar, cast
-from pydantic.config import ExtraValues
-from typing_extensions import Self
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
 from pydantic import (
-    ConfigDict,
-    ValidationError,
-    model_serializer,
     BaseModel as PydanticBaseModel,
-    create_model as _create_model,
+)
+from pydantic import (
+    ConfigDict,
     SerializationInfo,
     SerializerFunctionWrapHandler,
+    ValidationError,
+    model_serializer,
 )
+from pydantic import (
+    create_model as _create_model,
+)
+from pydantic.config import ExtraValues
+from typing_extensions import Self
 
 __all__ = [
     "BaseModel",

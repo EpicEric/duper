@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 from fastapi import Depends, HTTPException, Request, status
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import TypeAdapter
+from pydantic_core import ValidationError
 from starlette.background import BackgroundTask
 from starlette.responses import Response
 from typing_extensions import override
@@ -104,7 +105,7 @@ def DuperBody(model_type: type[T]) -> Any:  # pyright: ignore[reportExplicitAny,
         try:
             adapter = TypeAdapter(model_type)
             return adapter.validate_python(dumped)
-        except Exception:
+        except ValidationError:
             return dumped  # pyright: ignore[reportReturnType]
 
     return Depends(_get_duper_body)  # pyright: ignore[reportAny]

@@ -1,6 +1,5 @@
-import pytest
 import duper
-
+import pytest
 
 DUPER_DATA = """
 APIResponse({

@@ -4,23 +4,23 @@ r"""Utilities for converting to and from Python types into the Duper format.
 that custom Pydantic ``BaseModel``s are returned.."""
 
 from ._duper import (
-    dumps,
-    dump,
-    loads,
-    load,
     Duper,
     DuperType,
     TemporalString,
+    dump,
+    dumps,
+    load,
+    loads,
 )
 from .pydantic import BaseModel
 
 __all__ = [
-    "dumps",
-    "dump",
-    "loads",
-    "load",
+    "BaseModel",
     "Duper",
     "DuperType",
-    "BaseModel",
     "TemporalString",
+    "dump",
+    "dumps",
+    "load",
+    "loads",
 ]

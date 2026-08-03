@@ -1,10 +1,9 @@
 from typing import Annotated, Any
+
+from duper import BaseModel
+from duper.fastapi import DuperBody, DuperResponse
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
-
-from duper.fastapi import DuperResponse, DuperBody
-from duper import BaseModel
-
 
 app = FastAPI()
 

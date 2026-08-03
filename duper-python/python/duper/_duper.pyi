@@ -1,16 +1,16 @@
-from typing import Any, Literal, TypeAlias, overload
 from io import TextIOBase
+from typing import Any, Literal, TypeAlias, overload
 
 from pydantic import BaseModel
 
 __all__ = [
-    "dumps",
-    "dump",
-    "loads",
-    "load",
     "Duper",
     "DuperType",
     "TemporalString",
+    "dump",
+    "dumps",
+    "load",
+    "loads",
 ]
 
 class Duper:
@@ -72,7 +72,18 @@ class TemporalString:
         | None
     ): ...
 
-DuperType: TypeAlias = "dict[str, DuperType] | list[DuperType] | tuple[DuperType, ...] | str | bytes | TemporalString | int | float | bool | None"
+DuperType: TypeAlias = (
+    dict[str, DuperType]
+    | list[DuperType]
+    | tuple[DuperType, ...]
+    | str
+    | bytes
+    | TemporalString
+    | int
+    | float
+    | bool
+    | None
+)
 """All possible Python return types for Duper values."""
 
 def dumps(

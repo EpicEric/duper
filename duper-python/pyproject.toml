@@ -40,6 +40,6 @@ dev = [
     "maturin>=1.9.6",
     "pydantic-extra-types[all]>=2.10.6",
     "pytest>=8.4.2",
-    "ruff>=0.14.1",
+    "ruff>=0.16.1",
     "starlette>=0.48.0",
 ]

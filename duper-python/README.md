@@ -75,6 +75,7 @@ class RegisteredRegex(BaseModel):
     pattern: re.Pattern
     matches: list[str] | None = None
 
+
 data = RegisteredRegex(
     regex_id=uuid.uuid4(),
     created_at=datetime.now(),
@@ -98,11 +99,14 @@ from duper.fastapi import DuperBody, DuperResponse
 from duper import BaseModel
 from fastapi import FastAPI
 
+
 class DuplicatableData(BaseModel):
     tup: tuple[str, bytes]
     value: int
 
+
 app = FastAPI()
+
 
 @app.post("/double", response_class=DuperResponse)
 async def double_the_data(

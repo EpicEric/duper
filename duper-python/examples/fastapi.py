@@ -1,6 +1,7 @@
 from typing import Annotated
-from duper.fastapi import DuperBody, DuperResponse
+
 from duper import BaseModel
+from duper.fastapi import DuperBody, DuperResponse
 from fastapi import FastAPI
 
 

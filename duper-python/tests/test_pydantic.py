@@ -103,7 +103,7 @@ def test_pydantic_complex():
         uuid="a708f86d-ee5b-4ce8-b505-8f59d3d26850",
         deque=deque(),
         named_tuple=(34, 35),
-        set={1, 2, 1, 4},
+        set={1, 2, 4},
         bytesize="3000 KiB",
         decimal=Decimal("12.34"),
         enum=Color.GREEN,
