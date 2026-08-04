@@ -73,7 +73,6 @@ impl DuperParser {
                 (filename.clone(), rich.span().into_range()),
             )
             .with_config(ariadne::Config::new().with_index_type(ariadne::IndexType::Byte))
-            .with_code(3)
             .with_message(rich.to_string())
             .with_label(
                 ariadne::Label::new((filename.clone(), rich.span().into_range()))
@@ -158,7 +157,8 @@ pub fn identified_trunk<'a>()
         array(identified_value()),
         tuple(identified_value()),
     ))
-    .padded_by(whitespace_and_comments());
+    .padded_by(whitespace_and_comments())
+    .boxed();
 
     identifier()
         .then(inner_trunk.clone().delimited_by(just('('), just(')')))
@@ -235,14 +235,14 @@ pub fn identified_value<'a>()
             temporal_unspecified(),
             inner_value,
         ))
-        .boxed()
         .padded_by(whitespace_and_comments())
+        .boxed()
     })
 }
 
 /// Parse a Duper object.
 pub fn object<'a>(
-    identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
+    identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone + 'a,
 ) -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     object_key()
         .padded_by(whitespace_and_comments())
@@ -264,6 +264,7 @@ pub fn object<'a>(
             just('{').padded_by(whitespace_and_comments()),
             just('}').padded_by(whitespace_and_comments()),
         )
+        .boxed()
 }
 
 /// Parse a Duper object key.
@@ -280,11 +281,12 @@ pub fn object_key<'a>() -> impl Parser<'a, &'a str, DuperKey<'a>, extra::Err<Ric
         .map(DuperKey)
         .or(raw_string().map(|str| DuperKey(Cow::Borrowed(str))))
         .or(plain_key)
+        .boxed()
 }
 
 /// Parse a Duper array.
 pub fn array<'a>(
-    identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
+    identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone + 'a,
 ) -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_value
         .padded_by(whitespace_and_comments())
@@ -310,11 +312,12 @@ pub fn array<'a>(
                 identifier: None,
                 inner: vec![],
             }))
+        .boxed()
 }
 
 /// Parse a Duper tuple.
 pub fn tuple<'a>(
-    identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone,
+    identified_value: impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone + 'a,
 ) -> impl Parser<'a, &'a str, DuperValue<'a>, extra::Err<Rich<'a, char>>> + Clone {
     identified_value
         .padded_by(whitespace_and_comments())
@@ -340,6 +343,7 @@ pub fn tuple<'a>(
                 identifier: None,
                 inner: vec![],
             }))
+        .boxed()
 }
 
 /// Parse a quote-delimited Duper string.
@@ -348,6 +352,7 @@ pub fn quoted_string<'a>()
     quoted_inner()
         .try_map(|str, span| unescape_str(str).map_err(|err| Rich::custom(span, err)))
         .delimited_by(just('"'), just('"'))
+        .boxed()
 }
 
 /// Parse a Base64 Duper byte string.
@@ -375,6 +380,7 @@ pub fn quoted_bytes<'a>()
     quoted_inner()
         .try_map(|bytes, span| unescape_bytes(bytes).map_err(|err| Rich::custom(span, err)))
         .delimited_by(just("b\""), just('"'))
+        .boxed()
 }
 
 /// Parse the inner contents of a Duper quoted string or quoted byte string.
@@ -403,36 +409,40 @@ pub fn raw_string<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a,
         .count()
         .delimited_by(just('r'), just('"'));
 
-    hashtags.ignore_with_ctx(
-        any()
-            .and_is(
-                just('"')
-                    .then(
+    hashtags
+        .ignore_with_ctx(
+            any()
+                .and_is(
+                    just('"')
+                        .then(
+                            just('#')
+                                .repeated()
+                                .configure(|repeated, ctx| repeated.exactly(*ctx)),
+                        )
+                        .ignored()
+                        .or(choice((
+                            one_of('\u{0000}'..='\u{0009}'),
+                            one_of('\u{000b}'..='\u{001f}'),
+                            just('\u{007f}'),
+                        ))
+                        .labelled(
+                            "a control character or tab, excluding new line, excluding new line",
+                        )
+                        .repeated()
+                        .at_least(1))
+                        .not(),
+                )
+                .repeated()
+                .to_slice()
+                .then_ignore(
+                    just('"').then(
                         just('#')
                             .repeated()
                             .configure(|repeated, ctx| repeated.exactly(*ctx)),
-                    )
-                    .ignored()
-                    .or(choice((
-                        one_of('\u{0000}'..='\u{0009}'),
-                        one_of('\u{000b}'..='\u{001f}'),
-                        just('\u{007f}'),
-                    ))
-                    .labelled("a control character or tab, excluding new line, excluding new line")
-                    .repeated()
-                    .at_least(1))
-                    .not(),
-            )
-            .repeated()
-            .to_slice()
-            .then_ignore(
-                just('"').then(
-                    just('#')
-                        .repeated()
-                        .configure(|repeated, ctx| repeated.exactly(*ctx)),
+                    ),
                 ),
-            ),
-    )
+        )
+        .boxed()
 }
 
 /// Parse a raw Duper byte string.
@@ -443,37 +453,39 @@ pub fn raw_bytes<'a>() -> impl Parser<'a, &'a str, &'a [u8], extra::Err<Rich<'a,
         .map(|slice: &str| slice.len())
         .delimited_by(just("br"), just('"'));
 
-    hashtags.ignore_with_ctx(
-        any()
-            .and_is(
-                just('"')
-                    .then(
+    hashtags
+        .ignore_with_ctx(
+            any()
+                .and_is(
+                    just('"')
+                        .then(
+                            just('#')
+                                .repeated()
+                                .configure(|repeated, ctx| repeated.exactly(*ctx)),
+                        )
+                        .ignored()
+                        .or(choice((
+                            one_of('\u{0000}'..='\u{0009}'),
+                            one_of('\u{000b}'..='\u{001f}'),
+                            just('\u{007f}'),
+                        ))
+                        .labelled("a control character or tab, excluding new line")
+                        .repeated()
+                        .at_least(1))
+                        .not(),
+                )
+                .repeated()
+                .to_slice()
+                .map(|slice: &str| slice.as_bytes())
+                .then_ignore(
+                    just('"').then(
                         just('#')
                             .repeated()
                             .configure(|repeated, ctx| repeated.exactly(*ctx)),
-                    )
-                    .ignored()
-                    .or(choice((
-                        one_of('\u{0000}'..='\u{0009}'),
-                        one_of('\u{000b}'..='\u{001f}'),
-                        just('\u{007f}'),
-                    ))
-                    .labelled("a control character or tab, excluding new line")
-                    .repeated()
-                    .at_least(1))
-                    .not(),
-            )
-            .repeated()
-            .to_slice()
-            .map(|slice: &str| slice.as_bytes())
-            .then_ignore(
-                just('"').then(
-                    just('#')
-                        .repeated()
-                        .configure(|repeated, ctx| repeated.exactly(*ctx)),
+                    ),
                 ),
-            ),
-    )
+        )
+        .boxed()
 }
 
 /// Parse a Duper float.
@@ -510,6 +522,7 @@ pub fn float<'a>() -> impl Parser<'a, &'a str, f64, extra::Err<Rich<'a, char>>> 
             Err(Rich::custom(span, "float cannot be represented in f64"))
         }
     })
+    .boxed()
 }
 
 /// Parse a Duper integer.
@@ -556,7 +569,7 @@ pub fn integer<'a>() -> impl Parser<'a, &'a str, i64, extra::Err<Rich<'a, char>>
             i64::from_str_radix(&integer.replace('_', ""), 2).map_err(|err| Rich::custom(span, err))
         });
 
-    choice((hex_integer, octal_integer, binary_integer, decimal_integer))
+    choice((hex_integer, octal_integer, binary_integer, decimal_integer)).boxed()
 }
 
 /// Parse a Duper boolean.
@@ -587,6 +600,7 @@ pub(crate) fn whitespace_and_comments<'a>()
     .repeated()
     .padded()
     .ignored()
+    .boxed()
 }
 
 pub(crate) fn base64_digit<'a>()

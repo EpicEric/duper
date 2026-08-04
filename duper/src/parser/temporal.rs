@@ -230,6 +230,7 @@ pub fn temporal_unspecified<'a>()
                 inner: DuperTemporalUnspecified(Cow::Borrowed(unspecified)),
             })
         })
+        .boxed()
 }
 
 // Inner values
@@ -376,6 +377,7 @@ pub fn duration<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>
         )
         .padded()
         .ignored()
+        .boxed()
 }
 
 /// Parse an unspecified Temporal value.
@@ -387,6 +389,7 @@ pub fn unspecified<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, cha
         plain_time(),
         duration(),
     ))
+    .boxed()
 }
 
 // Atoms
@@ -416,11 +419,12 @@ pub(crate) fn time_num_offset<'a>()
                 .or_not(),
         )
         .ignored()
+        .boxed()
 }
 
 pub(crate) fn time_offset<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone
 {
-    one_of("Zz").ignored().or(time_num_offset())
+    one_of("Zz").ignored().or(time_num_offset()).boxed()
 }
 
 pub(crate) fn time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
@@ -463,6 +467,7 @@ pub(crate) fn time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, cha
                 .or_not(),
         )
         .ignored()
+        .boxed()
 }
 
 pub(crate) fn month_day<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
@@ -537,6 +542,7 @@ pub(crate) fn year_month<'a>()
                 .from_str::<u32>()
                 .unwrapped()),
     )
+    .boxed()
 }
 
 pub(crate) fn date<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
@@ -569,10 +575,11 @@ pub(crate) fn date<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, cha
         .then_ignore(just('-'))
         .ignore_with_ctx(day.clone())
         .or(year_month().ignore_with_ctx(day))
+        .boxed()
 }
 
 pub(crate) fn date_time<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
-    date().then(one_of("tT ")).then(time()).ignored()
+    date().then(one_of("tT ")).then(time()).ignored().boxed()
 }
 
 pub(crate) fn timezone<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
@@ -591,6 +598,7 @@ pub(crate) fn timezone<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a,
         )
         .delimited_by(just('['), just(']'))
         .ignored()
+        .boxed()
 }
 
 pub(crate) fn suffix_tag<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> + Clone {
@@ -609,4 +617,5 @@ pub(crate) fn suffix_tag<'a>() -> impl Parser<'a, &'a str, (), extra::Err<Rich<'
         )
         .delimited_by(just('['), just(']'))
         .ignored()
+        .boxed()
 }

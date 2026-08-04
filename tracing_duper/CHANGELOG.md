@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Use `jiff` instead of `chrono`.
+- **Breaking**: Replace `chrono` with `jiff`.
 
 ## 0.1.1 (2025-12-23)
 

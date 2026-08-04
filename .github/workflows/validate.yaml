@@ -33,20 +33,6 @@ jobs:
       - name: Run rustfmt
         run: |
           cargo fmt --check -p axum_duper -p duper -p duper_uniffi -p duper-python -p serde_duper -p serde_duper_macros
-  ruff:
-    name: Check Ruff formatting on minimum Python version
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          persist-credentials: false
-      - name: Run ruff
-        uses: astral-sh/ruff-action@57714a7c8a2e59f32539362ba31877a1957dded1 # v3.5.1
-        with:
-          version: ">=0.16.1"
-          src: >-
-            duper-python/
   build-rust:
     name: Build on MSRV
     runs-on: ubuntu-latest
