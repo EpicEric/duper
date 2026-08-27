@@ -4,7 +4,7 @@ use serde::Deserialize;
 use zed_extension_api::{self as zed, http_client};
 
 const CRATES_IO_DUPER_LSP_URL: &str = "https://crates.io/api/v1/crates/duper_lsp";
-const DOWNLOAD_BASE_URL: &str = "https://codeberg.org/api/packages/EpicEric9/generic";
+const DOWNLOAD_BASE_URL: &str = "https://codeberg.org/api/packages/duper/generic";
 
 struct DuperExtension {
     cached_binary_path: Option<String>,

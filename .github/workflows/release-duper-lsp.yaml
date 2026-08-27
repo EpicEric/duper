@@ -101,7 +101,7 @@ jobs:
           curl --fail \
             --header "Authorization: token ${{ secrets.CODEBERG_PACKAGE_WRITE_TOKEN }}" \
             --upload-file target/${{ matrix.target }}/release/duper_lsp${{ matrix.os == 'windows' && '.exe' || '' }} \
-            "https://codeberg.org/api/packages/EpicEric9/generic/duper_lsp/${{ needs.prepare_duper_lsp.outputs.version }}/duper_lsp_${{ matrix.suffix }}"
+            "https://codeberg.org/api/packages/duper/generic/duper_lsp/${{ needs.prepare_duper_lsp.outputs.version }}/duper_lsp_${{ matrix.suffix }}"
 
   publish-to-crates-io:
     name: Publish to crates.io
