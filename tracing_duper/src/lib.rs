@@ -58,13 +58,13 @@
 
 use std::{
     borrow::Cow,
-    collections::BTreeMap,
     io::{self, Write},
     marker::PhantomData,
     time::Instant,
 };
 
 use duper::{DuperFloat, DuperIdentifier, DuperKey, DuperObject, DuperValue, Serializer};
+use indexmap::IndexMap;
 #[cfg(feature = "jiff")]
 use jiff::{Timestamp, Zoned};
 use tracing_core::{Event, Subscriber, field};
@@ -382,7 +382,7 @@ where
         let span = ctx.span(id).expect("span should exist");
         let mut extensions = span.extensions_mut();
         if let Some(object) = extensions.get_mut::<DuperFields>() {
-            let mut visitor = DuperVisitor::from(std::mem::replace(
+            let mut visitor = DuperVisitor::from_object(std::mem::replace(
                 &mut object.0,
                 DuperObject::try_from(vec![]).expect("empty object is valid"),
             ));
@@ -608,13 +608,25 @@ where
 struct DuperFields<'a>(DuperObject<'a>);
 
 struct DuperVisitor<'a> {
-    values: BTreeMap<DuperKey<'a>, DuperValue<'a>>,
+    values: IndexMap<DuperKey<'a>, DuperValue<'a>>,
+    overwrite: bool,
 }
 
-impl DuperVisitor<'_> {
+impl<'a> DuperVisitor<'a> {
     fn new() -> Self {
         Self {
-            values: BTreeMap::new(),
+            values: IndexMap::new(),
+            overwrite: false,
+        }
+    }
+
+    /// Creates a visitor seeded with the given object's values, in overwrite
+    /// mode so that recorded values replace existing ones (used by `on_record`,
+    /// which updates span fields rather than recording them for the first time).
+    fn from_object(object: DuperObject<'a>) -> Self {
+        Self {
+            values: object.into_inner(),
+            overwrite: true,
         }
     }
 }
@@ -627,14 +639,6 @@ impl std::fmt::Debug for DuperVisitor<'_> {
     }
 }
 
-impl<'a> From<DuperObject<'a>> for DuperVisitor<'a> {
-    fn from(value: DuperObject<'a>) -> Self {
-        Self {
-            values: value.into_inner().into_iter().collect(),
-        }
-    }
-}
-
 impl<'a> tracing_subscriber::field::VisitOutput<DuperObject<'a>> for DuperVisitor<'a> {
     fn finish(self) -> DuperObject<'a> {
         DuperObject::from(self.values)
@@ -644,7 +648,7 @@ impl<'a> tracing_subscriber::field::VisitOutput<DuperObject<'a>> for DuperVisito
 impl tracing_core::field::Visit for DuperVisitor<'_> {
     fn record_debug(&mut self, field: &tracing_core::Field, value: &dyn core::fmt::Debug) {
         let key = DuperKey::from(field.name());
-        if self.values.contains_key(&key) {
+        if !self.overwrite && self.values.contains_key(&key) {
             return;
         }
         self.values.insert(
@@ -658,7 +662,7 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
 
     fn record_f64(&mut self, field: &tracing_core::Field, value: f64) {
         let key = DuperKey::from(field.name());
-        if self.values.contains_key(&key) {
+        if !self.overwrite && self.values.contains_key(&key) {
             return;
         }
         if let Ok(value) = DuperFloat::try_new(value) {
@@ -674,7 +678,7 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
 
     fn record_i64(&mut self, field: &tracing_core::Field, value: i64) {
         let key = DuperKey::from(field.name());
-        if self.values.contains_key(&key) {
+        if !self.overwrite && self.values.contains_key(&key) {
             return;
         }
         self.values.insert(
@@ -688,7 +692,7 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
 
     fn record_u64(&mut self, field: &tracing_core::Field, value: u64) {
         let key = DuperKey::from(field.name());
-        if self.values.contains_key(&key) {
+        if !self.overwrite && self.values.contains_key(&key) {
             return;
         }
         if let Ok(value) = i64::try_from(value) {
@@ -712,7 +716,7 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
 
     fn record_i128(&mut self, field: &tracing_core::Field, value: i128) {
         let key = DuperKey::from(field.name());
-        if self.values.contains_key(&key) {
+        if !self.overwrite && self.values.contains_key(&key) {
             return;
         }
         if let Ok(value) = i64::try_from(value) {
@@ -736,7 +740,7 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
 
     fn record_u128(&mut self, field: &tracing_core::Field, value: u128) {
         let key = DuperKey::from(field.name());
-        if self.values.contains_key(&key) {
+        if !self.overwrite && self.values.contains_key(&key) {
             return;
         }
 
@@ -761,7 +765,7 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
 
     fn record_bool(&mut self, field: &tracing_core::Field, value: bool) {
         let key = DuperKey::from(field.name());
-        if self.values.contains_key(&key) {
+        if !self.overwrite && self.values.contains_key(&key) {
             return;
         }
         self.values.insert(
@@ -779,13 +783,13 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
             && let Ok(value) = duper::DuperParser::parse_duper_value(value)
         {
             let key = DuperKey::from(suffix);
-            if self.values.contains_key(&key) {
+            if !self.overwrite && self.values.contains_key(&key) {
                 return;
             }
             self.values.insert(key, value.static_clone());
         } else {
             let key = DuperKey::from(key);
-            if self.values.contains_key(&key) {
+            if !self.overwrite && self.values.contains_key(&key) {
                 return;
             }
             self.values.insert(
@@ -800,7 +804,7 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
 
     fn record_bytes(&mut self, field: &tracing_core::Field, value: &[u8]) {
         let key = DuperKey::from(field.name());
-        if self.values.contains_key(&key) {
+        if !self.overwrite && self.values.contains_key(&key) {
             return;
         }
         self.values.insert(
@@ -818,7 +822,7 @@ impl tracing_core::field::Visit for DuperVisitor<'_> {
         value: &(dyn std::error::Error + 'static),
     ) {
         let key = DuperKey::from(field.name());
-        if self.values.contains_key(&key) {
+        if !self.overwrite && self.values.contains_key(&key) {
             return;
         }
         self.values.insert(
@@ -846,5 +850,143 @@ impl Timings {
             last: Instant::now(),
             entered_count: 0,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, Mutex, MutexGuard};
+    use tracing_subscriber::{fmt::writer::MakeWriter, layer::SubscriberExt};
+
+    #[derive(Clone)]
+    struct Buf(Arc<Mutex<Vec<u8>>>);
+
+    struct Guard<'a>(MutexGuard<'a, Vec<u8>>);
+
+    impl std::io::Write for Guard<'_> {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            self.0.write(buf)
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            self.0.flush()
+        }
+    }
+
+    impl<'writer> MakeWriter<'writer> for Buf {
+        type Writer = Guard<'writer>;
+        fn make_writer(&'writer self) -> Self::Writer {
+            Guard(self.0.lock().unwrap())
+        }
+    }
+
+    fn run_with_buffer<F: FnOnce()>(run: F) -> String {
+        let buf = Buf(Arc::default());
+        let layer = DuperLayer::new()
+            .with_writer(buf.clone())
+            .without_timer()
+            .with_level(false)
+            .with_target(false);
+        run_with_layer(&buf, layer, run)
+    }
+
+    fn run_with_layer<F: FnOnce()>(
+        buf: &Buf,
+        layer: DuperLayer<tracing_subscriber::registry::Registry, Buf, ()>,
+        run: F,
+    ) -> String {
+        let subscriber = tracing_subscriber::registry().with(layer);
+        tracing::subscriber::with_default(subscriber, run);
+        String::from_utf8(buf.0.lock().unwrap().clone()).expect("valid UTF-8 output")
+    }
+
+    #[test]
+    fn on_record_updates_duper_field() {
+        let output = run_with_buffer(|| {
+            let span = tracing::info_span!("my_span", "$duper.count" = "1");
+            span.record("$duper.count", "2");
+            let _guard = span.enter();
+            tracing::info!("hello");
+        });
+
+        assert!(
+            output.contains("count:2"),
+            "expected updated `$duper.count` value, got: {output}"
+        );
+    }
+
+    #[test]
+    fn on_record_updates_plain_field() {
+        let output = run_with_buffer(|| {
+            let span = tracing::info_span!("my_span", "status" = "pending");
+            span.record("status", "done");
+            let _guard = span.enter();
+            tracing::info!("hello");
+        });
+
+        assert!(
+            output.contains("status:\"done\""),
+            "expected updated `status` value, got: {output}"
+        );
+    }
+
+    #[test]
+    fn event_duper_field_is_parsed() {
+        let output = run_with_buffer(|| {
+            tracing::info!("$duper.count" = "2", "hello");
+        });
+
+        assert!(
+            output.contains("count:2"),
+            "expected parsed `$duper.count` value, got: {output}"
+        );
+        assert!(
+            !output.contains("$duper.count"),
+            "expected `$duper.` prefix to be stripped, got: {output}"
+        );
+    }
+
+    #[test]
+    fn event_duper_field_complex_value() {
+        let output = run_with_buffer(|| {
+            tracing::info!("$duper.point" = "(1, 2)", "hello");
+        });
+
+        assert!(
+            output.contains("point:(1,2)"),
+            "expected parsed `$duper.point` tuple, got: {output}"
+        );
+    }
+
+    #[test]
+    fn event_plain_field_is_string() {
+        let output = run_with_buffer(|| {
+            tracing::info!("status" = "pending", "hello");
+        });
+
+        assert!(
+            output.contains("status:\"pending\""),
+            "expected plain field as a string, got: {output}"
+        );
+    }
+
+    #[test]
+    fn event_fields_flattened() {
+        let buf = Buf(Arc::default());
+        let layer = DuperLayer::new()
+            .with_writer(buf.clone())
+            .without_timer()
+            .with_level(false)
+            .with_target(false)
+            .flatten_event(true);
+
+        let output = run_with_layer(&buf, layer, || {
+            tracing::info!("status" = "pending", "hello");
+        });
+
+        assert!(
+            output.contains("status:\"pending\"") && !output.contains("fields:"),
+            "expected flattened event fields, got: {output}"
+        );
     }
 }

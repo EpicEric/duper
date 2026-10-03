@@ -33,6 +33,7 @@ clap = { version = "^4", features = ["derive"] }
 duper = { path = "duper", version = "^0.6", features = ["ansi", "serde"] }
 duperfmt = { version = "^0.1", path = "duperfmt" }
 futures = "^0.3"
+indexmap = "^2"
 insta = "^1"
 ipnet = { version = "^2", features = ["serde"] }
 jiff = { version = "^0.2", features = ["serde"] }

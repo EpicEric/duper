@@ -4166,6 +4166,7 @@ name = "tracing_duper"
 version = "0.2.0"
 dependencies = [
  "duper",
+ "indexmap",
  "jiff",
  "serde_duper",
  "tracing",

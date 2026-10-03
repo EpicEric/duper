@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Update field values via `on_record` instead of ignoring them.
+
 ## 0.2.0 (2026-08-04)
 
 ### Changed
