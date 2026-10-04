@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2 (2026-10-03)
 
 - Add `{ span_event: "opened" }` event when creating span.
 
