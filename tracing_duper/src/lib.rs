@@ -370,6 +370,18 @@ where
 
         if self.track_timings() {
             extensions.insert(Timings::new());
+            drop(extensions);
+            let metadata = span.metadata();
+            let callsite = metadata.callsite();
+            let field_set = field::FieldSet::new(&["span_event"], callsite);
+            let mut fields = field_set.iter();
+            let values = [(
+                &fields.next().unwrap(),
+                Some(&"opened" as &dyn field::Value),
+            )];
+            let value_set = field_set.value_set(&values);
+            let event = Event::new_child_of(id, metadata, &value_set);
+            self.on_event(&event, ctx.clone());
         }
     }
 
@@ -886,7 +898,8 @@ mod tests {
             .with_writer(buf.clone())
             .without_timer()
             .with_level(false)
-            .with_target(false);
+            .with_target(false)
+            .with_span_timings(true);
         run_with_layer(&buf, layer, run)
     }
 
@@ -910,8 +923,16 @@ mod tests {
         });
 
         assert!(
+            output.contains(r#"span_event:"opened""#),
+            "expected to enter `my_span`, got: {output}"
+        );
+        assert!(
             output.contains("count:2"),
             "expected updated `$duper.count` value, got: {output}"
+        );
+        assert!(
+            output.contains(r#"span_event:"closed""#),
+            "expected to close `my_span`, got: {output}"
         );
     }
 
@@ -925,8 +946,16 @@ mod tests {
         });
 
         assert!(
+            output.contains(r#"span_event:"opened""#),
+            "expected to enter `my_span`, got: {output}"
+        );
+        assert!(
             output.contains("status:\"done\""),
             "expected updated `status` value, got: {output}"
+        );
+        assert!(
+            output.contains(r#"span_event:"closed""#),
+            "expected to close `my_span`, got: {output}"
         );
     }
 
